@@ -1,0 +1,1 @@
+DROP  DATABASE chat_service_db;

@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  user-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: user_service_db
+    ports:
+      - "5460:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user_service_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - haxer-net
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+#      - ./init-user.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  users-service:
+    build: ./user_service
+    environment:
+      USER_HTTP_PORT: "8080"
+      USER_DB_URL: "postgres://postgres:postgres@user-db:5432/user_service_db"
+    ports:
+      - "8082:8082"
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - haxer-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  chat-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: chat_service_db
+    ports:
+      - "5461:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chat_service_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - haxer-net
+    volumes:
+      - chat-db-data:/var/lib/postgresql/data
+#      - ./init-chat.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  chat-service:
+    build: ./chat_service
+    environment:
+      CHAT_HTTP_PORT: "8081"
+      CHAT_DB_URL: "postgres://postgres:postgres@chat-db:5432/chat_service_db"
+    ports:
+      - "8081:8081"
+    depends_on:
+      chat-db:
+        condition: service_healthy
+    networks:
+      - haxer-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  haxer-net:
+    driver: bridge
+
+volumes:
+  user-db-data:
+  chat-db-data:
