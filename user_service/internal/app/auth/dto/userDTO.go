@@ -32,3 +32,10 @@ type UserCreateDTO struct {
 	Name  string `json:"name" binding:"required, min=1, max=50"`
 	Email string `json:"email" binding:"required,email"`
 }
+
+type UserListDTO struct {
+	Total  int            `json:"total"`
+	Limit  int            `json:"limit"`
+	Offset int            `json:"offset"`
+	List   []*UserViewDTO `json:"list"`
+}
