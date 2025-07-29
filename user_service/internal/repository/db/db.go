@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"user_service/internal/config"
 )
 
 type Database struct {
@@ -19,8 +20,15 @@ type Database struct {
 	Migrate *migrate.Migrate
 }
 
-func NewDB(ctx context.Context) (*Database, error) {
-	dsn := "host=localhost user=postgres password=postgres dbname=user_service_db port=5460 sslmode=disable"
+func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
+	dsn :=
+		`host=` + cfg.Host +
+			` user=` + cfg.User +
+			` password=` + cfg.Password +
+			` dbname=` + cfg.UserDbname +
+			` port=` + cfg.UserPort +
+			` sslmode=` + cfg.Sslmode
+
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("connection failed %w", err)

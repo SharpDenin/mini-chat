@@ -22,7 +22,7 @@ func NewUserRepo(db *gorm.DB, log *logrus.Logger) postgres.UserRepoInterface {
 
 }
 
-func (u UserRepo) Create(ctx context.Context, person *model.User) (*dto.UserCreateDTO, error) {
+func (u *UserRepo) Create(ctx context.Context, person *model.User) (*dto.UserCreateDTO, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -37,12 +37,12 @@ func (u UserRepo) GetAll(ctx context.Context, limit, offset int) ([]*dto.UserVie
 	panic("implement me")
 }
 
-func (u UserRepo) Update(ctx context.Context, id int64, person *model.User) (*dto.UserViewDTO, error) {
+func (u *UserRepo) Update(ctx context.Context, id int64, person *model.User) (*dto.UserViewDTO, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (u UserRepo) Delete(ctx context.Context, id int64) error {
+func (u *UserRepo) Delete(ctx context.Context, id int64) error {
 	//TODO implement me
 	panic("implement me")
 }

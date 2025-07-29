@@ -13,17 +13,3 @@ type UserRepoInterface interface {
 	Update(ctx context.Context, id int64, person *model.User) (*dto.UserViewDTO, error)
 	Delete(ctx context.Context, id int64) error
 }
-
-//type Tx interface {
-//	User() UserRepoInterface
-//	DB() *gorm.DB
-//}
-//
-//type TxOptions struct {
-//	IsolationLevel sql.IsolationLevel
-//	ReadOnly       bool
-//}
-//
-//type TxManager interface {
-//	WithTransaction(ctx context.Context, fn func(ctx context.Context, tx Tx) error, opts ...TxOptions) error
-//}
