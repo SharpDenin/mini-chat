@@ -2,6 +2,7 @@ package implementation
 
 import (
 	"context"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"user_service/internal/app/auth/dto"
@@ -23,8 +24,22 @@ func NewUserRepo(db *gorm.DB, log *logrus.Logger) postgres.UserRepoInterface {
 }
 
 func (u *UserRepo) Create(ctx context.Context, person *model.User) (*dto.UserCreateDTO, error) {
-	//TODO implement me
-	panic("implement me")
+	tx := u.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Create(person).Error; err != nil {
+		tx.Rollback()
+		u.log.WithError(err).Error("create user error:")
+		return nil, fmt.Errorf("create user error: %w", err)
+	}
+	if err := tx.Commit().Error; err != nil {
+		u.log.WithError(err).Error("failed to commit")
+		return nil, fmt.Errorf("failed to commit: %w", err)
+	}
+	return dto.ToUserCreateDto(person), nil
 }
 
 func (u UserRepo) GetById(ctx context.Context, id int64) (*dto.UserViewDTO, error) {
