@@ -24,22 +24,10 @@ func NewUserRepo(db *gorm.DB, log *logrus.Logger) postgres.UserRepoInterface {
 }
 
 func (u *UserRepo) Create(ctx context.Context, person *model.User) (*model.User, error) {
-	tx := u.db.WithContext(ctx).Begin()
-	committed := false
-	defer func() {
-		if !committed {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Create(person).Error; err != nil {
+	if err := u.db.Create(person).Error; err != nil {
 		u.log.WithError(err).Error("create user error:")
 		return nil, fmt.Errorf("create user error: %w", err)
 	}
-	if err := tx.Commit().Error; err != nil {
-		u.log.WithError(err).Error("failed to commit")
-		return nil, fmt.Errorf("failed to commit: %w", err)
-	}
-	committed = true
 	return person, nil
 }
 
@@ -91,7 +79,7 @@ func (u UserRepo) GetAll(ctx context.Context, limit, offset int) (int, []*model.
 }
 
 func (u *UserRepo) Update(ctx context.Context, id int64, person *model.User) (*model.User, error) {
-	tx := u.db.WithContext(ctx).Begin()
+	tx := u.db.Begin().WithContext(ctx)
 	committed := false
 	defer func() {
 		if !committed {
@@ -100,12 +88,25 @@ func (u *UserRepo) Update(ctx context.Context, id int64, person *model.User) (*m
 	}()
 
 	var existingUser model.User
+
 	if err := tx.First(&existingUser, id).Error; err != nil {
-		tx.Rollback()
+		u.log.WithError(err).Error("get user by id error")
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
-	if err := tx.Model(&existingUser).Updates(person).Error; err != nil {
-		tx.Rollback()
+	updates := map[string]interface{}{}
+	if person.Email != "" {
+		updates["Email"] = person.Email
+	}
+	if person.Username != "" {
+		updates["Username"] = person.Username
+	}
+	if person.Password != "" {
+		updates["Password"] = person.Password
+	}
+	if len(updates) == 0 {
+		return &existingUser, nil
+	}
+	if err := tx.Model(&existingUser).Updates(updates).Error; err != nil {
 		u.log.WithError(err).Error("update user error")
 		return nil, fmt.Errorf("update user error: %w", err)
 	}
@@ -118,21 +119,13 @@ func (u *UserRepo) Update(ctx context.Context, id int64, person *model.User) (*m
 }
 
 func (u *UserRepo) Delete(ctx context.Context, id int64) error {
-	tx := u.db.WithContext(ctx).Begin()
-	committed := false
-	defer func() {
-		if !committed {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Delete(&model.User{}, id).Error; err != nil {
+	if err := u.db.Delete(&model.User{}, id).Error; err != nil {
 		u.log.WithError(err).Error("delete user error:")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			u.log.WithError(err).Info("user not found")
+			return fmt.Errorf("user not found: %w", err)
+		}
 		return fmt.Errorf("delete user error: %w", err)
 	}
-	if err := tx.Commit().Error; err != nil {
-		u.log.WithError(err).Error("failed to commit")
-		return fmt.Errorf("failed to commit: %w", err)
-	}
-	committed = true
 	return nil
 }
