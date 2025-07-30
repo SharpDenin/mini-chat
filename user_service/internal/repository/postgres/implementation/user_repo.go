@@ -25,7 +25,12 @@ func NewUserRepo(db *gorm.DB, log *logrus.Logger) postgres.UserRepoInterface {
 
 func (u *UserRepo) Create(ctx context.Context, person *model.User) (*model.User, error) {
 	tx := u.db.WithContext(ctx).Begin()
-	defer tx.Rollback()
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
 	if err := tx.Create(person).Error; err != nil {
 		u.log.WithError(err).Error("create user error:")
 		return nil, fmt.Errorf("create user error: %w", err)
@@ -34,6 +39,7 @@ func (u *UserRepo) Create(ctx context.Context, person *model.User) (*model.User,
 		u.log.WithError(err).Error("failed to commit")
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
+	committed = true
 	return person, nil
 }
 
@@ -85,10 +91,10 @@ func (u UserRepo) GetAll(ctx context.Context, limit, offset int) (int, []*model.
 }
 
 func (u *UserRepo) Update(ctx context.Context, id int64, person *model.User) (*model.User, error) {
-	tx := u.db.WithContext(ctx).
-		Begin()
+	tx := u.db.WithContext(ctx).Begin()
+	committed := false
 	defer func() {
-		if r := recover(); r != nil {
+		if !committed {
 			tx.Rollback()
 		}
 	}()
@@ -98,23 +104,27 @@ func (u *UserRepo) Update(ctx context.Context, id int64, person *model.User) (*m
 		tx.Rollback()
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
-
-	if err := tx.Save(person).Error; err != nil {
+	if err := tx.Model(&existingUser).Updates(person).Error; err != nil {
 		tx.Rollback()
-		u.log.WithError(err).Error("update user error:")
+		u.log.WithError(err).Error("update user error")
 		return nil, fmt.Errorf("update user error: %w", err)
 	}
 	if err := tx.Commit().Error; err != nil {
 		u.log.WithError(err).Error("failed to commit")
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
-	return person, nil
+	committed = true
+	return &existingUser, nil
 }
 
 func (u *UserRepo) Delete(ctx context.Context, id int64) error {
-	tx := u.db.WithContext(ctx).
-		Begin()
-	defer tx.Rollback()
+	tx := u.db.WithContext(ctx).Begin()
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
 	if err := tx.Delete(&model.User{}, id).Error; err != nil {
 		u.log.WithError(err).Error("delete user error:")
 		return fmt.Errorf("delete user error: %w", err)
@@ -123,5 +133,6 @@ func (u *UserRepo) Delete(ctx context.Context, id int64) error {
 		u.log.WithError(err).Error("failed to commit")
 		return fmt.Errorf("failed to commit: %w", err)
 	}
+	committed = true
 	return nil
 }

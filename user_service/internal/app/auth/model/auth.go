@@ -3,10 +3,10 @@ package model
 import "time"
 
 type AuthToken struct {
-	Id        string    `json:"id" db:"id" validate:"required"`
-	UserId    string    `json:"user_id" db:"user_id"`
-	Token     string    `json:"token" db:"token" validate:"required"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
-	Revoked   bool      `json:"revoked" db:"revoked"`
+	Id        int64     `json:"id" gorm:"column:id" validate:"required"`
+	UserId    int64     `json:"user_id"`
+	Token     string    `json:"token" gorm:"column:token" validate:"required"`
+	CreatedAt time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	ExpiresAt time.Time `json:"expires_at" gorm:"column:expires_at"`
+	Revoked   bool      `json:"revoked" gorm:"column:revoked"`
 }

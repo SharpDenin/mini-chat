@@ -12,3 +12,7 @@ type UserRepoInterface interface {
 	Update(ctx context.Context, id int64, person *model.User) (*model.User, error)
 	Delete(ctx context.Context, id int64) error
 }
+
+type AuthRepoInterface interface {
+
+}
