@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"user_service/internal/app/auth/model"
+	"user_service/internal/app/user/model"
 	"user_service/internal/repository/postgres"
 )
 

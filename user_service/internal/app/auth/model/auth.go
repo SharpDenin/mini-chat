@@ -1,8 +1,12 @@
 package model
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type AuthToken struct {
+	gorm.Model
 	Id        int64     `json:"id" gorm:"column:id" validate:"required"`
 	UserId    int64     `json:"user_id"`
 	Token     string    `json:"token" gorm:"column:token" validate:"required"`

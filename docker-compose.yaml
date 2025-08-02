@@ -18,7 +18,6 @@ services:
       - haxer-net
     volumes:
       - user-db-data:/var/lib/postgresql/data
-#      - ./init-user.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -62,7 +61,6 @@ services:
       - haxer-net
     volumes:
       - chat-db-data:/var/lib/postgresql/data
-#      - ./init-chat.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     logging:
       driver: "json-file"

@@ -2,7 +2,7 @@ package dto
 
 import (
 	"time"
-	"user_service/internal/app/auth/model"
+	"user_service/internal/app/user/model"
 )
 
 func ToUserCreateDto(user *model.User) *UserCreateDTO {
