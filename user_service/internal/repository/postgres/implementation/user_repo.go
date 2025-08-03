@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"user_service/internal/app/user/dto"
 	"user_service/internal/app/user/model"
 	"user_service/internal/repository/postgres"
 )
@@ -48,28 +49,38 @@ func (u UserRepo) GetById(ctx context.Context, id int64) (*model.User, error) {
 	return &person, nil
 }
 
-func (u UserRepo) GetAll(ctx context.Context, limit, offset int) (int, []*model.User, error) {
-	if limit < 0 || offset < 0 {
+func (u UserRepo) GetAll(ctx context.Context, filter dto.SearchUserFilterDTO) (int, []*model.User, error) {
+	if filter.Limit < 0 || filter.Offset < 0 {
 		return 0, nil, fmt.Errorf("invalid pagination params: limit and offset must be positive")
+	}
+
+	query := u.db.WithContext(ctx).Model(&model.User{})
+
+	if filter.Username != "" {
+		query = query.Where("username LIKE ?", "%"+filter.Username+"%")
+	}
+	if filter.Email != "" {
+		query = query.Where("email LIKE ?", "%"+filter.Email+"%")
+	}
+	if filter.SortBy != "" {
+		query = query.Order(filter.SortBy)
 	}
 
 	var total int64
 	var users []*model.User
 
-	if err := u.db.WithContext(ctx).
-		Model(&model.User{}).
-		Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		u.log.WithError(err).Error("count users error")
 		return 0, nil, fmt.Errorf("count users error: %w", err)
 	}
 
-	if limit == 0 {
+	if filter.Limit == 0 {
 		return int(total), nil, nil
 	}
 
-	if err := u.db.WithContext(ctx).
-		Limit(limit).
-		Offset(offset).
+	if err := query.
+		Limit(filter.Limit).
+		Offset(filter.Offset).
 		Find(&users).Error; err != nil {
 		u.log.WithError(err).Error("get all users error")
 		return 0, nil, fmt.Errorf("get all users error: %w", err)

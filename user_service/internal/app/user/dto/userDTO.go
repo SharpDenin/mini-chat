@@ -39,3 +39,11 @@ type UserListDTO struct {
 	Offset int            `json:"offset"`
 	List   []*UserViewDTO `json:"list"`
 }
+
+type SearchUserFilterDTO struct {
+	Username string
+	Email    string
+	SortBy   string
+	Limit    int
+	Offset   int
+}
