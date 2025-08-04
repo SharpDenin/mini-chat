@@ -9,7 +9,7 @@ import (
 	"os"
 	"user_service/internal/app/models"
 	"user_service/internal/app/user/service/dto"
-	"user_service/internal/app/user/service/validation"
+	"user_service/internal/app/user/service/helpers"
 	"user_service/internal/repository/postgres/implementation"
 )
 
@@ -33,7 +33,7 @@ func NewUserService(log *logrus.Logger, uRepo implementation.UserRepo) *UserServ
 
 func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUserResponse, error) {
 	u.log.Debugf("GetUserById %v", userId)
-	if err := validation.ValidateUserId(userId); err != nil {
+	if err := helpers.ValidateUserId(userId); err != nil {
 		u.log.Errorf("userId validation error %v: %v", userId, err)
 		return nil, fmt.Errorf("validation error %v: %w", userId, err)
 	}
@@ -88,7 +88,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 
 func (u *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (int64, error) {
 	u.log.Debugf("CreateUser")
-	if err := validation.ValidateUserForCreate(req); err != nil {
+	if err := helpers.ValidateUserForCreate(req); err != nil {
 		u.log.Errorf("userModel validation error %v: %v", req, err)
 		return 0, fmt.Errorf("validation error %v: %w", req, err)
 	}
@@ -125,7 +125,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 	if req.Password != nil {
 		currentUser.Password = *req.Password
 	}
-	if err := validation.ValidateUserForUpdate(currentUser); err != nil {
+	if err := helpers.ValidateUserForUpdate(currentUser); err != nil {
 		u.log.Errorf("userModel validation error %v: %v", req, err)
 		return fmt.Errorf("validation error %v: %w", req, err)
 	}
@@ -143,7 +143,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 
 func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 	u.log.Debugf("DeleteUser")
-	if err := validation.ValidateUserId(userId); err != nil {
+	if err := helpers.ValidateUserId(userId); err != nil {
 		u.log.Errorf("userId validation error %v: %v", userId, err)
 		return fmt.Errorf("validation error %v: %w", userId, err)
 	}
