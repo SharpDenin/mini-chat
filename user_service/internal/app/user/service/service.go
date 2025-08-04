@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"math"
 	"os"
 	"user_service/internal/app/user/dto"
 	"user_service/internal/app/user/model"
@@ -62,10 +61,6 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 
 	total, users, err := u.uRepo.GetAll(ctx, filter)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			u.log.Infof("No users found")
-			return 0, nil, nil
-		}
 		u.log.Errorf("GetAllUsers error: %v", err)
 		return 0, nil, fmt.Errorf("GetAll error: %v", err)
 	}
@@ -74,7 +69,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 
 func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, error) {
 	u.log.Debugf("CreateUser")
-	if err := validateUserModel(user); err != nil {
+	if err := validateUserForCreate(user); err != nil {
 		u.log.Errorf("userModel validation error %v: %v", user, err)
 		return 0, fmt.Errorf("validation error %v: %w", user, err)
 	}
@@ -83,7 +78,7 @@ func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, 
 		u.log.Errorf("CreateUser error: %v", err)
 		return 0, fmt.Errorf("CreateUser error: %w", err)
 	}
-	err = validateUserModel(uModel)
+	err = validateUserForCreate(uModel)
 	if err != nil {
 		u.log.Warnf("entity validation error %v: %v", uModel, err)
 		return uModel.Id, nil
@@ -93,7 +88,7 @@ func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, 
 
 func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.User) error {
 	u.log.Debugf("UpdateUser")
-	if err := validateUserModel(user); err != nil {
+	if err := validateUserForUpdate(user); err != nil {
 		u.log.Errorf("userModel validation error %v: %v", user, err)
 		return fmt.Errorf("validation error %v: %w", user, err)
 	}
@@ -106,7 +101,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.
 		u.log.Errorf("UpdateUser error: %v", err)
 		return fmt.Errorf("UpdateUser error: %w", err)
 	}
-	err = validateUserModel(uModel)
+	err = validateUserForUpdate(uModel)
 	if err != nil {
 		u.log.Warnf("entity validation error %v: %v", uModel, err)
 		return nil
@@ -146,30 +141,28 @@ func validateUserId(userId int64) error {
 	if userId <= 0 {
 		return fmt.Errorf("user ID must be positive")
 	}
-	if userId > math.MaxInt64 {
-		return fmt.Errorf("userId is too large")
+	return nil
+}
+
+func validateUserForCreate(u *model.User) error {
+	if u == nil {
+		return errors.New("userModel is nil")
+	}
+	if u.Username == "" || len(u.Username) > 50 {
+		return errors.New("invalid username")
+	}
+	if u.Email == "" {
+		return errors.New("email is required")
 	}
 	return nil
 }
 
-func validateUserModel(userModel *model.User) error {
-	if userModel == nil {
-		return fmt.Errorf("userModel is nil")
+func validateUserForUpdate(u *model.User) error {
+	if u == nil {
+		return errors.New("userModel is nil")
 	}
-	if userModel.Id <= 0 {
-		return fmt.Errorf("userModel id should be positive")
-	}
-	if userModel.Id > math.MaxInt64 {
-		return fmt.Errorf("userModel id is too large")
-	}
-	if userModel.Username == "" {
-		return fmt.Errorf("userModel username cannot be empty")
-	}
-	if len(userModel.Username) > 50 || len(userModel.Username) < 1 {
-		return fmt.Errorf("userModel username out of range")
-	}
-	if userModel.Email == "" {
-		return fmt.Errorf("userModel email cannot be empty")
+	if u.Id <= 0 {
+		return errors.New("user ID must be positive")
 	}
 	return nil
 }
