@@ -7,9 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"os"
-	"user_service/internal/app/user/entities/dto"
-	"user_service/internal/app/user/entities/model"
-	"user_service/internal/app/user/validation"
+	"user_service/internal/app/models"
+	"user_service/internal/app/user/service/dto"
+	"user_service/internal/app/user/service/validation"
 	"user_service/internal/repository/postgres/implementation"
 )
 
@@ -31,7 +31,7 @@ func NewUserService(log *logrus.Logger, uRepo implementation.UserRepo) *UserServ
 	}
 }
 
-func (u *UserService) GetUserById(ctx context.Context, userId int64) (*model.User, error) {
+func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUserResponse, error) {
 	u.log.Debugf("GetUserById %v", userId)
 	if err := validation.ValidateUserId(userId); err != nil {
 		u.log.Errorf("userId validation error %v: %v", userId, err)
@@ -46,54 +46,90 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*model.Use
 		u.log.Errorf("GetUserById error: %v", err)
 		return nil, fmt.Errorf("GetUserById error: %w", err)
 	}
-	return user, nil
+	response := &dto.GetUserResponse{
+		Name:      user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+	return response, nil
 }
 
-func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilterDTO) (int, []*model.User, error) {
+func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilter) (*dto.GetUserViewListResponse, error) {
 	u.log.Debugf("GetAllUsers")
-	if filter.Limit > 50 || filter.Limit <= 0 {
+	if filter.Limit > 50 {
 		u.log.WithError(fmt.Errorf("invalid limit: %v", filter.Limit))
-		return 0, nil, fmt.Errorf("limit should be between 0 and 50")
+		return nil, fmt.Errorf("limit should be between 0 and 50")
 	}
 	if filter.Offset < 0 {
 		u.log.WithError(fmt.Errorf("invalid offset: %v", filter.Offset))
-		return 0, nil, fmt.Errorf("offset cannot be negative")
+		return nil, fmt.Errorf("offset cannot be negative")
 	}
 
 	total, users, err := u.uRepo.GetAll(ctx, filter)
 	if err != nil {
 		u.log.Errorf("GetAllUsers error: %v", err)
-		return 0, nil, fmt.Errorf("GetAll error: %v", err)
+		return nil, fmt.Errorf("GetAll error: %v", err)
 	}
-	return total, users, nil
+	response := &dto.GetUserViewListResponse{
+		UserList: make([]*dto.GetUserResponse, 0, len(users)),
+		Limit:    filter.Limit,
+		Offset:   filter.Offset,
+		Total:    total,
+	}
+	for _, user := range users {
+		response.UserList = append(response.UserList, &dto.GetUserResponse{
+			Name:      user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+		})
+	}
+	return response, nil
 }
 
-func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, error) {
+func (u *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (int64, error) {
 	u.log.Debugf("CreateUser")
-	if err := validation.ValidateUserForCreate(user); err != nil {
-		u.log.Errorf("userModel validation error %v: %v", user, err)
-		return 0, fmt.Errorf("validation error %v: %w", user, err)
+	if err := validation.ValidateUserForCreate(req); err != nil {
+		u.log.Errorf("userModel validation error %v: %v", req, err)
+		return 0, fmt.Errorf("validation error %v: %w", req, err)
 	}
-	uModel, err := u.uRepo.Create(ctx, user)
+	userModel := &models.User{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	}
+	uModel, err := u.uRepo.Create(ctx, userModel)
 	if err != nil {
 		u.log.Errorf("CreateUser error: %v", err)
 		return 0, fmt.Errorf("CreateUser error: %w", err)
 	}
-	err = validation.ValidateUserForCreate(uModel)
-	if err != nil {
-		u.log.Warnf("entity validation error %v: %v", uModel, err)
-		return uModel.Id, nil
-	}
 	return uModel.Id, nil
 }
 
-func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.User) error {
+func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.UpdateUserRequest) error {
 	u.log.Debugf("UpdateUser")
-	if err := validation.ValidateUserForUpdate(user); err != nil {
-		u.log.Errorf("userModel validation error %v: %v", user, err)
-		return fmt.Errorf("validation error %v: %w", user, err)
+	currentUser, err := u.uRepo.GetById(ctx, userId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			u.log.Infof("User Not Found, id: %d", userId)
+			return fmt.Errorf("user not found: %w", err)
+		}
+		u.log.Errorf("GetUserById error: %v", err)
+		return fmt.Errorf("GetUserById error: %w", err)
 	}
-	uModel, err := u.uRepo.Update(ctx, userId, user)
+	if req.Username != nil {
+		currentUser.Username = *req.Username
+	}
+	if req.Email != nil {
+		currentUser.Email = *req.Email
+	}
+	if req.Password != nil {
+		currentUser.Password = *req.Password
+	}
+	if err := validation.ValidateUserForUpdate(currentUser); err != nil {
+		u.log.Errorf("userModel validation error %v: %v", req, err)
+		return fmt.Errorf("validation error %v: %w", req, err)
+	}
+	_, err = u.uRepo.Update(ctx, userId, currentUser)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			u.log.Infof("User Not Found, id: %d", userId)
@@ -101,11 +137,6 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.
 		}
 		u.log.Errorf("UpdateUser error: %v", err)
 		return fmt.Errorf("UpdateUser error: %w", err)
-	}
-	err = validation.ValidateUserForUpdate(uModel)
-	if err != nil {
-		u.log.Warnf("entity validation error %v: %v", uModel, err)
-		return nil
 	}
 	return nil
 }

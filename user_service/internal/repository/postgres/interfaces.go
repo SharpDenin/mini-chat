@@ -3,14 +3,14 @@ package postgres
 import (
 	"context"
 	"user_service/internal/app/auth/model"
-	"user_service/internal/app/user/entities/dto"
-	uModel "user_service/internal/app/user/entities/model"
+	uModel "user_service/internal/app/models"
+	"user_service/internal/app/user/service/dto"
 )
 
 type UserRepoInterface interface {
 	Create(ctx context.Context, person *uModel.User) (*uModel.User, error)
 	GetById(ctx context.Context, id int64) (*uModel.User, error)
-	GetAll(ctx context.Context, filter dto.SearchUserFilterDTO) (int, []*uModel.User, error)
+	GetAll(ctx context.Context, filter dto.SearchUserFilter) (int, []*uModel.User, error)
 	Update(ctx context.Context, id int64, person *uModel.User) (*uModel.User, error)
 	Delete(ctx context.Context, id int64) error
 }
