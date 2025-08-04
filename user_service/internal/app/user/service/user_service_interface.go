@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"user_service/internal/app/user/dto"
-	"user_service/internal/app/user/model"
+	"user_service/internal/app/user/entities/dto"
+	"user_service/internal/app/user/entities/model"
 )
 
 type UserServiceInterface interface {

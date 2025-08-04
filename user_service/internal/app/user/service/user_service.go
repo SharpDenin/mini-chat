@@ -7,8 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"os"
-	"user_service/internal/app/user/dto"
-	"user_service/internal/app/user/model"
+	"user_service/internal/app/user/entities/dto"
+	"user_service/internal/app/user/entities/model"
+	"user_service/internal/app/user/validation"
 	"user_service/internal/repository/postgres/implementation"
 )
 
@@ -32,7 +33,7 @@ func NewUserService(log *logrus.Logger, uRepo implementation.UserRepo) *UserServ
 
 func (u *UserService) GetUserById(ctx context.Context, userId int64) (*model.User, error) {
 	u.log.Debugf("GetUserById %v", userId)
-	if err := validateUserId(userId); err != nil {
+	if err := validation.ValidateUserId(userId); err != nil {
 		u.log.Errorf("userId validation error %v: %v", userId, err)
 		return nil, fmt.Errorf("validation error %v: %w", userId, err)
 	}
@@ -69,7 +70,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 
 func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, error) {
 	u.log.Debugf("CreateUser")
-	if err := validateUserForCreate(user); err != nil {
+	if err := validation.ValidateUserForCreate(user); err != nil {
 		u.log.Errorf("userModel validation error %v: %v", user, err)
 		return 0, fmt.Errorf("validation error %v: %w", user, err)
 	}
@@ -78,7 +79,7 @@ func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, 
 		u.log.Errorf("CreateUser error: %v", err)
 		return 0, fmt.Errorf("CreateUser error: %w", err)
 	}
-	err = validateUserForCreate(uModel)
+	err = validation.ValidateUserForCreate(uModel)
 	if err != nil {
 		u.log.Warnf("entity validation error %v: %v", uModel, err)
 		return uModel.Id, nil
@@ -88,7 +89,7 @@ func (u *UserService) CreateUser(ctx context.Context, user *model.User) (int64, 
 
 func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.User) error {
 	u.log.Debugf("UpdateUser")
-	if err := validateUserForUpdate(user); err != nil {
+	if err := validation.ValidateUserForUpdate(user); err != nil {
 		u.log.Errorf("userModel validation error %v: %v", user, err)
 		return fmt.Errorf("validation error %v: %w", user, err)
 	}
@@ -101,7 +102,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.
 		u.log.Errorf("UpdateUser error: %v", err)
 		return fmt.Errorf("UpdateUser error: %w", err)
 	}
-	err = validateUserForUpdate(uModel)
+	err = validation.ValidateUserForUpdate(uModel)
 	if err != nil {
 		u.log.Warnf("entity validation error %v: %v", uModel, err)
 		return nil
@@ -111,7 +112,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, user *model.
 
 func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 	u.log.Debugf("DeleteUser")
-	if err := validateUserId(userId); err != nil {
+	if err := validation.ValidateUserId(userId); err != nil {
 		u.log.Errorf("userId validation error %v: %v", userId, err)
 		return fmt.Errorf("validation error %v: %w", userId, err)
 	}
@@ -136,33 +137,3 @@ func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 //	//TODO implement me
 //	panic("implement me")
 //}
-
-func validateUserId(userId int64) error {
-	if userId <= 0 {
-		return fmt.Errorf("user ID must be positive")
-	}
-	return nil
-}
-
-func validateUserForCreate(u *model.User) error {
-	if u == nil {
-		return errors.New("userModel is nil")
-	}
-	if u.Username == "" || len(u.Username) > 50 {
-		return errors.New("invalid username")
-	}
-	if u.Email == "" {
-		return errors.New("email is required")
-	}
-	return nil
-}
-
-func validateUserForUpdate(u *model.User) error {
-	if u == nil {
-		return errors.New("userModel is nil")
-	}
-	if u.Id <= 0 {
-		return errors.New("user ID must be positive")
-	}
-	return nil
-}

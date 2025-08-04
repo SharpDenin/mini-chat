@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 	"user_service/internal/app/auth/model"
-	"user_service/internal/app/user/dto"
-	uModel "user_service/internal/app/user/model"
+	"user_service/internal/app/user/entities/dto"
+	uModel "user_service/internal/app/user/entities/model"
 )
 
 type UserRepoInterface interface {
