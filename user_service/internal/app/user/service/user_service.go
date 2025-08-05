@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"net/http"
 	"os"
 	"user_service/internal/app/models"
 	"user_service/internal/app/user/service/dto"
 	"user_service/internal/app/user/service/helpers"
 	"user_service/internal/repository/postgres/implementation"
+	"user_service/internal/utils"
 )
 
 type UserService struct {
@@ -39,12 +41,7 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUs
 	}
 	user, err := u.uRepo.GetById(ctx, userId)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			u.log.Infof("User Not Found, id: %d", userId)
-			return nil, fmt.Errorf("user not found: %w", err)
-		}
-		u.log.Errorf("GetUserById error: %v", err)
-		return nil, fmt.Errorf("GetUserById error: %w", err)
+		return nil, u.handleNotFound(err, userId, "GetUserById")
 	}
 	response := &dto.GetUserResponse{
 		Name:      user.Username,
@@ -168,3 +165,13 @@ func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 //	//TODO implement me
 //	panic("implement me")
 //}
+
+// Осознанно не вынес в хэлпер, т.к оверхэд
+func (u *UserService) handleNotFound(err error, id int64, operation string) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		u.log.Infof("User Not Found, id: %d", id)
+		return utils.NewCustomError(http.StatusNotFound, fmt.Sprintf("User not found, id: %d", id), err)
+	}
+	u.log.Errorf("%s error: %v", operation, err)
+	return utils.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("%s error", operation), err)
+}
