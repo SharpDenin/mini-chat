@@ -32,14 +32,14 @@ func NewUserHandler(userService service.UserServiceInterface, log *logrus.Logger
 func (h *UserHandler) GetUserById(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		h.log.WithError(err).Warn("invalid user id")
-		ctx.Error(utils.NewCustomError(http.StatusBadRequest, "Invalid user ID", err))
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid user ID")
+		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
 		return
 	}
 	user, err := h.userService.GetUserById(ctx.Request.Context(), id)
 	if err != nil {
-		h.log.WithError(err).Errorf("failed to get user %d", id)
-		ctx.Error(err)
+		h.log.WithFields(logrus.Fields{"error": err, "user_id": id, "path": ctx.Request.URL.Path}).Error("Failed to get user")
+		utils.HandleError(ctx, err, h.log)
 		return
 	}
 	resp := &dto.UserViewResponse{

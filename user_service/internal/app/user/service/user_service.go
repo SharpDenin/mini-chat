@@ -36,12 +36,11 @@ func NewUserService(log *logrus.Logger, uRepo implementation.UserRepo) *UserServ
 func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUserResponse, error) {
 	u.log.Debugf("GetUserById %v", userId)
 	if err := helpers.ValidateUserId(userId); err != nil {
-		u.log.Errorf("userId validation error %v: %v", userId, err)
-		return nil, fmt.Errorf("validation error %v: %w", userId, err)
+		return nil, utils.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
 	}
 	user, err := u.uRepo.GetById(ctx, userId)
 	if err != nil {
-		return nil, u.handleNotFound(err, userId, "GetUserById")
+		return nil, u.handleError(err, userId, "GetUserById")
 	}
 	response := &dto.GetUserResponse{
 		Name:      user.Username,
@@ -54,18 +53,14 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUs
 func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilter) (*dto.GetUserViewListResponse, error) {
 	u.log.Debugf("GetAllUsers")
 	if filter.Limit > 50 {
-		u.log.WithError(fmt.Errorf("invalid limit: %v", filter.Limit))
-		return nil, fmt.Errorf("limit should be between 0 and 50")
+		return nil, utils.NewCustomError(http.StatusBadRequest, "Limit should be between 0 and 50", nil)
 	}
 	if filter.Offset < 0 {
-		u.log.WithError(fmt.Errorf("invalid offset: %v", filter.Offset))
-		return nil, fmt.Errorf("offset cannot be negative")
+		return nil, utils.NewCustomError(http.StatusBadRequest, "Offset cannot be negative", nil)
 	}
-
 	total, users, err := u.uRepo.GetAll(ctx, filter)
 	if err != nil {
-		u.log.Errorf("GetAllUsers error: %v", err)
-		return nil, fmt.Errorf("GetAll error: %v", err)
+		return nil, u.handleError(err, 0, "GetAllUsers")
 	}
 	response := &dto.GetUserViewListResponse{
 		UserList: make([]*dto.GetUserResponse, 0, len(users)),
@@ -86,8 +81,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 func (u *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (int64, error) {
 	u.log.Debugf("CreateUser")
 	if err := helpers.ValidateUserForCreate(req); err != nil {
-		u.log.Errorf("userModel validation error %v: %v", req, err)
-		return 0, fmt.Errorf("validation error %v: %w", req, err)
+		return 0, utils.NewCustomError(http.StatusBadRequest, "Validation error", err)
 	}
 	userModel := &models.User{
 		Username: req.Username,
@@ -96,8 +90,7 @@ func (u *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	}
 	uModel, err := u.uRepo.Create(ctx, userModel)
 	if err != nil {
-		u.log.Errorf("CreateUser error: %v", err)
-		return 0, fmt.Errorf("CreateUser error: %w", err)
+		return 0, u.handleError(err, 0, "CreateUser")
 	}
 	return uModel.Id, nil
 }
@@ -106,12 +99,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 	u.log.Debugf("UpdateUser")
 	currentUser, err := u.uRepo.GetById(ctx, userId)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			u.log.Infof("User Not Found, id: %d", userId)
-			return fmt.Errorf("user not found: %w", err)
-		}
-		u.log.Errorf("GetUserById error: %v", err)
-		return fmt.Errorf("GetUserById error: %w", err)
+		return u.handleError(err, userId, "UpdateUser")
 	}
 	if req.Username != nil {
 		currentUser.Username = *req.Username
@@ -123,17 +111,11 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 		currentUser.Password = *req.Password
 	}
 	if err := helpers.ValidateUserForUpdate(currentUser); err != nil {
-		u.log.Errorf("userModel validation error %v: %v", req, err)
-		return fmt.Errorf("validation error %v: %w", req, err)
+		return utils.NewCustomError(http.StatusBadRequest, "Validation error", err)
 	}
 	_, err = u.uRepo.Update(ctx, userId, currentUser)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			u.log.Infof("User Not Found, id: %d", userId)
-			return fmt.Errorf("user not found: %w", err)
-		}
-		u.log.Errorf("UpdateUser error: %v", err)
-		return fmt.Errorf("UpdateUser error: %w", err)
+		return u.handleError(err, userId, "UpdateUser")
 	}
 	return nil
 }
@@ -141,17 +123,11 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 	u.log.Debugf("DeleteUser")
 	if err := helpers.ValidateUserId(userId); err != nil {
-		u.log.Errorf("userId validation error %v: %v", userId, err)
-		return fmt.Errorf("validation error %v: %w", userId, err)
+		return utils.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
 	}
 	err := u.uRepo.Delete(ctx, userId)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			u.log.Infof("User Not Found, id: %d", userId)
-			return fmt.Errorf("user not found: %w", err)
-		}
-		u.log.Errorf("DeleteUser error: %v", err)
-		return fmt.Errorf("DeleteUser error: %w", err)
+		return u.handleError(err, userId, "DeleteUser")
 	}
 	return nil
 }
@@ -166,12 +142,13 @@ func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 //	panic("implement me")
 //}
 
-// Осознанно не вынес в хэлпер, т.к оверхэд
-func (u *UserService) handleNotFound(err error, id int64, operation string) error {
+func (u *UserService) handleError(err error, id int64, operation string) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		u.log.Infof("User Not Found, id: %d", id)
 		return utils.NewCustomError(http.StatusNotFound, fmt.Sprintf("User not found, id: %d", id), err)
 	}
-	u.log.Errorf("%s error: %v", operation, err)
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return utils.NewCustomError(http.StatusConflict, fmt.Sprintf("User already exists in %s", operation), err)
+	}
 	return utils.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("%s error", operation), err)
 }

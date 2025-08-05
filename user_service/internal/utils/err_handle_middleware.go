@@ -42,21 +42,24 @@ func HandleError(ctx *gin.Context, err error, logger *logrus.Logger) {
 	statusCode := http.StatusInternalServerError
 	message := "Internal Server Error"
 
-	switch err := err.(type) {
+	switch e := err.(type) {
 	case *CustomError:
-		statusCode = err.StatusCode
-		message = err.Message
-		logger.Errorf("%s: %v", message, err.Err)
+		statusCode = e.StatusCode
+		message = e.Message
+		if e.Err != nil {
+			logger.WithFields(logrus.Fields{"error": e.Err, "status": statusCode}).Error(message)
+		} else {
+			logger.WithFields(logrus.Fields{"status": statusCode}).Error(message)
+		}
 	case error:
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			statusCode = http.StatusNotFound
 			message = "Resource not found"
-			logger.Infof("Resource not found: %v", err)
+			logger.WithFields(logrus.Fields{"error": err, "status": statusCode}).Info(message)
 		} else {
-			logger.Errorf("Unexpected error: %v", err)
+			logger.WithFields(logrus.Fields{"error": err, "status": statusCode}).Error(message)
 		}
 	}
-
 	response := ErrorHandler(message)
 	ctx.JSON(statusCode, response)
 }
