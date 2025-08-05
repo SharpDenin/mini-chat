@@ -3,16 +3,17 @@ package dto
 import "time"
 
 type GetUserResponse struct {
+	Id        int64
 	Name      string
 	Email     string
 	CreatedAt time.Time
 }
 
 type GetUserViewListResponse struct {
-	UserList []*GetUserResponse `json:"users"`
-	Limit    int                `json:"limit"`
-	Offset   int                `json:"offset"`
-	Total    int                `json:"total"`
+	UserList []*GetUserResponse
+	Limit    int
+	Offset   int
+	Total    int
 }
 
 type SearchUserFilter struct {

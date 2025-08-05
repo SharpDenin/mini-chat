@@ -43,6 +43,7 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUs
 		return nil, u.handleError(err, userId, "GetUserById")
 	}
 	response := &dto.GetUserResponse{
+		Id:        user.Id,
 		Name:      user.Username,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
@@ -70,6 +71,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 	}
 	for _, user := range users {
 		response.UserList = append(response.UserList, &dto.GetUserResponse{
+			Id:        user.Id,
 			Name:      user.Username,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt,

@@ -51,7 +51,21 @@ func (h *UserHandler) GetUserById(ctx *gin.Context) {
 }
 
 func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
-
+	var req *dto.UserFilterRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid filter request")
+		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid filter request", err), h.log)
+		return
+	}
+	filter := dto.ConvertToServiceFilter(req)
+	list, err := h.userService.GetAllUsers(ctx.Request.Context(), *filter)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to get users")
+		utils.HandleError(ctx, err, h.log)
+		return
+	}
+	resp := dto.ConvertToServiceList(list)
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *UserHandler) PostUser(ctx *gin.Context) {
