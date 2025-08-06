@@ -1,7 +1,5 @@
 package dto
 
-import "user_service/internal/app/user/service/dto"
-
 type UserFilterRequest struct {
 	Name   *string `form:"name"`
 	Email  *string `form:"email"`
@@ -9,23 +7,14 @@ type UserFilterRequest struct {
 	Offset int     `form:"offset,default=0"`
 }
 
-type UserCreateRequest struct {
+type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
-type UserUpdateRequest struct {
+type UpdateUserRequest struct {
 	Name     *string `json:"name" binding:"omitempty"`
 	Email    *string `json:"email" binding:"omitempty"`
 	Password *string `json:"password" binding:"omitempty"`
-}
-
-func ConvertToServiceFilter(f *UserFilterRequest) *dto.SearchUserFilter {
-	return &dto.SearchUserFilter{
-		Username: *f.Name,
-		Email:    *f.Email,
-		Limit:    f.Limit,
-		Offset:   f.Offset,
-	}
 }

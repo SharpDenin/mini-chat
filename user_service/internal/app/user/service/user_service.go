@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"user_service/internal/app/models"
@@ -13,6 +11,9 @@ import (
 	"user_service/internal/app/user/service/helpers"
 	"user_service/internal/repository/postgres/implementation"
 	"user_service/internal/utils"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -115,9 +116,12 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 	if err := helpers.ValidateUserForUpdate(currentUser); err != nil {
 		return utils.NewCustomError(http.StatusBadRequest, "Validation error", err)
 	}
-	_, err = u.uRepo.Update(ctx, userId, currentUser)
+	updatedUser, err := u.uRepo.Update(ctx, userId, currentUser)
 	if err != nil {
 		return u.handleError(err, userId, "UpdateUser")
+	}
+	if updatedUser == nil {
+		return utils.NewCustomError(http.StatusNotFound, "User not found", nil)
 	}
 	return nil
 }
