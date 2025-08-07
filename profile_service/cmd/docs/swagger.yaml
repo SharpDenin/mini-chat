@@ -75,10 +75,12 @@ paths:
       - description: Лимит записей
         in: query
         name: limit
+        required: true
         type: integer
       - description: Смещение
         in: query
         name: offset
+        required: true
         type: integer
       produces:
       - application/json
@@ -115,7 +117,7 @@ paths:
         "201":
           description: ID созданного пользователя
           schema:
-            type: int
+            type: integer
         "400":
           description: Неверные данные пользователя
           schema:

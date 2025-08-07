@@ -45,12 +45,14 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Лимит записей",
                         "name": "limit",
+						"required": "true",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "description": "Смещение",
                         "name": "offset",
+						"required": "true",
                         "in": "query"
                     }
                 ],
@@ -102,7 +104,7 @@ const docTemplate = `{
                     "201": {
                         "description": "ID созданного пользователя",
                         "schema": {
-                            "type": "int"
+                            "type": "integer"
                         }
                     },
                     "400": {

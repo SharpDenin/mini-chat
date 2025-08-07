@@ -17,8 +17,8 @@ type UserViewResponse struct {
 }
 
 type UserViewListResponse struct {
-	UserList []*UserViewResponse `json:"users"`
+	Total    int                 `json:"total"`
 	Limit    int                 `json:"limit"`
 	Offset   int                 `json:"offset"`
-	Total    int                 `json:"total"`
+	UserList []*UserViewResponse `json:"users"`
 }
