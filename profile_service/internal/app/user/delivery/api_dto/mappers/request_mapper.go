@@ -7,8 +7,8 @@ import (
 
 func ConvertToServiceFilter(f *hDto.UserFilterRequest) *sDto.SearchUserFilter {
 	return &sDto.SearchUserFilter{
-		Username: *f.Name,
-		Email:    *f.Email,
+		Username: f.Name,
+		Email:    f.Email,
 		Limit:    f.Limit,
 		Offset:   f.Offset,
 	}

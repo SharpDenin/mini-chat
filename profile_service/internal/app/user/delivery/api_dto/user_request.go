@@ -1,10 +1,10 @@
 package api_dto
 
 type UserFilterRequest struct {
-	Name   *string `form:"name" json:"name"`
-	Email  *string `form:"email" json:"email"`
-	Limit  int     `form:"limit,default=10" json:"limit"`
-	Offset int     `form:"offset,default=0" json:"offset"`
+	Name   string `form:"name" json:"name"`
+	Email  string `form:"email" json:"email"`
+	Limit  int    `form:"limit,default=10" json:"limit"`
+	Offset int    `form:"offset,default=0" json:"offset"`
 }
 
 type CreateUserRequest struct {

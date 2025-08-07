@@ -3,7 +3,11 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    CONSTRAINT username_unique UNIQUE (username),
+    CONSTRAINT email_unique UNIQUE (email)
 );
 
 CREATE TABLE IF NOT EXISTS auth_tokens (

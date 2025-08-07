@@ -2,33 +2,33 @@ basePath: /api/v1
 definitions:
   api_dto.CreateUserRequest:
     properties:
-      email:
-        type: string
       name:
+        type: string
+      email:
         type: string
       password:
         type: string
     required:
-    - email
     - name
+    - email
     - password
     type: object
   api_dto.UpdateUserRequest:
     properties:
-      email:
-        type: string
       name:
+        type: string
+      email:
         type: string
       password:
         type: string
     type: object
   api_dto.UserViewListResponse:
     properties:
+      total:
+        type: integer
       limit:
         type: integer
       offset:
-        type: integer
-      total:
         type: integer
       users:
         items:
@@ -37,13 +37,13 @@ definitions:
     type: object
   api_dto.UserViewResponse:
     properties:
-      created_at:
-        type: string
-      email:
-        type: string
       id:
         type: integer
       username:
+        type: string
+      email:
+        type: string
+      created_at:
         type: string
     type: object
   utils.ErrorResponse:
