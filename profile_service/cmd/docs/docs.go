@@ -274,15 +274,15 @@ const docTemplate = `{
         "api_dto.CreateUserRequest": {
             "type": "object",
             "required": [
+				"name",
                 "email",
-                "name",
                 "password"
             ],
             "properties": {
-                "email": {
+                "name": {
                     "type": "string"
                 },
-                "name": {
+                "email": {
                     "type": "string"
                 },
                 "password": {
@@ -293,10 +293,10 @@ const docTemplate = `{
         "api_dto.UpdateUserRequest": {
             "type": "object",
             "properties": {
-                "email": {
+                "name": {
                     "type": "string"
                 },
-                "name": {
+                "email": {
                     "type": "string"
                 },
                 "password": {
@@ -307,13 +307,13 @@ const docTemplate = `{
         "api_dto.UserViewListResponse": {
             "type": "object",
             "properties": {
+                "total": {
+                    "type": "integer"
+                },
                 "limit": {
                     "type": "integer"
                 },
                 "offset": {
-                    "type": "integer"
-                },
-                "total": {
                     "type": "integer"
                 },
                 "users": {
@@ -327,16 +327,16 @@ const docTemplate = `{
         "api_dto.UserViewResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "id": {
+                    "type": "integer"
+                },
+                "username": {
                     "type": "string"
                 },
                 "email": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
-                },
-                "username": {
+				"created_at": {
                     "type": "string"
                 }
             }
