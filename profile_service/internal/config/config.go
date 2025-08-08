@@ -9,12 +9,12 @@ import (
 )
 
 type Config struct {
-	Host       string
-	User       string
-	Password   string
-	Sslmode    string
-	UserDbname string
-	UserPort   string
+	Host          string
+	User          string
+	Password      string
+	Sslmode       string
+	ProfileDbname string
+	ProfilePort   string
 }
 
 func Load() (*Config, error) {
@@ -23,12 +23,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}
 	config := &Config{
-		Host:       os.Getenv("HOST"),
-		User:       os.Getenv("USER"),
-		Password:   os.Getenv("PASSWORD"),
-		Sslmode:    os.Getenv("SSLMODE"),
-		UserDbname: os.Getenv("PROFILE_DBNAME"),
-		UserPort:   os.Getenv("PROFILE_PORT"),
+		Host:          os.Getenv("HOST"),
+		User:          os.Getenv("USER"),
+		Password:      os.Getenv("PASSWORD"),
+		Sslmode:       os.Getenv("SSLMODE"),
+		ProfileDbname: os.Getenv("PROFILE_DBNAME"),
+		ProfilePort:   os.Getenv("PROFILE_PORT"),
 	}
 	return config, nil
 }

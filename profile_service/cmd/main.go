@@ -7,7 +7,7 @@ import (
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/config"
 	"profile_service/internal/repository/db"
-	"profile_service/internal/repository/user_repo"
+	"profile_service/internal/repository/profile_repo"
 	"profile_service/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +46,7 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	userRepo := user_repo.NewUserRepo(database.DB, log)
+	userRepo := profile_repo.NewProfileRepo(database.DB, log)
 	userService := service.NewUserService(userRepo, log)
 	userHandler := http.NewUserHandler(userService, log)
 

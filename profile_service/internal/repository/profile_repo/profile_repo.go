@@ -1,4 +1,4 @@
-package user_repo
+package profile_repo
 
 import (
 	"context"
@@ -11,20 +11,20 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepo struct {
+type ProfileRepo struct {
 	db  *gorm.DB
 	log *logrus.Logger
 }
 
-func NewUserRepo(db *gorm.DB, log *logrus.Logger) UserRepoInterface {
-	return &UserRepo{
+func NewProfileRepo(db *gorm.DB, log *logrus.Logger) ProfileRepoInterface {
+	return &ProfileRepo{
 		db:  db,
 		log: log,
 	}
 
 }
 
-func (u *UserRepo) Create(ctx context.Context, person *models.User) (*models.User, error) {
+func (u *ProfileRepo) Create(ctx context.Context, person *models.User) (*models.User, error) {
 	if person == nil {
 		u.log.Error("Create user error: user is nil")
 		return nil, fmt.Errorf("create user error: user is nil")
@@ -52,7 +52,7 @@ func (u *UserRepo) Create(ctx context.Context, person *models.User) (*models.Use
 	return person, nil
 }
 
-func (u UserRepo) GetById(ctx context.Context, id int64) (*models.User, error) {
+func (u ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, error) {
 	if id <= 0 {
 		u.log.WithFields(logrus.Fields{"id": id}).Error("Invalid user id")
 		return nil, fmt.Errorf("invalid user ID: %d", id)
@@ -72,7 +72,7 @@ func (u UserRepo) GetById(ctx context.Context, id int64) (*models.User, error) {
 	return &person, nil
 }
 
-func (u UserRepo) GetAll(ctx context.Context, filter dto.SearchUserFilter) (int, []*models.User, error) {
+func (u ProfileRepo) GetAll(ctx context.Context, filter dto.SearchUserFilter) (int, []*models.User, error) {
 	if filter.Limit < 0 || filter.Offset < 0 {
 		u.log.WithFields(logrus.Fields{"limit": filter.Limit, "offset": filter.Offset}).Error("Invalid pagination params")
 		return 0, nil, fmt.Errorf("invalid pagination params: limit and offset must be positive")
@@ -127,7 +127,7 @@ func (u UserRepo) GetAll(ctx context.Context, filter dto.SearchUserFilter) (int,
 	return int(total), users, nil
 }
 
-func (u *UserRepo) Update(ctx context.Context, id int64, person *models.User) (*models.User, error) {
+func (u *ProfileRepo) Update(ctx context.Context, id int64, person *models.User) (*models.User, error) {
 	if id <= 0 {
 		u.log.WithFields(logrus.Fields{"id": id}).Error("Invalid user ID")
 		return nil, fmt.Errorf("invalid user ID: %d", id)
@@ -190,7 +190,7 @@ func (u *UserRepo) Update(ctx context.Context, id int64, person *models.User) (*
 	return &existingUser, nil
 }
 
-func (u *UserRepo) Delete(ctx context.Context, id int64) error {
+func (u *ProfileRepo) Delete(ctx context.Context, id int64) error {
 	if id <= 0 {
 		u.log.WithFields(logrus.Fields{"id": id}).Error("Invalid user ID")
 		return fmt.Errorf("invalid user ID: %d", id)
