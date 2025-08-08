@@ -161,9 +161,6 @@ func (u *ProfileRepo) Update(ctx context.Context, id int64, person *models.User)
 	if person.Email != "" {
 		updates["email"] = person.Email
 	}
-	if person.Password != "" {
-		updates["password"] = person.Password
-	}
 
 	if len(updates) == 0 {
 		u.log.WithFields(logrus.Fields{"id": id}).Info("No fields to update")

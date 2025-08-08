@@ -75,6 +75,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 			Id:        user.Id,
 			Name:      user.Username,
 			Email:     user.Email,
+			Password:  user.Password,
 			CreatedAt: user.CreatedAt,
 		})
 	}
@@ -109,9 +110,6 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 	}
 	if req.Email != nil {
 		currentUser.Email = *req.Email
-	}
-	if req.Password != nil {
-		currentUser.Password = *req.Password
 	}
 	if err := helpers.ValidateUserForUpdate(currentUser); err != nil {
 		return utils.NewCustomError(http.StatusBadRequest, "Validation error", err)

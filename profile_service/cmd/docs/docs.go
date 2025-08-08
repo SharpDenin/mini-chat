@@ -15,6 +15,52 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/login": {
+            "post": {
+                "description": "Аутентифицирует пользователя и возвращает JWT",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Вход пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для входа",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный вход",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные учетные данные",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "Возвращает список пользователей с возможностью фильтрации",
@@ -45,14 +91,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Лимит записей",
                         "name": "limit",
-						"required": "true",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "description": "Смещение",
                         "name": "offset",
-						"required": "true",
                         "in": "query"
                     }
                 ],
@@ -60,19 +104,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UserViewListResponse"
+                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewListResponse"
                         }
                     },
                     "400": {
                         "description": "Неверные параметры фильтрации",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     }
                 }
@@ -96,7 +140,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.CreateUserRequest"
+                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -110,13 +154,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Неверные данные пользователя",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     }
                 }
@@ -148,25 +192,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UserViewResponse"
+                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewResponse"
                         }
                     },
                     "400": {
                         "description": "Неверный ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     }
                 }
@@ -197,7 +241,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UpdateUserRequest"
+                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UpdateUserRequest"
                         }
                     }
                 ],
@@ -208,19 +252,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Неверные данные запроса",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     }
                 }
@@ -253,19 +297,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Неверный ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
                         }
                     }
                 }
@@ -273,77 +317,104 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api_dto.CreateUserRequest": {
+        "profile_service_internal_app_user_delivery_api_dto.CreateUserRequest": {
             "type": "object",
             "required": [
-				"name",
                 "email",
+                "name",
                 "password"
             ],
             "properties": {
-                "name": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
                 },
                 "password": {
                     "type": "string"
                 }
             }
         },
-        "api_dto.UpdateUserRequest": {
+        "profile_service_internal_app_user_delivery_api_dto.LoginRequest": {
             "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
             "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
                 "password": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
         },
-        "api_dto.UserViewListResponse": {
+        "profile_service_internal_app_user_delivery_api_dto.LoginResponse": {
             "type": "object",
             "properties": {
-                "total": {
-                    "type": "integer"
+                "token": {
+                    "type": "string"
                 },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "profile_service_internal_app_user_delivery_api_dto.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                }
+            }
+        },
+        "profile_service_internal_app_user_delivery_api_dto.UserViewListResponse": {
+            "type": "object",
+            "properties": {
                 "limit": {
                     "type": "integer"
                 },
                 "offset": {
                     "type": "integer"
                 },
+                "total": {
+                    "type": "integer"
+                },
                 "users": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.UserViewResponse"
+                        "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewResponse"
                     }
                 }
             }
         },
-        "api_dto.UserViewResponse": {
+        "profile_service_internal_app_user_delivery_api_dto.UserViewResponse": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "username": {
+                "created_at": {
                     "type": "string"
                 },
                 "email": {
                     "type": "string"
                 },
-				"created_at": {
+                "id": {
+                    "type": "integer"
+                },
+                "username": {
                     "type": "string"
                 }
             }
         },
-        "utils.ErrorResponse": {
+        "profile_service_internal_utils.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {

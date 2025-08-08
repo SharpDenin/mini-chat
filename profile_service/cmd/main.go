@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"net"
 	_ "profile_service/cmd/docs"
+	pb "profile_service/internal/app/auth/gRPC"
+	auth "profile_service/internal/app/auth/grpc_server"
 	"profile_service/internal/app/user/delivery/http"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/config"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -30,6 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Ошибка получения конфигурации %w", err)
 	}
+
 	// Инициализация базы данных
 	database, err := db.NewDB(ctx, cfg)
 	if err != nil {
@@ -48,7 +53,26 @@ func main() {
 
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
 	userService := service.NewUserService(userRepo, log)
-	userHandler := http.NewUserHandler(userService, log)
+
+	authServer := auth.NewAuthServer(log, userService, cfg.Jwt)
+	lis, err := net.Listen("tcp", "0.0.0.0:50051")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	pb.RegisterAuthServiceServer(grpcServer, authServer)
+	go func() {
+		log.Printf("gRPC server running on :50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
+
+	userHandler, conn := http.NewUserHandler(userService, cfg.GRPCPort, log)
+	if userHandler == nil {
+		log.Fatal("Failed to create user handler")
+	}
+	defer conn.Close()
 
 	router := gin.Default()
 	router.Use(
@@ -58,10 +82,14 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
+		authUser := api.Group("/auth")
+		{
+			authUser.POST("/login", userHandler.PostLogin)
+		}
 		users := api.Group("/users")
 		{
-			users.GET("", userHandler.GetFilteredUserList)
 			users.POST("", userHandler.PostUser)
+			users.GET("", userHandler.GetFilteredUserList)
 			users.GET("/:id", userHandler.GetUserById)
 			users.PUT("/:id", userHandler.PutUser)
 			users.DELETE("/:id", userHandler.DeleteUser)

@@ -1,52 +1,71 @@
 basePath: /api/v1
 definitions:
-  api_dto.CreateUserRequest:
+  profile_service_internal_app_user_delivery_api_dto.CreateUserRequest:
     properties:
-      name:
-        type: string
       email:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
         type: string
       password:
         type: string
     required:
-    - name
     - email
+    - name
     - password
     type: object
-  api_dto.UpdateUserRequest:
+  profile_service_internal_app_user_delivery_api_dto.LoginRequest:
     properties:
-      name:
-        type: string
-      email:
-        type: string
       password:
         type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
     type: object
-  api_dto.UserViewListResponse:
+  profile_service_internal_app_user_delivery_api_dto.LoginResponse:
     properties:
-      total:
-        type: integer
+      token:
+        type: string
+      user_id:
+        type: string
+    type: object
+  profile_service_internal_app_user_delivery_api_dto.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  profile_service_internal_app_user_delivery_api_dto.UserViewListResponse:
+    properties:
       limit:
         type: integer
       offset:
         type: integer
+      total:
+        type: integer
       users:
         items:
-          $ref: '#/definitions/api_dto.UserViewResponse'
+          $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewResponse'
         type: array
     type: object
-  api_dto.UserViewResponse:
+  profile_service_internal_app_user_delivery_api_dto.UserViewResponse:
     properties:
+      created_at:
+        type: string
+      email:
+        type: string
       id:
         type: integer
       username:
         type: string
-      email:
-        type: string
-      created_at:
-        type: string
     type: object
-  utils.ErrorResponse:
+  profile_service_internal_utils.ErrorResponse:
     properties:
       error:
         type: string
@@ -58,6 +77,36 @@ info:
   title: ProfileService API
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентифицирует пользователя и возвращает JWT
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный вход
+          schema:
+            $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.LoginResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
+      summary: Вход пользователя
+      tags:
+      - Auth
   /users:
     get:
       consumes:
@@ -75,12 +124,10 @@ paths:
       - description: Лимит записей
         in: query
         name: limit
-        required: true
         type: integer
       - description: Смещение
         in: query
         name: offset
-        required: true
         type: integer
       produces:
       - application/json
@@ -88,15 +135,15 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.UserViewListResponse'
+            $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewListResponse'
         "400":
           description: Неверные параметры фильтрации
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
       summary: Получить отфильтрованный список пользователей
       tags:
       - Users
@@ -110,7 +157,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.CreateUserRequest'
+          $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.CreateUserRequest'
       produces:
       - application/json
       responses:
@@ -121,11 +168,11 @@ paths:
         "400":
           description: Неверные данные пользователя
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
       summary: Создать нового пользователя
       tags:
       - Users
@@ -148,15 +195,15 @@ paths:
         "400":
           description: Неверный ID пользователя
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
       summary: Удалить пользователя
       tags:
       - Users
@@ -176,19 +223,19 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.UserViewResponse'
+            $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewResponse'
         "400":
           description: Неверный ID пользователя
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
       summary: Получить пользователя по ID
       tags:
       - Users
@@ -207,7 +254,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.UpdateUserRequest'
+          $ref: '#/definitions/profile_service_internal_app_user_delivery_api_dto.UpdateUserRequest'
       produces:
       - application/json
       responses:
@@ -216,15 +263,15 @@ paths:
         "400":
           description: Неверные данные запроса
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "404":
           description: Пользователь не найден
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
       summary: Обновить данные пользователя
       tags:
       - Users

@@ -1,7 +1,6 @@
 package models
 
 import (
-	aModel "profile_service/internal/app/auth/model"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,8 +14,6 @@ type User struct {
 	CreatedAt time.Time      `gorm:"type:timestamp with time zone;default:now()"`
 	UpdatedAt time.Time      `gorm:"type:timestamp with time zone;default:now()"`
 	DeletedAt gorm.DeletedAt `gorm:"type:timestamp with time zone;index"`
-
-	AuthTokens []aModel.AuthToken `gorm:"foreignKey:UserId;constraint:OnDelete:CASCADE"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

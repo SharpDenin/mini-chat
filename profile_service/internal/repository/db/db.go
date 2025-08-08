@@ -27,7 +27,7 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		`host=` + cfg.Host +
 			` user=` + cfg.User +
 			` password=` + cfg.Password +
-			` dbname=` + cfg.UserDbname +
+			` dbname=` + cfg.ProfileDbname +
 			` port=` + cfg.ProfilePort +
 			` sslmode=` + cfg.Sslmode
 
@@ -55,7 +55,7 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 			cfg.Password,
 			cfg.Host,
 			cfg.ProfilePort,
-			cfg.UserDbname,
+			cfg.ProfileDbname,
 			cfg.Sslmode,
 		),
 	)
