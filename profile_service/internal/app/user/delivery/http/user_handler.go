@@ -105,6 +105,7 @@ func (h *UserHandler) PostUser(ctx *gin.Context) {
 // @Summary Получить пользователя по ID
 // @Description Возвращает информацию о пользователе по его идентификатору
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path int true "ID пользователя"
