@@ -9,7 +9,7 @@ import (
 	"profile_service/internal/app/user/models"
 	"profile_service/internal/app/user/service/dto"
 	"profile_service/internal/app/user/service/helpers"
-	"profile_service/internal/repository/user_repo"
+	"profile_service/internal/repository/profile_repo"
 	"profile_service/internal/utils"
 
 	"github.com/sirupsen/logrus"
@@ -17,11 +17,11 @@ import (
 )
 
 type UserService struct {
-	uRepo user_repo.UserRepoInterface
+	uRepo profile_repo.ProfileRepoInterface
 	log   *logrus.Logger
 }
 
-func NewUserService(uRepo user_repo.UserRepoInterface, log *logrus.Logger) UserServiceInterface {
+func NewUserService(uRepo profile_repo.ProfileRepoInterface, log *logrus.Logger) UserServiceInterface {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -75,6 +75,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 			Id:        user.Id,
 			Name:      user.Username,
 			Email:     user.Email,
+			Password:  user.Password,
 			CreatedAt: user.CreatedAt,
 		})
 	}
@@ -109,9 +110,6 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.Upd
 	}
 	if req.Email != nil {
 		currentUser.Email = *req.Email
-	}
-	if req.Password != nil {
-		currentUser.Password = *req.Password
 	}
 	if err := helpers.ValidateUserForUpdate(currentUser); err != nil {
 		return utils.NewCustomError(http.StatusBadRequest, "Validation error", err)

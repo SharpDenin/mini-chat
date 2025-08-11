@@ -14,7 +14,11 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Name     *string `json:"name" binding:"omitempty,min=2,max=50"`
-	Email    *string `json:"email" binding:"omitempty,email"`
-	Password *string `json:"password" binding:"omitempty"`
+	Name  *string `json:"name" binding:"omitempty,min=2,max=50"`
+	Email *string `json:"email" binding:"omitempty,email"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }

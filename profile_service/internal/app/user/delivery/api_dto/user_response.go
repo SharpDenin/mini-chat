@@ -11,8 +11,8 @@ type UserCreateResponse struct {
 
 type UserViewResponse struct {
 	Id        int64     `json:"id"`
-	Name      string    `json:"username" `
-	Email     string    `json:"email" `
+	Name      string    `json:"username"`
+	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -21,4 +21,9 @@ type UserViewListResponse struct {
 	Limit    int                 `json:"limit"`
 	Offset   int                 `json:"offset"`
 	UserList []*UserViewResponse `json:"users"`
+}
+
+type LoginResponse struct {
+	Token  string `json:"token"`
+	UserId string `json:"user_id"`
 }

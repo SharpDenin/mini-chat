@@ -27,8 +27,8 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		`host=` + cfg.Host +
 			` user=` + cfg.User +
 			` password=` + cfg.Password +
-			` dbname=` + cfg.UserDbname +
-			` port=` + cfg.UserPort +
+			` dbname=` + cfg.ProfileDbname +
+			` port=` + cfg.ProfilePort +
 			` sslmode=` + cfg.Sslmode
 
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -54,8 +54,8 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 			cfg.User,
 			cfg.Password,
 			cfg.Host,
-			cfg.UserPort,
-			cfg.UserDbname,
+			cfg.ProfilePort,
+			cfg.ProfileDbname,
 			cfg.Sslmode,
 		),
 	)

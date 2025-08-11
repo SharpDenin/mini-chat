@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"os"
+	pb "profile_service/internal/app/auth/gRPC"
 	"profile_service/internal/app/user/delivery/api_dto"
 	"profile_service/internal/app/user/delivery/api_dto/mappers"
 	"profile_service/internal/app/user/service"
@@ -15,10 +16,11 @@ import (
 
 type UserHandler struct {
 	userService service.UserServiceInterface
+	authServer  pb.AuthServiceServer
 	log         *logrus.Logger
 }
 
-func NewUserHandler(userService service.UserServiceInterface, log *logrus.Logger) *UserHandler {
+func NewUserHandler(userService service.UserServiceInterface, authServer pb.AuthServiceServer, log *logrus.Logger) *UserHandler {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -27,14 +29,71 @@ func NewUserHandler(userService service.UserServiceInterface, log *logrus.Logger
 	}
 	return &UserHandler{
 		userService: userService,
+		authServer:  authServer,
 		log:         log,
 	}
+}
+
+// PostLogin
+// @Summary Вход пользователя
+// @Description Аутентифицирует пользователя и возвращает JWT
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body api_dto.LoginRequest true "Данные для входа"
+// @Success 200 {object} api_dto.LoginResponse "Успешный вход"
+// @Failure 400 {object} utils.ErrorResponse "Неверные данные"
+// @Failure 401 {object} utils.ErrorResponse "Неверные учетные данные"
+// @Router /auth/login [post]
+func (h *UserHandler) PostLogin(ctx *gin.Context) {
+	var req *api_dto.LoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid login request")
+		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid login request", err), h.log)
+		return
+	}
+	resp, err := h.authServer.Login(ctx.Request.Context(), mappers.ConvertToLoginRequest(req))
+	if err != nil {
+		h.log.WithError(err).Error("Failed to login")
+		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Invalid credentials", err), h.log)
+		return
+	}
+	ctx.JSON(http.StatusOK, mappers.ConvertToLoginResponse(resp))
+}
+
+// PostUser
+// @Summary Создать нового пользователя
+// @Description Создает нового пользователя с указанными данными
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param request body api_dto.CreateUserRequest true "Данные для создания пользователя"
+// @Success 201 {integer} int "ID созданного пользователя"
+// @Failure 400 {object} utils.ErrorResponse "Неверные данные пользователя"
+// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /users [post]
+func (h *UserHandler) PostUser(ctx *gin.Context) {
+	var req *api_dto.CreateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid create request")
+		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid create request", err), h.log)
+		return
+	}
+	mappedReq := mappers.ConvertToRegisterRequest(req)
+	id, err := h.authServer.Register(ctx.Request.Context(), mappedReq)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to create user")
+		utils.HandleError(ctx, err, h.log)
+		return
+	}
+	ctx.JSON(http.StatusCreated, id)
 }
 
 // GetUserById
 // @Summary Получить пользователя по ID
 // @Description Возвращает информацию о пользователе по его идентификатору
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path int true "ID пользователя"
@@ -64,12 +123,13 @@ func (h *UserHandler) GetUserById(ctx *gin.Context) {
 // @Summary Получить отфильтрованный список пользователей
 // @Description Возвращает список пользователей с возможностью фильтрации
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param name query string false "Фильтр по имени"
 // @Param email query string false "Фильтр по email"
-// @Param limit query int false "Лимит записей"
-// @Param offset query int false "Смещение"
+// @Param limit query int true "Лимит записей"
+// @Param offset query int true "Смещение"
 // @Success 200 {object} api_dto.UserViewListResponse "Успешный запрос"
 // @Failure 400 {object} utils.ErrorResponse "Неверные параметры фильтрации"
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
@@ -92,38 +152,11 @@ func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// PostUser
-// @Summary Создать нового пользователя
-// @Description Создает нового пользователя с указанными данными
-// @Tags Users
-// @Accept json
-// @Produce json
-// @Param request body api_dto.CreateUserRequest true "Данные для создания пользователя"
-// @Success 201 {int} int "ID созданного пользователя"
-// @Failure 400 {object} utils.ErrorResponse "Неверные данные пользователя"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /users [post]
-func (h *UserHandler) PostUser(ctx *gin.Context) {
-	var req *api_dto.CreateUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid create request")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid create request", err), h.log)
-		return
-	}
-	mappedReq := mappers.ConvertToServiceCreate(req)
-	id, err := h.userService.CreateUser(ctx.Request.Context(), mappedReq)
-	if err != nil {
-		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to create user")
-		utils.HandleError(ctx, err, h.log)
-		return
-	}
-	ctx.JSON(http.StatusCreated, id)
-}
-
 // PutUser
 // @Summary Обновить данные пользователя
 // @Description Обновляет информацию о пользователе по его ID
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path int true "ID пользователя"
@@ -160,6 +193,7 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 // @Summary Удалить пользователя
 // @Description Удаляет пользователя по указанному ID
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path int true "ID пользователя"
