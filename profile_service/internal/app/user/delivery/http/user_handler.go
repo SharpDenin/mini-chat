@@ -9,30 +9,18 @@ import (
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/utils"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type UserHandler struct {
 	userService service.UserServiceInterface
-	authClient  pb.AuthServiceClient
+	authServer  pb.AuthServiceServer
 	log         *logrus.Logger
 }
 
-func NewUserHandler(userService service.UserServiceInterface, authAddr string, log *logrus.Logger) (*UserHandler, *grpc.ClientConn) {
-	conn, err := grpc.Dial(
-		"0.0.0.0:50051",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to dial gRPC: %v", err)
-		return nil, nil
-	}
+func NewUserHandler(userService service.UserServiceInterface, authServer pb.AuthServiceServer, log *logrus.Logger) *UserHandler {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -41,9 +29,9 @@ func NewUserHandler(userService service.UserServiceInterface, authAddr string, l
 	}
 	return &UserHandler{
 		userService: userService,
-		authClient:  pb.NewAuthServiceClient(conn),
+		authServer:  authServer,
 		log:         log,
-	}, conn
+	}
 }
 
 // PostLogin
@@ -64,7 +52,7 @@ func (h *UserHandler) PostLogin(ctx *gin.Context) {
 		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid login request", err), h.log)
 		return
 	}
-	resp, err := h.authClient.Login(ctx.Request.Context(), mappers.ConvertToLoginRequest(req))
+	resp, err := h.authServer.Login(ctx.Request.Context(), mappers.ConvertToLoginRequest(req))
 	if err != nil {
 		h.log.WithError(err).Error("Failed to login")
 		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Invalid credentials", err), h.log)
@@ -92,7 +80,7 @@ func (h *UserHandler) PostUser(ctx *gin.Context) {
 		return
 	}
 	mappedReq := mappers.ConvertToRegisterRequest(req)
-	id, err := h.authClient.Register(ctx.Request.Context(), mappedReq)
+	id, err := h.authServer.Register(ctx.Request.Context(), mappedReq)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to create user")
 		utils.HandleError(ctx, err, h.log)
@@ -115,21 +103,6 @@ func (h *UserHandler) PostUser(ctx *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/{id} [get]
 func (h *UserHandler) GetUserById(ctx *gin.Context) {
-	token := ctx.GetHeader("Authorization")
-	if strings.HasPrefix(token, "Bearer ") {
-		token = strings.TrimPrefix(token, "Bearer ")
-	} else {
-		h.log.Warn("Missing or invalid Authorization header")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Missing token", nil), h.log)
-		return
-	}
-
-	tokenResp, err := h.authClient.ValidateToken(ctx.Request.Context(), &pb.TokenRequest{Token: token})
-	if err != nil || !tokenResp.Valid {
-		h.log.WithError(err).Warn("Invalid token")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, tokenResp.Error, err), h.log)
-		return
-	}
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid user ID")
@@ -150,32 +123,18 @@ func (h *UserHandler) GetUserById(ctx *gin.Context) {
 // @Summary Получить отфильтрованный список пользователей
 // @Description Возвращает список пользователей с возможностью фильтрации
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param name query string false "Фильтр по имени"
 // @Param email query string false "Фильтр по email"
-// @Param limit query int false "Лимит записей"
-// @Param offset query int false "Смещение"
+// @Param limit query int true "Лимит записей"
+// @Param offset query int true "Смещение"
 // @Success 200 {object} api_dto.UserViewListResponse "Успешный запрос"
 // @Failure 400 {object} utils.ErrorResponse "Неверные параметры фильтрации"
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users [get]
 func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
-	token := ctx.GetHeader("Authorization")
-	if strings.HasPrefix(token, "Bearer ") {
-		token = strings.TrimPrefix(token, "Bearer ")
-	} else {
-		h.log.Warn("Missing or invalid Authorization header")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Missing token", nil), h.log)
-		return
-	}
-
-	tokenResp, err := h.authClient.ValidateToken(ctx.Request.Context(), &pb.TokenRequest{Token: token})
-	if err != nil || !tokenResp.Valid {
-		h.log.WithError(err).Warn("Invalid token")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, tokenResp.Error, err), h.log)
-		return
-	}
 	var req *api_dto.UserFilterRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid filter request")
@@ -197,6 +156,7 @@ func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
 // @Summary Обновить данные пользователя
 // @Description Обновляет информацию о пользователе по его ID
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path int true "ID пользователя"
@@ -207,21 +167,6 @@ func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/{id} [put]
 func (h *UserHandler) PutUser(ctx *gin.Context) {
-	token := ctx.GetHeader("Authorization")
-	if strings.HasPrefix(token, "Bearer ") {
-		token = strings.TrimPrefix(token, "Bearer ")
-	} else {
-		h.log.Warn("Missing or invalid Authorization header")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Missing token", nil), h.log)
-		return
-	}
-
-	tokenResp, err := h.authClient.ValidateToken(ctx.Request.Context(), &pb.TokenRequest{Token: token})
-	if err != nil || !tokenResp.Valid {
-		h.log.WithError(err).Warn("Invalid token")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, tokenResp.Error, err), h.log)
-		return
-	}
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid user ID")
@@ -248,6 +193,7 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 // @Summary Удалить пользователя
 // @Description Удаляет пользователя по указанному ID
 // @Tags Users
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path int true "ID пользователя"
@@ -257,21 +203,6 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/{id} [delete]
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
-	token := ctx.GetHeader("Authorization")
-	if strings.HasPrefix(token, "Bearer ") {
-		token = strings.TrimPrefix(token, "Bearer ")
-	} else {
-		h.log.Warn("Missing or invalid Authorization header")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Missing token", nil), h.log)
-		return
-	}
-
-	tokenResp, err := h.authClient.ValidateToken(ctx.Request.Context(), &pb.TokenRequest{Token: token})
-	if err != nil || !tokenResp.Valid {
-		h.log.WithError(err).Warn("Invalid token")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, tokenResp.Error, err), h.log)
-		return
-	}
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Invalid user ID")

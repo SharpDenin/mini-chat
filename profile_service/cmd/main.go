@@ -72,11 +72,9 @@ func main() {
 		}
 	}()
 
-	userHandler, conn := http.NewUserHandler(userService, cfg.GRPCPort, log)
-	if userHandler == nil {
-		log.Fatal("Failed to create user handler")
-	}
-	defer conn.Close()
+	userHandler := http.NewUserHandler(userService, authServer, log)
+
+	authMiddleware := utils.NewAuthMiddleware(authServer, log)
 
 	router := gin.Default()
 	router.Use(
@@ -89,10 +87,11 @@ func main() {
 		authUser := api.Group("/auth")
 		{
 			authUser.POST("/login", userHandler.PostLogin)
+			authUser.POST("/register", userHandler.PostUser)
 		}
 		users := api.Group("/users")
+		users.Use(authMiddleware)
 		{
-			users.POST("", userHandler.PostUser)
 			users.GET("", userHandler.GetFilteredUserList)
 			users.GET("/:id", userHandler.GetUserById)
 			users.PUT("/:id", userHandler.PutUser)

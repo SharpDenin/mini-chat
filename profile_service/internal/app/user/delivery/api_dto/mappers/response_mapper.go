@@ -28,7 +28,6 @@ func ConvertToServiceList(u *sDto.GetUserViewListResponse) *hDto.UserViewListRes
 			Id:        user.Id,
 			Name:      user.Name,
 			Email:     user.Email,
-			Password:  user.Password,
 			CreatedAt: user.CreatedAt,
 		})
 	}

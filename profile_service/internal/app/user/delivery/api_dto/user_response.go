@@ -13,7 +13,6 @@ type UserViewResponse struct {
 	Id        int64     `json:"id"`
 	Name      string    `json:"username"`
 	Email     string    `json:"email"`
-	Password  string    `json:"password"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

@@ -62,8 +62,6 @@ definitions:
         type: string
       id:
         type: integer
-      password:
-        type: string
       username:
         type: string
     type: object
@@ -126,10 +124,12 @@ paths:
       - description: Лимит записей
         in: query
         name: limit
+        required: true
         type: integer
       - description: Смещение
         in: query
         name: offset
+        required: true
         type: integer
       produces:
       - application/json
@@ -146,6 +146,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Получить отфильтрованный список пользователей
       tags:
       - Users
@@ -206,6 +208,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Удалить пользователя
       tags:
       - Users
@@ -276,6 +280,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/profile_service_internal_utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Обновить данные пользователя
       tags:
       - Users

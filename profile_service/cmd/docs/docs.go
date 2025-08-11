@@ -63,6 +63,11 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Возвращает список пользователей с возможностью фильтрации",
                 "consumes": [
                     "application/json"
@@ -91,13 +96,15 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Лимит записей",
                         "name": "limit",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
                         "description": "Смещение",
                         "name": "offset",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -221,6 +228,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Обновляет информацию о пользователе по его ID",
                 "consumes": [
                     "application/json"
@@ -275,6 +287,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Удаляет пользователя по указанному ID",
                 "consumes": [
                     "application/json"
@@ -413,9 +430,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                },
-                "password": {
-                    "type": "string"
                 },
                 "username": {
                     "type": "string"
