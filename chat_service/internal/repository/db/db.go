@@ -1,18 +1,16 @@
 package db
 
 import (
+	"chat_service/internal/config"
+	"chat_service/internal/models"
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"profile_service/internal/app/user/models"
-	"profile_service/internal/config"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -27,14 +25,14 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		`host=` + cfg.Host +
 			` user=` + cfg.User +
 			` password=` + cfg.Password +
-			` dbname=` + cfg.ProfileDbname +
-			` port=` + cfg.ProfilePort +
+			` dbname=` + cfg.RoomDbName +
+			` port=` + cfg.RoomDbPort +
 			` sslmode=` + cfg.Sslmode
-
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("connection failed %w", err)
 	}
+
 	sqlDB, err := gormDB.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
@@ -54,8 +52,8 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 			cfg.User,
 			cfg.Password,
 			cfg.Host,
-			cfg.ProfilePort,
-			cfg.ProfileDbname,
+			cfg.RoomDbPort,
+			cfg.RoomDbName,
 			cfg.Sslmode,
 		),
 	)
@@ -63,7 +61,7 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("failed to initialize migrate: %w", err)
 	}
 
-	if err := gormDB.AutoMigrate(&models.User{}); err != nil {
+	if err := gormDB.AutoMigrate(&models.Room{}); err != nil {
 		return nil, fmt.Errorf("auto migration failed: %w", err)
 	}
 
