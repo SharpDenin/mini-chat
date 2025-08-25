@@ -7,14 +7,11 @@ import (
 )
 
 type Room struct {
-	Id          int64          `gorm:"primaryKey;autoIncrement;column:id"`
-	Name        string         `gorm:"type:varchar(255);not_null;column:name"`
-	UserCount   int64          `gorm:"column:user_count;not null;default:0"`
-	OnlineUsers string         `gorm:"type:text;column:online_users"`
-	LastMessage string         `gorm:"type:text;column:last_message"`
-	CreatedAt   time.Time      `gorm:"type:timestamp with time zone;default:now()"`
-	UpdatedAt   time.Time      `gorm:"type:timestamp with time zone;default:now()"`
-	DeletedAt   gorm.DeletedAt `gorm:"type:timestamp with time zone;index"`
+	Id        int64          `gorm:"primaryKey;autoIncrement;column:id"`
+	Name      string         `gorm:"type:varchar(255);not_null;column:name"`
+	CreatedAt time.Time      `gorm:"type:timestamp with time zone;default:now()"`
+	UpdatedAt time.Time      `gorm:"type:timestamp with time zone;default:now()"`
+	DeletedAt gorm.DeletedAt `gorm:"type:timestamp with time zone;index"`
 }
 
 func (r *Room) BeforeCreate(tx *gorm.DB) error {

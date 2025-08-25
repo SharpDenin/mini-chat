@@ -1,9 +1,11 @@
 package models
 
+import "time"
+
 type Message struct {
-	Id     int64  `gorm:"primaryKey;autoIncrement;column:id"`
-	UserId int64  `gorm:"column:user_id;not null;index"`
-	RoomId int64  `gorm:"column:room_id;not null;index"`
-	Text   string `gorm:"type:text;not null;column:text"`
-	SentAt int64  `gorm:"column:sent_at;not null"`
+	Id     string    `bson:"_id,omitempty"`
+	UserId int64     `bson:"user_id"`
+	RoomId int64     `bson:"room_id"`
+	Text   string    `bson:"text"`
+	SentAt time.Time `bson:"sent_at"`
 }
