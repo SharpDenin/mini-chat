@@ -10,6 +10,22 @@ import (
 	"gorm.io/gorm"
 )
 
+//TODO - Чек-лист ниже
+
+// RoomMemberRepo
+// Вынести валидации id на уровень сервиса. На этом слое оставить только проверки, требующие запроса в бд
+
+// AllMethods where ids used
+// Проверка на существование пользователя по UserId - gRPC на слое сервиса
+// Проверка на существование пользователя по RoomId - на слое сервиса
+
+// SetAdmin
+// Проверку на IsAdmin реализовать с помощью метода сервиса CheckRoomMemberAdminStatus
+//if existingMember.IsAdmin == isAdmin {
+//	r.log.Errorf("User admin status already: %v", existingMember.IsAdmin)
+//	return fmt.Errorf("user admin status already: %v", existingMember.IsAdmin)
+//}
+
 type RoomMemberRepo struct {
 	db  *gorm.DB
 	log *logrus.Logger
@@ -23,15 +39,6 @@ func NewRoomMemberRepo(db *gorm.DB, log *logrus.Logger) RoomMemberRepoInterface 
 }
 
 func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) error {
-	if userId <= 0 {
-		r.log.WithFields(logrus.Fields{"userId": userId}).Error("Invalid user id")
-		return fmt.Errorf("invalid user Id: %d", userId)
-	}
-	if roomId <= 0 {
-		r.log.WithFields(logrus.Fields{"roomId": roomId}).Error("Invalid room id")
-		return fmt.Errorf("invalid room id: %d", roomId)
-	}
-
 	tx := r.db.Begin().WithContext(ctx)
 	commited := false
 	defer func() {
@@ -39,9 +46,6 @@ func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) er
 			tx.Rollback()
 		}
 	}()
-
-	// Проверка на существование пользователя по UserId - gRPC на слое сервиса
-	// Проверка на существование пользователя по RoomId - на слое сервиса
 
 	var existingMember models.RoomMember
 	if err := tx.Where("room_id = ? AND user_id = ?", roomId, userId).
@@ -72,25 +76,6 @@ func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) er
 }
 
 func (r *RoomMemberRepo) RemoveMember(ctx context.Context, roomId, userId int64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *RoomMemberRepo) GetMembersByRoom(ctx context.Context, roomId int64) ([]*models.RoomMember, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *RoomMemberRepo) GetRoomsByUserId(ctx context.Context, userId int64) ([]*models.Room, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *RoomMemberRepo) SetAdmin(ctx context.Context, roomMemberId int64, isAdmin bool) error {
-	if roomMemberId <= 0 {
-		r.log.WithFields(logrus.Fields{"roomMemberId": roomMemberId}).Error("Invalid room member id")
-		return fmt.Errorf("invalid room member id: %d", roomMemberId)
-	}
 	tx := r.db.Begin().WithContext(ctx)
 	commited := false
 	defer func() {
@@ -100,24 +85,78 @@ func (r *RoomMemberRepo) SetAdmin(ctx context.Context, roomMemberId int64, isAdm
 	}()
 
 	var existingMember models.RoomMember
-	if err := tx.First(&existingMember, roomMemberId).Error; err != nil {
+	if err := tx.First(&existingMember, "room_id = ? AND user_id = ?", roomId, userId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("not found room member by id: %d", roomMemberId)
+			r.log.Errorf("User: %d not found in room: %d", userId, roomId)
+			return fmt.Errorf("user not found in room")
 		}
-		r.log.WithFields(logrus.Fields{"error": err, "id": roomMemberId}).Error("Failed to find room member")
-		return fmt.Errorf("failed to find room member by id: %w", err)
+		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("Failed to find user")
+		return fmt.Errorf("find user: %w", err)
 	}
-	if existingMember.IsAdmin == isAdmin {
-		r.log.Errorf("User admin status already: %v", existingMember.IsAdmin)
-		return fmt.Errorf("user admin status already: %v", existingMember.IsAdmin)
-	}
-	if err := tx.Model(&existingMember).Update("is_admin", isAdmin).Error; err != nil {
-		r.log.WithFields(logrus.Fields{"error": err, "id": roomMemberId}).Error("Failed to update")
-		return fmt.Errorf("failed to update room member: %w", err)
+
+	if err := tx.Delete(&existingMember).Error; err != nil {
+		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("Failed to remove user")
+		return fmt.Errorf("failed to remove user: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		r.log.WithFields(logrus.Fields{"error": err, "id": roomMemberId}).Error("Failed to commit")
+		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("Failed to commit")
+		return fmt.Errorf("commit room member: %w", err)
+	}
+	commited = true
+
+	return nil
+}
+
+func (r *RoomMemberRepo) GetMembersByRoom(ctx context.Context, roomId int64) ([]*models.RoomMember, error) {
+	var members []*models.RoomMember
+	if err := r.db.WithContext(ctx).Where("room_id = ?", roomId).Find(&members).Error; err != nil {
+		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("Failed to find user")
+		return nil, fmt.Errorf("find user: %w", err)
+	}
+
+	return members, nil
+}
+
+func (r *RoomMemberRepo) GetRoomsByUserId(ctx context.Context, userId int64) ([]*models.Room, error) {
+	var rooms []*models.Room
+	err := r.db.WithContext(ctx).
+		Table("rooms").
+		Joins("JOIN room_members ON room_members.room_id = rooms.id").
+		Where("room_members.user_id = ?", userId).
+		Find(&rooms).Error
+	if err != nil {
+		r.log.WithFields(logrus.Fields{"error": err, "user_id": userId}).Error("Failed to get rooms by user")
+		return nil, fmt.Errorf("get rooms by user error: %w", err)
+	}
+
+	return rooms, nil
+}
+
+func (r *RoomMemberRepo) SetAdmin(ctx context.Context, roomId, userId int64, isAdmin bool) error {
+	tx := r.db.Begin().WithContext(ctx)
+	commited := false
+	defer func() {
+		if !commited {
+			tx.Rollback()
+		}
+	}()
+
+	var existingMember models.RoomMember
+	if err := tx.Where("room_id = ? AND user_id = ?", roomId, userId).First(&existingMember).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("room member not found (roomId=%d, userId=%d)", roomId, userId)
+		}
+		return fmt.Errorf("failed to get room member: %w", err)
+	}
+
+	if err := tx.Model(&existingMember).Update("is_admin", isAdmin).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to update is_admin: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		r.log.WithFields(logrus.Fields{"error": err, "roomId": roomId, "userId": userId}).Error("Failed to commit")
 		return fmt.Errorf("commit room member: %w", err)
 	}
 	commited = true

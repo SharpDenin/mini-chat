@@ -18,5 +18,5 @@ type RoomMemberRepoInterface interface {
 	RemoveMember(ctx context.Context, roomId, userId int64) error
 	GetMembersByRoom(ctx context.Context, roomId int64) ([]*models.RoomMember, error)
 	GetRoomsByUserId(ctx context.Context, userId int64) ([]*models.Room, error)
-	SetAdmin(ctx context.Context, roomMemberId int64, isAdmin bool) error
+	SetAdmin(ctx context.Context, roomId, userId int64, isAdmin bool) error
 }

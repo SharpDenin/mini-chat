@@ -10,6 +10,21 @@ import (
 	"gorm.io/gorm"
 )
 
+//TODO - Чек-лист ниже
+
+// RoomRepo
+// Вынести валидации id на уровень сервиса. На этом слое оставить только проверки, требующие запроса в бд
+
+// Create/Update - Валидация моделей - тоже в сервисном слое
+// if room == nil {
+//		r.log.Error("Create room error: room is nil")
+//		return fmt.Errorf("create room error: room is nil")
+//	}
+//if room == nil {
+//	r.log.WithFields(logrus.Fields{"id": id}).Warn("Room is nil")
+//	return nil
+//}
+
 type RoomRepo struct {
 	db  *gorm.DB
 	log *logrus.Logger
@@ -23,11 +38,6 @@ func NewRoomRepo(db *gorm.DB, log *logrus.Logger) RoomRepoInterface {
 }
 
 func (r *RoomRepo) Create(ctx context.Context, room *models.Room) error {
-	if room == nil {
-		r.log.Error("Create room error: room is nil")
-		return fmt.Errorf("create room error: room is nil")
-	}
-
 	tx := r.db.Begin().WithContext(ctx)
 	commited := false
 	defer func() {
@@ -40,6 +50,7 @@ func (r *RoomRepo) Create(ctx context.Context, room *models.Room) error {
 		r.log.WithFields(logrus.Fields{"error": err}).Error("Failed to create room")
 		return fmt.Errorf("create room error: %w", err)
 	}
+
 	if err := tx.Commit().Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err}).Error("Failed to to commit transaction")
 		return fmt.Errorf("failed to commit: %w", err)
@@ -50,13 +61,7 @@ func (r *RoomRepo) Create(ctx context.Context, room *models.Room) error {
 }
 
 func (r *RoomRepo) GetById(ctx context.Context, id int64) (*models.Room, error) {
-	if id <= 0 {
-		r.log.WithFields(logrus.Fields{"id": id}).Error("Invalid room id")
-		return nil, fmt.Errorf("invalid user ID: %d", id)
-	}
-
 	var room models.Room
-
 	err := r.db.WithContext(ctx).First(&room, id).Error
 	if err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get room by Id")
@@ -71,13 +76,11 @@ func (r *RoomRepo) GetById(ctx context.Context, id int64) (*models.Room, error) 
 
 func (r *RoomRepo) GetAll(ctx context.Context, searchFilter string) ([]*models.Room, error) {
 	query := r.db.WithContext(ctx).Model(&models.Room{})
-
 	if searchFilter != "" {
 		query = query.Where("name LIKE ?", "%"+searchFilter+"%")
 	}
 
 	var rooms []*models.Room
-
 	if err := query.
 		Find(&rooms).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err}).Error("Failed to get rooms list")
@@ -88,15 +91,6 @@ func (r *RoomRepo) GetAll(ctx context.Context, searchFilter string) ([]*models.R
 }
 
 func (r *RoomRepo) Update(ctx context.Context, id int64, room *models.Room) error {
-	if id <= 0 {
-		r.log.WithFields(logrus.Fields{"id": id}).Error("Invalid room id")
-		return fmt.Errorf("invalid user ID: %d", id)
-	}
-	if room == nil {
-		r.log.WithFields(logrus.Fields{"id": id}).Warn("Room is nil")
-		return nil
-	}
-
 	tx := r.db.Begin().WithContext(ctx)
 	committed := false
 	defer func() {
@@ -106,7 +100,6 @@ func (r *RoomRepo) Update(ctx context.Context, id int64, room *models.Room) erro
 	}()
 
 	var existingRoom models.Room
-
 	if err := tx.First(&existingRoom, id).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get room by Id")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -122,9 +115,6 @@ func (r *RoomRepo) Update(ctx context.Context, id int64, room *models.Room) erro
 
 	if err := tx.Model(&existingRoom).Updates(updates).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to update room by Id")
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("room not found: %w", err)
-		}
 		return fmt.Errorf("update room by id error: %w", err)
 	}
 
@@ -143,11 +133,6 @@ func (r *RoomRepo) Update(ctx context.Context, id int64, room *models.Room) erro
 }
 
 func (r *RoomRepo) Delete(ctx context.Context, id int64) error {
-	if id <= 0 {
-		r.log.WithFields(logrus.Fields{"id": id}).Error("Invalid room id")
-		return fmt.Errorf("invalid user ID: %d", id)
-	}
-
 	tx := r.db.Begin().WithContext(ctx)
 	committed := false
 	defer func() {
@@ -158,9 +143,6 @@ func (r *RoomRepo) Delete(ctx context.Context, id int64) error {
 
 	if err := tx.Delete(&models.Room{}, id).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to delete room by Id")
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("room not found: %w", err)
-		}
 		return fmt.Errorf("delete room by id error: %w", err)
 	}
 
