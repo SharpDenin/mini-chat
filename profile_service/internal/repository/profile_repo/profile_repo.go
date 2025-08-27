@@ -52,7 +52,7 @@ func (u *ProfileRepo) Create(ctx context.Context, person *models.User) (*models.
 	return person, nil
 }
 
-func (u ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, error) {
+func (u *ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, error) {
 	if id <= 0 {
 		u.log.WithFields(logrus.Fields{"id": id}).Error("Invalid user id")
 		return nil, fmt.Errorf("invalid user ID: %d", id)
@@ -62,7 +62,7 @@ func (u ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, error
 
 	err := u.db.WithContext(ctx).First(&person, id).Error
 	if err != nil {
-		u.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get user by ID")
+		u.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get user by Id")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("user not found: %w", err)
 		}
@@ -72,7 +72,7 @@ func (u ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, error
 	return &person, nil
 }
 
-func (u ProfileRepo) GetAll(ctx context.Context, filter dto.SearchUserFilter) (int, []*models.User, error) {
+func (u *ProfileRepo) GetAll(ctx context.Context, filter dto.SearchUserFilter) (int, []*models.User, error) {
 	if filter.Limit < 0 || filter.Offset < 0 {
 		u.log.WithFields(logrus.Fields{"limit": filter.Limit, "offset": filter.Offset}).Error("Invalid pagination params")
 		return 0, nil, fmt.Errorf("invalid pagination params: limit and offset must be positive")

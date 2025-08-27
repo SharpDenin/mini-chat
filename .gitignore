@@ -26,6 +26,7 @@ go.work.sum
 
 # env file
 profile_service/.env
+chat_service/.env
 
 # Editor/IDE
 .idea/
