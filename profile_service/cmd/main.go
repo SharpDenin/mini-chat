@@ -72,6 +72,20 @@ func main() {
 		}
 	}()
 
+	directoryServer := auth.NewDirectoryServer(log, userService)
+	dirListener, err := net.Listen("tcp", "0.0.0.0:50052")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+	dirGrpcServer := grpc.NewServer()
+	pb.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
+	go func() {
+		log.Printf("gRPC server running on :50052")
+		if err := dirGrpcServer.Serve(dirListener); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
+
 	userHandler := http.NewUserHandler(userService, authServer, log)
 
 	authMiddleware := utils.NewAuthMiddleware(authServer, log)

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "./gRPC";
+
+service UserDirectory {
+  rpc UserExists (UserExistsRequest) returns (UserExistsResponse);
+  rpc UsersExist (UsersExistRequest) returns (UsersExistResponse);
+}
+
+message UserExistsRequest {
+  int64 user_id = 1;
+}
+message UserExistsResponse {
+  bool exists = 1;
+}
+
+message UsersExistRequest {
+  repeated int64 user_ids = 1;
+}
+message UsersExistResponse {
+  map<int64, bool> exists = 1;
+}
