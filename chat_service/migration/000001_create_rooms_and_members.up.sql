@@ -13,7 +13,8 @@ CREATE TABLE room_members (
                               room_id BIGINT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
                               user_id BIGINT NOT NULL,
                               joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                              is_admin BOOLEAN NOT NULL DEFAULT FALSE
+                              is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                              UNIQUE (room_id, user_id)
 );
 
 -- Индексы
