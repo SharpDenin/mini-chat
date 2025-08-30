@@ -7,8 +7,8 @@ import (
 	"os"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/app/user/service/dto"
-	"profile_service/internal/utils"
 	"proto/generated/profile"
+	"proto/middleware"
 	"strconv"
 	"time"
 
@@ -60,7 +60,7 @@ func (s *AuthServer) Register(ctx context.Context, req *profile.RegisterRequest)
 	id, err := s.uService.CreateUser(ctx, createReq)
 	if err != nil {
 		s.log.WithError(err).Error("Failed to create user")
-		var customErr *utils.CustomError
+		var customErr *middleware.CustomError
 		if errors.As(err, &customErr) {
 			return nil, status.Error(codes.Code(customErr.StatusCode), customErr.Message)
 		}

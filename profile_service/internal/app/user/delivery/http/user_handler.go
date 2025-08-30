@@ -6,8 +6,8 @@ import (
 	"profile_service/internal/app/user/delivery/api_dto"
 	"profile_service/internal/app/user/delivery/api_dto/mappers"
 	"profile_service/internal/app/user/service"
-	"profile_service/internal/utils"
 	pb "proto/generated/profile"
+	"proto/middleware"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -42,20 +42,20 @@ func NewUserHandler(userService service.UserServiceInterface, authServer pb.Auth
 // @Produce json
 // @Param request body api_dto.LoginRequest true "Данные для входа"
 // @Success 200 {object} api_dto.LoginResponse "Успешный вход"
-// @Failure 400 {object} utils.ErrorResponse "Неверные данные"
-// @Failure 401 {object} utils.ErrorResponse "Неверные учетные данные"
+// @Failure 400 {object} middleware.ErrorResponse "Неверные данные"
+// @Failure 401 {object} middleware.ErrorResponse "Неверные учетные данные"
 // @Router /auth/login [post]
 func (h *UserHandler) PostLogin(ctx *gin.Context) {
 	var req *api_dto.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid login request")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid login request", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid login request", err), h.log)
 		return
 	}
 	resp, err := h.authServer.Login(ctx.Request.Context(), mappers.ConvertToLoginRequest(req))
 	if err != nil {
 		h.log.WithError(err).Error("Failed to login")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusUnauthorized, "Invalid credentials", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusUnauthorized, "Invalid credentials", err), h.log)
 		return
 	}
 	ctx.JSON(http.StatusOK, mappers.ConvertToLoginResponse(resp))
@@ -69,21 +69,21 @@ func (h *UserHandler) PostLogin(ctx *gin.Context) {
 // @Produce json
 // @Param request body api_dto.CreateUserRequest true "Данные для создания пользователя"
 // @Success 201 {integer} int "ID созданного пользователя"
-// @Failure 400 {object} utils.ErrorResponse "Неверные данные пользователя"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure 400 {object} middleware.ErrorResponse "Неверные данные пользователя"
+// @Failure 500 {object} middleware.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users [post]
 func (h *UserHandler) PostUser(ctx *gin.Context) {
 	var req *api_dto.CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid create request")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid create request", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid create request", err), h.log)
 		return
 	}
 	mappedReq := mappers.ConvertToRegisterRequest(req)
 	id, err := h.authServer.Register(ctx.Request.Context(), mappedReq)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to create user")
-		utils.HandleError(ctx, err, h.log)
+		middleware.HandleError(ctx, err, h.log)
 		return
 	}
 	ctx.JSON(http.StatusCreated, id)
@@ -98,21 +98,21 @@ func (h *UserHandler) PostUser(ctx *gin.Context) {
 // @Produce json
 // @Param id path int true "ID пользователя"
 // @Success 200 {object} api_dto.UserViewResponse "Успешный запрос"
-// @Failure 400 {object} utils.ErrorResponse "Неверный ID пользователя"
-// @Failure 404 {object} utils.ErrorResponse "Пользователь не найден"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure 400 {object} middleware.ErrorResponse "Неверный ID пользователя"
+// @Failure 404 {object} middleware.ErrorResponse "Пользователь не найден"
+// @Failure 500 {object} middleware.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/{id} [get]
 func (h *UserHandler) GetUserById(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid user ID")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
 		return
 	}
 	user, err := h.userService.GetUserById(ctx.Request.Context(), id)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "user_id": id, "path": ctx.Request.URL.Path}).Error("Failed to get user")
-		utils.HandleError(ctx, err, h.log)
+		middleware.HandleError(ctx, err, h.log)
 		return
 	}
 	resp := mappers.ConvertToServiceUser(user)
@@ -131,21 +131,21 @@ func (h *UserHandler) GetUserById(ctx *gin.Context) {
 // @Param limit query int true "Лимит записей"
 // @Param offset query int true "Смещение"
 // @Success 200 {object} api_dto.UserViewListResponse "Успешный запрос"
-// @Failure 400 {object} utils.ErrorResponse "Неверные параметры фильтрации"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure 400 {object} middleware.ErrorResponse "Неверные параметры фильтрации"
+// @Failure 500 {object} middleware.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users [get]
 func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
 	var req *api_dto.UserFilterRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid filter request")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid filter request", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid filter request", err), h.log)
 		return
 	}
 	filter := mappers.ConvertToServiceFilter(req)
 	list, err := h.userService.GetAllUsers(ctx.Request.Context(), *filter)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to get users")
-		utils.HandleError(ctx, err, h.log)
+		middleware.HandleError(ctx, err, h.log)
 		return
 	}
 	resp := mappers.ConvertToServiceList(list)
@@ -162,28 +162,28 @@ func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
 // @Param id path int true "ID пользователя"
 // @Param request body api_dto.UpdateUserRequest true "Новые данные пользователя"
 // @Success 204 "Данные успешно обновлены"
-// @Failure 400 {object} utils.ErrorResponse "Неверные данные запроса"
-// @Failure 404 {object} utils.ErrorResponse "Пользователь не найден"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure 400 {object} middleware.ErrorResponse "Неверные данные запроса"
+// @Failure 404 {object} middleware.ErrorResponse "Пользователь не найден"
+// @Failure 500 {object} middleware.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/{id} [put]
 func (h *UserHandler) PutUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid user ID")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
 		return
 	}
 	var req *api_dto.UpdateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid update request")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid update request", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid update request", err), h.log)
 		return
 	}
 	mappedReq := mappers.ConvertToServiceUpdate(req)
 	err = h.userService.UpdateUser(ctx.Request.Context(), id, mappedReq)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to update user")
-		utils.HandleError(ctx, err, h.log)
+		middleware.HandleError(ctx, err, h.log)
 		return
 	}
 	ctx.JSON(http.StatusNoContent, id)
@@ -198,21 +198,21 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 // @Produce json
 // @Param id path int true "ID пользователя"
 // @Success 204 "Пользователь успешно удален"
-// @Failure 400 {object} utils.ErrorResponse "Неверный ID пользователя"
-// @Failure 404 {object} utils.ErrorResponse "Пользователь не найден"
-// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Failure 400 {object} middleware.ErrorResponse "Неверный ID пользователя"
+// @Failure 404 {object} middleware.ErrorResponse "Пользователь не найден"
+// @Failure 500 {object} middleware.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/{id} [delete]
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Invalid user ID")
-		utils.HandleError(ctx, utils.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid user ID", err), h.log)
 		return
 	}
 	err = h.userService.DeleteUser(ctx.Request.Context(), id)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to delete user")
-		utils.HandleError(ctx, err, h.log)
+		middleware.HandleError(ctx, err, h.log)
 		return
 	}
 	ctx.JSON(http.StatusNoContent, id)
