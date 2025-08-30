@@ -4,7 +4,7 @@
 // 	protoc        v6.31.1
 // source: directory.proto
 
-package gRPC
+package profile
 
 import (
 	reflect "reflect"

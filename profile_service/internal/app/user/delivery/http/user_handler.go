@@ -3,11 +3,11 @@ package http
 import (
 	"net/http"
 	"os"
-	pb "profile_service/internal/app/auth/gRPC"
 	"profile_service/internal/app/user/delivery/api_dto"
 	"profile_service/internal/app/user/delivery/api_dto/mappers"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/utils"
+	pb "proto/generated/profile"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

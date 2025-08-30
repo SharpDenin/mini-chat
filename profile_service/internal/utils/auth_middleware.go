@@ -2,15 +2,14 @@ package utils
 
 import (
 	"net/http"
+	"proto/generated/profile"
 	"strings"
-
-	pb "profile_service/internal/app/auth/gRPC"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
-func NewAuthMiddleware(authServer pb.AuthServiceServer, log *logrus.Logger) gin.HandlerFunc {
+func NewAuthMiddleware(authServer profile.AuthServiceServer, log *logrus.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if isPublicEndpoint(ctx) {
 			ctx.Next()
@@ -26,7 +25,7 @@ func NewAuthMiddleware(authServer pb.AuthServiceServer, log *logrus.Logger) gin.
 			return
 		}
 
-		resp, err := authServer.ValidateToken(ctx, &pb.TokenRequest{Token: token})
+		resp, err := authServer.ValidateToken(ctx, &profile.TokenRequest{Token: token})
 		if err != nil || !resp.Valid {
 			customErr := NewCustomError(http.StatusUnauthorized, "Invalid token", err)
 			HandleError(ctx, customErr, log)

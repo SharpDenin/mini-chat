@@ -1,9 +1,9 @@
 package mappers
 
 import (
-	"profile_service/internal/app/auth/gRPC"
 	hDto "profile_service/internal/app/user/delivery/api_dto"
 	sDto "profile_service/internal/app/user/service/dto"
+	"proto/generated/profile"
 )
 
 func ConvertToServiceFilter(f *hDto.UserFilterRequest) *sDto.SearchUserFilter {
@@ -15,8 +15,8 @@ func ConvertToServiceFilter(f *hDto.UserFilterRequest) *sDto.SearchUserFilter {
 	}
 }
 
-func ConvertToRegisterRequest(u *hDto.CreateUserRequest) *gRPC.RegisterRequest {
-	return &gRPC.RegisterRequest{
+func ConvertToRegisterRequest(u *hDto.CreateUserRequest) *profile.RegisterRequest {
+	return &profile.RegisterRequest{
 		Username: u.Name,
 		Email:    u.Email,
 		Password: u.Password,
@@ -30,8 +30,8 @@ func ConvertToServiceUpdate(u *hDto.UpdateUserRequest) *sDto.UpdateUserRequest {
 	}
 }
 
-func ConvertToLoginRequest(u *hDto.LoginRequest) *gRPC.LoginRequest {
-	return &gRPC.LoginRequest{
+func ConvertToLoginRequest(u *hDto.LoginRequest) *profile.LoginRequest {
+	return &profile.LoginRequest{
 		Username: u.Username,
 		Password: u.Password,
 	}

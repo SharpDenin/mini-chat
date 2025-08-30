@@ -4,14 +4,15 @@ import (
 	"context"
 	"net"
 	_ "profile_service/cmd/docs"
-	pb "profile_service/internal/app/auth/gRPC"
-	auth "profile_service/internal/app/auth/grpc_server"
+	"profile_service/internal/app/auth"
 	"profile_service/internal/app/user/delivery/http"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/config"
 	"profile_service/internal/repository/db"
 	"profile_service/internal/repository/profile_repo"
 	"profile_service/internal/utils"
+
+	"proto/generated/profile"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -39,7 +40,6 @@ func main() {
 		log.Fatal("Ошибка получения конфигурации %w", err)
 	}
 
-	// Инициализация базы данных
 	database, err := db.NewDB(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -50,7 +50,6 @@ func main() {
 		}
 	}()
 
-	// Применение миграций
 	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
@@ -64,7 +63,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterAuthServiceServer(grpcServer, authServer)
+	profile.RegisterAuthServiceServer(grpcServer, authServer)
 	go func() {
 		log.Printf("gRPC server running on :50051")
 		if err := grpcServer.Serve(lis); err != nil {
@@ -78,7 +77,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	dirGrpcServer := grpc.NewServer()
-	pb.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
+	profile.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
 	go func() {
 		log.Printf("gRPC server running on :50052")
 		if err := dirGrpcServer.Serve(dirListener); err != nil {
