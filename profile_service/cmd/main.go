@@ -10,6 +10,7 @@ import (
 	"profile_service/internal/config"
 	"profile_service/internal/repository/db"
 	"profile_service/internal/repository/profile_repo"
+	localMiddleware "profile_service/middleware"
 	"proto/middleware"
 
 	"proto/generated/profile"
@@ -87,7 +88,7 @@ func main() {
 
 	userHandler := http.NewUserHandler(userService, authServer, log)
 
-	authMiddleware := middleware.NewAuthMiddleware(authServer, log)
+	authMiddleware := localMiddleware.NewAuthMiddleware(authServer, log)
 
 	router := gin.Default()
 	router.Use(

@@ -24,7 +24,7 @@ const (
 
 type UserExistsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -59,11 +59,11 @@ func (*UserExistsRequest) Descriptor() ([]byte, []int) {
 	return file_directory_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *UserExistsRequest) GetUserId() int64 {
+func (x *UserExistsRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
-	return 0
+	return ""
 }
 
 type UserExistsResponse struct {
@@ -112,7 +112,7 @@ func (x *UserExistsResponse) GetExists() bool {
 
 type UsersExistRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserIds       []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,7 +147,7 @@ func (*UsersExistRequest) Descriptor() ([]byte, []int) {
 	return file_directory_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *UsersExistRequest) GetUserIds() []int64 {
+func (x *UsersExistRequest) GetUserIds() []string {
 	if x != nil {
 		return x.UserIds
 	}
@@ -156,7 +156,7 @@ func (x *UsersExistRequest) GetUserIds() []int64 {
 
 type UsersExistResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exists        map[int64]bool         `protobuf:"bytes,1,rep,name=exists,proto3" json:"exists,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	Exists        map[string]bool        `protobuf:"bytes,1,rep,name=exists,proto3" json:"exists,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -191,7 +191,7 @@ func (*UsersExistResponse) Descriptor() ([]byte, []int) {
 	return file_directory_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *UsersExistResponse) GetExists() map[int64]bool {
+func (x *UsersExistResponse) GetExists() map[string]bool {
 	if x != nil {
 		return x.Exists
 	}
@@ -204,15 +204,15 @@ const file_directory_proto_rawDesc = "" +
 	"\n" +
 	"\x0fdirectory.proto\x12\x04auth\",\n" +
 	"\x11UserExistsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\",\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\",\n" +
 	"\x12UserExistsResponse\x12\x16\n" +
 	"\x06exists\x18\x01 \x01(\bR\x06exists\".\n" +
 	"\x11UsersExistRequest\x12\x19\n" +
-	"\buser_ids\x18\x01 \x03(\x03R\auserIds\"\x8d\x01\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\"\x8d\x01\n" +
 	"\x12UsersExistResponse\x12<\n" +
 	"\x06exists\x18\x01 \x03(\v2$.auth.UsersExistResponse.ExistsEntryR\x06exists\x1a9\n" +
 	"\vExistsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\x03R\x03key\x12\x14\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\bR\x05value:\x028\x012\x91\x01\n" +
 	"\rUserDirectory\x12?\n" +
 	"\n" +
