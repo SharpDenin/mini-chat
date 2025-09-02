@@ -15,6 +15,7 @@ type RoomRepoInterface interface {
 
 type RoomMemberRepoInterface interface {
 	AddMember(ctx context.Context, roomId, userId int64) error
+	GetMemberByUserId(ctx context.Context, roomId, userId int64) (*models.RoomMember, error)
 	RemoveMember(ctx context.Context, roomId, userId int64) error
 	GetMembersByRoom(ctx context.Context, roomId int64) ([]*models.RoomMember, error)
 	GetRoomsByUserId(ctx context.Context, userId int64) ([]*models.Room, error)

@@ -75,6 +75,21 @@ func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) er
 	return nil
 }
 
+func (r *RoomMemberRepo) GetMemberByUserId(ctx context.Context, roomId, userId int64) (*models.RoomMember, error) {
+	var member models.RoomMember
+	if err := r.db.WithContext(ctx).
+		Where("room_id = ? AND user_id = ?", roomId, userId).First(&member).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			r.log.Warnf("room member not found (roomId=%d, userId=%d)", roomId, userId)
+			return nil, nil
+		}
+		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("failed to get room member")
+		return nil, fmt.Errorf("failed to get room member: %w", err)
+	}
+	r.log.Debugf("member found (roomId=%d, userId=%d)", roomId, userId)
+	return &member, nil
+}
+
 func (r *RoomMemberRepo) RemoveMember(ctx context.Context, roomId, userId int64) error {
 	tx := r.db.Begin().WithContext(ctx)
 	commited := false
