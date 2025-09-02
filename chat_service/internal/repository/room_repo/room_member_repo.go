@@ -123,6 +123,26 @@ func (r *RoomMemberRepo) RemoveMember(ctx context.Context, roomId, userId int64)
 	return nil
 }
 
+func (r *RoomMemberRepo) RemoveAllMembers(ctx context.Context, roomId int64) error {
+	result := r.db.WithContext(ctx).
+		Where("room_id = ?", roomId).
+		Delete(&models.RoomMember{})
+
+	if result.Error != nil {
+		r.log.WithError(result.Error).
+			WithField("room_id", roomId).
+			Error("Failed to delete all room members")
+		return fmt.Errorf("failed to delete all members: %w", result.Error)
+	}
+
+	r.log.WithFields(logrus.Fields{
+		"room_id":       roomId,
+		"rows_affected": result.RowsAffected,
+	}).Debug("Deleted all room members")
+
+	return nil
+}
+
 func (r *RoomMemberRepo) GetMembersByRoom(ctx context.Context, roomId int64) ([]*models.RoomMember, error) {
 	var members []*models.RoomMember
 	if err := r.db.WithContext(ctx).Where("room_id = ?", roomId).Find(&members).Error; err != nil {

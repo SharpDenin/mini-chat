@@ -46,7 +46,7 @@ func (r *RoomRepo) GetById(ctx context.Context, id int64) (*models.Room, error) 
 	return &room, nil
 }
 
-func (r *RoomRepo) GetAll(ctx context.Context, searchFilter string) ([]*models.Room, error) {
+func (r *RoomRepo) GetAll(ctx context.Context, searchFilter string, limit, offset int) ([]*models.Room, error) {
 	query := r.db.WithContext(ctx).Model(&models.Room{})
 	if searchFilter != "" {
 		query = query.Where("name LIKE ?", "%"+searchFilter+"%")
@@ -54,6 +54,8 @@ func (r *RoomRepo) GetAll(ctx context.Context, searchFilter string) ([]*models.R
 
 	var rooms []*models.Room
 	if err := query.
+		Limit(limit).
+		Offset(offset).
 		Find(&rooms).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err}).Error("Failed to get rooms list")
 		return nil, fmt.Errorf("get rooms error: %w", err)

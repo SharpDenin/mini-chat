@@ -3,6 +3,7 @@ package service
 import (
 	"chat_service/internal/models"
 	"chat_service/internal/repository/room_repo"
+	"chat_service/internal/service/helper"
 	"chat_service/pkg/grpc_client"
 	"context"
 	"errors"
@@ -10,10 +11,8 @@ import (
 	"net/http"
 	"os"
 	"proto/middleware"
-	"strconv"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -44,26 +43,10 @@ func NewRoomService(profileClient *grpc_client.ProfileClient, rRepo room_repo.Ro
 }
 
 func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error) {
-	ginCtx, ok := ctx.(*gin.Context)
-	if !ok {
-		r.log.WithFields(logrus.Fields{
-			"error": "context is not a gin context",
-		}).Warn("Failed to get gin context")
-		return 0, middleware.NewCustomError(http.StatusInternalServerError, "context is not a gin context", errors.New("context is not a gin context"))
+	userIdInt, err := helper.GetUserIdFromContext(ctx)
+	if err != nil {
+		return 0, middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
-	userId, exists := ginCtx.Get("user_id")
-	if !exists {
-		r.log.WithFields(logrus.Fields{
-			"error": "user_id is not a string",
-		}).Warn("Failed to convert user_id to string")
-		return 0, middleware.NewCustomError(http.StatusUnauthorized, "user_id not found in context", nil)
-	}
-	userIdStr, ok := userId.(string)
-	if !ok {
-		r.log.Warn("User_id is not a string")
-		return 0, middleware.NewCustomError(http.StatusInternalServerError, "user_id is not a string", nil)
-	}
-	userIdInt, err := strconv.ParseInt(userIdStr, 10, 64)
 
 	if strings.TrimSpace(name) == "" {
 		r.log.WithFields(logrus.Fields{
@@ -76,7 +59,8 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 	var transactionErr error
 
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txCtx := context.WithValue(ctx, "tx", tx)
+		type txKey struct{}
+		txCtx := context.WithValue(ctx, txKey{}, tx)
 
 		room := &models.Room{Name: name}
 		if err := r.rRepo.Create(txCtx, room); err != nil {
@@ -99,7 +83,6 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 		roomId = room.Id
 		return nil
 	})
-
 	if err != nil {
 		if transactionErr != nil {
 			return 0, middleware.NewCustomError(http.StatusInternalServerError, transactionErr.Error(), transactionErr)
@@ -117,27 +100,10 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 }
 
 func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name string) error {
-	ginCtx, ok := ctx.(*gin.Context)
-	if !ok {
-		r.log.WithFields(logrus.Fields{
-			"error": "context is not a gin context",
-		}).Warn("Failed to get gin context")
-		return middleware.NewCustomError(http.StatusInternalServerError, "context is not a gin context", errors.New("context is not a gin context"))
+	userIdInt, err := helper.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
-	userId, exists := ginCtx.Get("user_id")
-	if !exists {
-		r.log.WithFields(logrus.Fields{
-			"error": "user_id is not a string",
-		}).Warn("Failed to convert user_id to string")
-		return middleware.NewCustomError(http.StatusUnauthorized, "user_id not found in context", nil)
-	}
-	userIdStr, ok := userId.(string)
-	if !ok {
-		r.log.Warn("User_id is not a string")
-		return middleware.NewCustomError(http.StatusInternalServerError, "user_id is not a string", nil)
-	}
-
-	userIdInt, err := strconv.ParseInt(userIdStr, 10, 64)
 
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
@@ -153,7 +119,8 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 
 	var transactionError error
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txCtx := context.WithValue(ctx, "tx", tx)
+		type txKey struct{}
+		txCtx := context.WithValue(ctx, txKey{}, tx)
 
 		roomMember, err := r.rMRepo.GetMemberByUserId(txCtx, roomId, userIdInt)
 		if err != nil {
@@ -180,7 +147,6 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 
 		return nil
 	})
-
 	if err != nil {
 		if transactionError != nil {
 			return middleware.NewCustomError(http.StatusInternalServerError, transactionError.Error(), transactionError)
@@ -197,16 +163,100 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 }
 
 func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
-	//TODO implement me
-	panic("implement me")
+	userIdInt, err := helper.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	if roomId <= 0 {
+		r.log.Errorf("Room id %d is invalid", roomId)
+		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+	}
+
+	var transactionError error
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		type txKey struct{}
+		txCtx := context.WithValue(ctx, txKey{}, tx)
+
+		roomMember, err := r.rMRepo.GetMemberByUserId(txCtx, roomId, userIdInt)
+		if err != nil {
+			r.log.WithFields(logrus.Fields{
+				"user_id": userIdInt,
+				"error":   err,
+			}).Warn("Failed to get room member")
+			transactionError = fmt.Errorf("failed to get room member: %w", err)
+			return err
+		}
+
+		if roomMember == nil || !roomMember.IsAdmin {
+			r.log.WithField("user_id", userIdInt).Warn("User is not admin")
+			transactionError = errors.New("user is not admin")
+			return transactionError
+		}
+
+		room, err := r.rRepo.GetById(txCtx, roomId)
+		if err != nil {
+			r.log.WithError(err).Warn("Failed to get room")
+			transactionError = fmt.Errorf("failed to get room: %w", err)
+			return err
+		}
+		if room == nil {
+			r.log.WithField("room_id", roomId).Warn("Room not found")
+			transactionError = errors.New("room not found")
+			return err
+		}
+
+		if err := r.rMRepo.RemoveAllMembers(txCtx, roomId); err != nil {
+			transactionError = fmt.Errorf("failed to remove room members: %w", err)
+			return err
+		}
+
+		if err = r.rRepo.Delete(txCtx, roomId); err != nil {
+			r.log.WithError(err).Warn("Failed to delete room")
+			transactionError = fmt.Errorf("failed to delete room: %w", err)
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		if transactionError != nil {
+			return middleware.NewCustomError(http.StatusInternalServerError, transactionError.Error(), transactionError)
+		}
+		return middleware.NewCustomError(http.StatusInternalServerError, "transaction failed", err)
+	}
+
+	r.log.WithFields(logrus.Fields{
+		"room_id": roomId,
+	}).Debug("Room deleted successfully")
+
+	return nil
 }
 
 func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*models.Room, error) {
-	//TODO implement me
-	panic("implement me")
+	if roomId <= 0 {
+		r.log.Errorf("Room id %d is invalid", roomId)
+		return nil, middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+	}
+
+	room, err := r.rRepo.GetById(ctx, roomId)
+	if err != nil {
+		r.log.WithError(err).Warn("Failed to get room")
+		return nil, err
+	}
+	return room, nil
 }
 
 func (r *RoomService) GetRoomList(ctx context.Context, search string, limit, offset int) ([]*models.Room, error) {
-	//TODO implement me
-	panic("implement me")
+	if len(search) > 100 {
+		search = search[:100]
+	}
+	helper.ValidatePagination(limit, offset)
+
+	roomList, err := r.rRepo.GetAll(ctx, search, limit, offset)
+	if err != nil {
+		r.log.WithError(err).Warn("Failed to get room list")
+		return nil, err
+	}
+	return roomList, nil
 }
