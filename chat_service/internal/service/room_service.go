@@ -100,9 +100,12 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 }
 
 func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name string) error {
-	userIdInt, err := helper.GetUserIdFromContext(ctx)
+	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+	if err = r.validateUserIsAdmin(ctx, roomId, userId); err != nil {
+		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
 	if roomId <= 0 {
@@ -117,41 +120,10 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 		return middleware.NewCustomError(http.StatusBadRequest, "room name cannot be empty", nil)
 	}
 
-	var transactionError error
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		type txKey struct{}
-		txCtx := context.WithValue(ctx, txKey{}, tx)
-
-		roomMember, err := r.rMRepo.GetMemberByUserId(txCtx, roomId, userIdInt)
-		if err != nil {
-			r.log.WithFields(logrus.Fields{
-				"user_id": userIdInt,
-				"error":   err,
-			}).Warn("Failed to get room member")
-			transactionError = fmt.Errorf("failed to get room member: %w", err)
-			return err
-		}
-
-		if roomMember == nil || !roomMember.IsAdmin {
-			r.log.WithField("user_id", userIdInt).Warn("User is not admin")
-			transactionError = errors.New("user is not admin")
-			return transactionError
-		}
-
-		updateData := &models.Room{Name: name}
-		if err := r.rRepo.Update(txCtx, roomId, updateData); err != nil {
-			r.log.WithError(err).Warn("Failed to update room")
-			transactionError = fmt.Errorf("failed to update room: %w", err)
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		if transactionError != nil {
-			return middleware.NewCustomError(http.StatusInternalServerError, transactionError.Error(), transactionError)
-		}
-		return middleware.NewCustomError(http.StatusInternalServerError, "transaction failed", err)
+	updateData := &models.Room{Name: name}
+	if err := r.rRepo.Update(ctx, roomId, updateData); err != nil {
+		r.log.WithError(err).Warn("Failed to update room")
+		return middleware.NewCustomError(http.StatusInternalServerError, "failed to update room", err)
 	}
 
 	r.log.WithFields(logrus.Fields{
@@ -163,9 +135,12 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 }
 
 func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
-	userIdInt, err := helper.GetUserIdFromContext(ctx)
+	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+	if err = r.validateUserIsAdmin(ctx, roomId, userId); err != nil {
+		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
 	if roomId <= 0 {
@@ -177,22 +152,6 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		type txKey struct{}
 		txCtx := context.WithValue(ctx, txKey{}, tx)
-
-		roomMember, err := r.rMRepo.GetMemberByUserId(txCtx, roomId, userIdInt)
-		if err != nil {
-			r.log.WithFields(logrus.Fields{
-				"user_id": userIdInt,
-				"error":   err,
-			}).Warn("Failed to get room member")
-			transactionError = fmt.Errorf("failed to get room member: %w", err)
-			return err
-		}
-
-		if roomMember == nil || !roomMember.IsAdmin {
-			r.log.WithField("user_id", userIdInt).Warn("User is not admin")
-			transactionError = errors.New("user is not admin")
-			return transactionError
-		}
 
 		room, err := r.rRepo.GetById(txCtx, roomId)
 		if err != nil {
@@ -259,4 +218,21 @@ func (r *RoomService) GetRoomList(ctx context.Context, search string, limit, off
 		return nil, err
 	}
 	return roomList, nil
+}
+
+func (r *RoomService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
+	roomMember, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
+	if err != nil {
+		r.log.WithFields(logrus.Fields{
+			"user_id": userId,
+			"error":   err,
+		}).Warn("Failed to get room member")
+		return errors.New("failed to get room member")
+	}
+	if roomMember == nil || !roomMember.IsAdmin {
+		r.log.WithField("user_id", userId).Warn("User is not admin")
+		return errors.New("user is not admin")
+	}
+
+	return nil
 }
