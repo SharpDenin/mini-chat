@@ -1,12 +1,13 @@
-package utils
+package middleware
 
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type ErrorResponse struct {

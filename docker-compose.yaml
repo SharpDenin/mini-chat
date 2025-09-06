@@ -28,11 +28,14 @@ services:
   profile-service:
     build: profile_service
     environment:
+      PROFILE_GRPC_AUTH_PORT: "50051"
+      PROFILE_GRPC_DIRECTORY_PORT: "50052"
       PROFILE_HTTP_PORT: "8082"
       PROFILE_DB_URL: "postgres://postgres:postgres@profile-db:5432/profile_service_db"
     ports:
       - "8082:8082"
       - "50051:50051"
+      - "50052:50052"
     depends_on:
       profile-db:
         condition: service_healthy
@@ -105,7 +108,8 @@ services:
   chat-service:
     build: ./chat_service
     environment:
-      PROFILE_SERVICE_ADDR: "profile_service:50051"
+      PROFILE_SERVICE_AUTH_ADDR: "profile-service:50051"
+      PROFILE_SERVICE_DIRECTORY_ADDR: "profile-service:50052"
       CHAT_HTTP_PORT: "8081"
       CHAT_DB_URL: "postgres://postgres:postgres@chat-db:5432/chat_service_db"
     ports:

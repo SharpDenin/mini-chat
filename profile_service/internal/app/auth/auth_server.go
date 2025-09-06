@@ -1,14 +1,14 @@
-package grpc_server
+package auth
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"os"
-	pb "profile_service/internal/app/auth/gRPC"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/app/user/service/dto"
-	"profile_service/internal/utils"
+	"proto/generated/profile"
+	"proto/middleware"
 	"strconv"
 	"time"
 
@@ -21,7 +21,7 @@ import (
 
 type AuthServer struct {
 	log *logrus.Logger
-	pb.UnimplementedAuthServiceServer
+	profile.UnimplementedAuthServiceServer
 	uService  service.UserServiceInterface
 	jwtSecret string
 }
@@ -40,7 +40,7 @@ func NewAuthServer(log *logrus.Logger, uService service.UserServiceInterface, jw
 	}
 }
 
-func (s *AuthServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+func (s *AuthServer) Register(ctx context.Context, req *profile.RegisterRequest) (*profile.RegisterResponse, error) {
 	s.log.WithFields(logrus.Fields{
 		"username": req.Username,
 		"email":    req.Email,
@@ -60,20 +60,20 @@ func (s *AuthServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb
 	id, err := s.uService.CreateUser(ctx, createReq)
 	if err != nil {
 		s.log.WithError(err).Error("Failed to create user")
-		var customErr *utils.CustomError
+		var customErr *middleware.CustomError
 		if errors.As(err, &customErr) {
 			return nil, status.Error(codes.Code(customErr.StatusCode), customErr.Message)
 		}
 		return nil, status.Error(codes.Internal, "Failed to create user")
 	}
 
-	return &pb.RegisterResponse{
+	return &profile.RegisterResponse{
 		UserId:  strconv.FormatInt(id, 10),
 		Message: "User registered successfully",
 	}, nil
 }
 
-func (s *AuthServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (s *AuthServer) Login(ctx context.Context, req *profile.LoginRequest) (*profile.LoginResponse, error) {
 	s.log.WithFields(logrus.Fields{
 		"username": req.Username,
 	}).Debug("Login request")
@@ -103,13 +103,13 @@ func (s *AuthServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Login
 		s.log.WithError(err).Error("Failed to generate token")
 		return nil, status.Error(codes.Internal, "Failed to generate token")
 	}
-	return &pb.LoginResponse{
+	return &profile.LoginResponse{
 		Token:  tokenString,
 		UserId: strconv.FormatInt(user.Id, 10),
 	}, nil
 }
 
-func (s *AuthServer) ValidateToken(ctx context.Context, req *pb.TokenRequest) (*pb.TokenResponse, error) {
+func (s *AuthServer) ValidateToken(ctx context.Context, req *profile.TokenRequest) (*profile.TokenResponse, error) {
 	s.log.WithFields(logrus.Fields{
 		"token": req.Token[:10] + "...",
 	}).Debug("ValidateToken request")
@@ -122,7 +122,7 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *pb.TokenRequest) (*
 	})
 	if err != nil || !token.Valid {
 		s.log.WithError(err).Warn("Invalid token")
-		return &pb.TokenResponse{
+		return &profile.TokenResponse{
 			Valid: false,
 			Error: "Invalid token",
 		}, nil
@@ -130,7 +130,7 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *pb.TokenRequest) (*
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		s.log.Warn("Invalid claims")
-		return &pb.TokenResponse{
+		return &profile.TokenResponse{
 			Valid: false,
 			Error: "Invalid claims",
 		}, nil
@@ -138,13 +138,13 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *pb.TokenRequest) (*
 	userID, ok := claims["user_id"].(string)
 	if !ok {
 		s.log.Warn("Invalid user_id in claims")
-		return &pb.TokenResponse{
+		return &profile.TokenResponse{
 			Valid: false,
 			Error: "Invalid user_id",
 		}, nil
 	}
 
-	return &pb.TokenResponse{
+	return &profile.TokenResponse{
 		Valid:  true,
 		UserId: userID,
 	}, nil

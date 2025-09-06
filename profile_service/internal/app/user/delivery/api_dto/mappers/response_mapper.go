@@ -1,9 +1,9 @@
 package mappers
 
 import (
-	"profile_service/internal/app/auth/gRPC"
 	hDto "profile_service/internal/app/user/delivery/api_dto"
 	sDto "profile_service/internal/app/user/service/dto"
+	"proto/generated/profile"
 )
 
 func ConvertToServiceUser(u *sDto.GetUserResponse) *hDto.UserViewResponse {
@@ -34,7 +34,7 @@ func ConvertToServiceList(u *sDto.GetUserViewListResponse) *hDto.UserViewListRes
 	return resp
 }
 
-func ConvertToLoginResponse(g *gRPC.LoginResponse) *hDto.LoginResponse {
+func ConvertToLoginResponse(g *profile.LoginResponse) *hDto.LoginResponse {
 	return &hDto.LoginResponse{
 		Token:  g.Token,
 		UserId: g.UserId,

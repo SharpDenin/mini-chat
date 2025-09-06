@@ -4,14 +4,16 @@ import (
 	"context"
 	"net"
 	_ "profile_service/cmd/docs"
-	pb "profile_service/internal/app/auth/gRPC"
-	auth "profile_service/internal/app/auth/grpc_server"
+	"profile_service/internal/app/auth"
 	"profile_service/internal/app/user/delivery/http"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/config"
 	"profile_service/internal/repository/db"
 	"profile_service/internal/repository/profile_repo"
-	"profile_service/internal/utils"
+	localMiddleware "profile_service/middleware"
+	"proto/middleware"
+
+	"proto/generated/profile"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -39,7 +41,6 @@ func main() {
 		log.Fatal("Ошибка получения конфигурации %w", err)
 	}
 
-	// Инициализация базы данных
 	database, err := db.NewDB(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -50,7 +51,6 @@ func main() {
 		}
 	}()
 
-	// Применение миграций
 	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
@@ -64,7 +64,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterAuthServiceServer(grpcServer, authServer)
+	profile.RegisterAuthServiceServer(grpcServer, authServer)
 	go func() {
 		log.Printf("gRPC server running on :50051")
 		if err := grpcServer.Serve(lis); err != nil {
@@ -72,14 +72,28 @@ func main() {
 		}
 	}()
 
+	directoryServer := auth.NewDirectoryServer(log, userService)
+	dirListener, err := net.Listen("tcp", "0.0.0.0:50052")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+	dirGrpcServer := grpc.NewServer()
+	profile.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
+	go func() {
+		log.Printf("gRPC server running on :50052")
+		if err := dirGrpcServer.Serve(dirListener); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
+
 	userHandler := http.NewUserHandler(userService, authServer, log)
 
-	authMiddleware := utils.NewAuthMiddleware(authServer, log)
+	authMiddleware := localMiddleware.NewAuthMiddleware(authServer, log)
 
 	router := gin.Default()
 	router.Use(
 		gin.Recovery(),
-		utils.ErrorMiddleware(log),
+		middleware.ErrorMiddleware(log),
 	)
 
 	api := router.Group("/api/v1")
