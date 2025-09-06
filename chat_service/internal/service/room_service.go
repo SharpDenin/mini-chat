@@ -100,17 +100,17 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 }
 
 func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name string) error {
+	if roomId <= 0 {
+		r.log.Errorf("Room id %d is invalid", roomId)
+		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+	}
+
 	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 	if err = r.validateUserIsAdmin(ctx, roomId, userId); err != nil {
 		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
-	}
-
-	if roomId <= 0 {
-		r.log.Errorf("Room id %d is invalid", roomId)
-		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
 	}
 
 	if strings.TrimSpace(name) == "" {
@@ -135,6 +135,11 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 }
 
 func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
+	if roomId <= 0 {
+		r.log.Errorf("Room id %d is invalid", roomId)
+		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+	}
+
 	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
@@ -143,17 +148,12 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
-	if roomId <= 0 {
-		r.log.Errorf("Room id %d is invalid", roomId)
-		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
-	}
-
 	var transactionError error
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		type txKey struct{}
 		txCtx := context.WithValue(ctx, txKey{}, tx)
 
-		room, err := r.rRepo.GetById(txCtx, roomId)
+		room, err := r.rRepo.GetRoomById(txCtx, roomId)
 		if err != nil {
 			r.log.WithError(err).Warn("Failed to get room")
 			transactionError = fmt.Errorf("failed to get room: %w", err)
@@ -165,7 +165,7 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 			return err
 		}
 
-		if err := r.rMRepo.RemoveAllMembers(txCtx, roomId); err != nil {
+		if err = r.rMRepo.RemoveAllMembers(txCtx, roomId); err != nil {
 			transactionError = fmt.Errorf("failed to remove room members: %w", err)
 			return err
 		}
@@ -198,7 +198,7 @@ func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*models.Ro
 		return nil, middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
 	}
 
-	room, err := r.rRepo.GetById(ctx, roomId)
+	room, err := r.rRepo.GetRoomById(ctx, roomId)
 	if err != nil {
 		r.log.WithError(err).Warn("Failed to get room")
 		return nil, err
@@ -210,7 +210,15 @@ func (r *RoomService) GetRoomList(ctx context.Context, search string, limit, off
 	if len(search) > 100 {
 		search = search[:100]
 	}
-	helper.ValidatePagination(limit, offset)
+	if limit <= 0 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if limit > 100 {
+		limit = 100
+	}
 
 	roomList, err := r.rRepo.GetAll(ctx, search, limit, offset)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"proto/generated/profile"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -65,5 +66,7 @@ func (c *ProfileClient) ValidateToken(ctx context.Context, req *profile.TokenReq
 }
 
 func (c *ProfileClient) UserExists(ctx context.Context, req *profile.UserExistsRequest) (*profile.UserExistsResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	return c.userDirClient.UserExists(ctx, req)
 }

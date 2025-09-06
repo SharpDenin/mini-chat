@@ -32,7 +32,7 @@ func (r *RoomRepo) Create(ctx context.Context, room *models.Room) error {
 	return nil
 }
 
-func (r *RoomRepo) GetById(ctx context.Context, id int64) (*models.Room, error) {
+func (r *RoomRepo) GetRoomById(ctx context.Context, id int64) (*models.Room, error) {
 	var room models.Room
 	err := r.db.WithContext(ctx).First(&room, id).Error
 	if err != nil {

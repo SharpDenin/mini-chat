@@ -7,18 +7,6 @@ import (
 	"proto/generated/profile"
 )
 
-func ValidatePagination(limit int, offset int) {
-	if limit <= 0 {
-		limit = 10
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	if limit > 100 {
-		limit = 100
-	}
-}
-
 func CheckUserExist(ctx context.Context, profileClient *grpc_client.ProfileClient, req *profile.UserExistsRequest) (bool, error) {
 	userResp, err := profileClient.UserExists(ctx, req)
 	if err != nil {

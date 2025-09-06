@@ -7,7 +7,7 @@ import (
 
 type RoomRepoInterface interface {
 	Create(ctx context.Context, room *models.Room) error
-	GetById(ctx context.Context, id int64) (*models.Room, error)
+	GetRoomById(ctx context.Context, id int64) (*models.Room, error)
 	GetAll(ctx context.Context, searchFilter string, limit, offset int) ([]*models.Room, error)
 	Update(ctx context.Context, id int64, room *models.Room) error
 	Delete(ctx context.Context, id int64) error
