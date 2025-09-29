@@ -56,7 +56,6 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 	}
 
 	var roomId int64
-	var transactionErr error
 
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		type txKey struct{}
@@ -65,29 +64,23 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 		room := &models.Room{Name: name}
 		if err := r.rRepo.Create(txCtx, room); err != nil {
 			r.log.WithError(err).Warn("Failed to create room")
-			transactionErr = fmt.Errorf("failed to create room: %w", err)
-			return err
+			return fmt.Errorf("failed to create room: %w", err)
 		}
 
 		if err := r.rMRepo.AddMember(txCtx, room.Id, userIdInt); err != nil {
 			r.log.WithError(err).Warn("Failed to add creator to room")
-			transactionErr = fmt.Errorf("failed to add creator to room: %w", err)
-			return err
+			return fmt.Errorf("failed to add creator to room: %w", err)
 		}
 
 		if err := r.rMRepo.SetAdmin(txCtx, room.Id, userIdInt, true); err != nil {
 			r.log.WithError(err).Warn("Failed to set admin status")
-			transactionErr = fmt.Errorf("failed to set admin status: %w", err)
-			return err
+			return fmt.Errorf("failed to set admin status: %w", err)
 		}
 		roomId = room.Id
 		return nil
 	})
 	if err != nil {
-		if transactionErr != nil {
-			return 0, middleware.NewCustomError(http.StatusInternalServerError, transactionErr.Error(), transactionErr)
-		}
-		return 0, middleware.NewCustomError(http.StatusInternalServerError, "transaction failed", err)
+		return 0, fmt.Errorf("room creation transaction failed: %w", err)
 	}
 
 	r.log.WithFields(logrus.Fields{
@@ -148,7 +141,6 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
-	var transactionError error
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		type txKey struct{}
 		txCtx := context.WithValue(ctx, txKey{}, tx)
@@ -156,32 +148,26 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 		room, err := r.rRepo.GetRoomById(txCtx, roomId)
 		if err != nil {
 			r.log.WithError(err).Warn("Failed to get room")
-			transactionError = fmt.Errorf("failed to get room: %w", err)
-			return err
+			return fmt.Errorf("failed to get room: %w", err)
 		}
 		if room == nil {
 			r.log.WithField("room_id", roomId).Warn("Room not found")
-			transactionError = errors.New("room not found")
-			return err
+			return errors.New("room not found")
 		}
 
 		if err = r.rMRepo.RemoveAllMembers(txCtx, roomId); err != nil {
-			transactionError = fmt.Errorf("failed to remove room members: %w", err)
-			return err
+			r.log.WithError(err).Warn("Failed to remove member")
+			return fmt.Errorf("failed to remove room members: %w", err)
 		}
 
 		if err = r.rRepo.Delete(txCtx, roomId); err != nil {
 			r.log.WithError(err).Warn("Failed to delete room")
-			transactionError = fmt.Errorf("failed to delete room: %w", err)
-			return err
+			return fmt.Errorf("failed to delete room: %w", err)
 		}
 
 		return nil
 	})
 	if err != nil {
-		if transactionError != nil {
-			return middleware.NewCustomError(http.StatusInternalServerError, transactionError.Error(), transactionError)
-		}
 		return middleware.NewCustomError(http.StatusInternalServerError, "transaction failed", err)
 	}
 

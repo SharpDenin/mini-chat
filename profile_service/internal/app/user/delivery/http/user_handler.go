@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 	"profile_service/internal/app/user/delivery/api_dto"
-	"profile_service/internal/app/user/delivery/api_dto/mappers"
+	"profile_service/internal/app/user/delivery/mappers"
 	"profile_service/internal/app/user/service"
 	pb "proto/generated/profile"
 	"proto/middleware"
