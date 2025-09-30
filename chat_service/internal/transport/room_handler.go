@@ -135,17 +135,109 @@ func (h *RoomHandler) DeleteRoom(ctx *gin.Context) {
 }
 
 func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
+	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
+	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
 
+	err = h.roomMemberService.AddMember(ctx, userId, roomId)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error adding member")
+		middleware.HandleError(ctx, err, h.log)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, userId)
 }
 
 func (h *RoomHandler) DeleteRoomMember(ctx *gin.Context) {
+	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
+	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
 
+	err = h.roomMemberService.RemoveMember(ctx, userId, roomId)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error removing member")
+		middleware.HandleError(ctx, err, h.log)
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
+	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
+	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
+	var req *api_dto.SetAdminStatusRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		h.log.WithFields(logrus.Fields{
+			"error":   err,
+			"user_id": userId,
+			"room_id": roomId,
+		}).Warn("Invalid request body")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request body", err), h.log)
+		return
+	}
 
+	err = h.roomMemberService.SetAdmin(ctx, userId, roomId, req.SetAdmin)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error setting admin")
+		middleware.HandleError(ctx, err, h.log)
+		return
+	}
+
+	resp := gin.H{
+		"user_id":  userId,
+		"room_id":  roomId,
+		"is_admin": req.SetAdmin,
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
+	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Invalid request parameters")
+		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
 
+	memberList, err := h.roomMemberService.ListMembers(ctx, roomId)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error getting member list")
+		middleware.HandleError(ctx, err, h.log)
+		return
+	}
+
+	resp := room_mapper.GetRoomMemberListToHandlerDto(roomId, memberList)
+
+	ctx.JSON(http.StatusOK, resp)
 }

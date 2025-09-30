@@ -13,3 +13,7 @@ type CreateRoomRequest struct {
 type UpdateRoomRequest struct {
 	Name string `json:"name" binding:"omitempty,max=255"`
 }
+
+type SetAdminStatusRequest struct {
+	SetAdmin bool `json:"set_admin" binding:"required"`
+}
