@@ -3,6 +3,7 @@ package service
 import (
 	"chat_service/internal/models"
 	"chat_service/internal/repository/room_repo"
+	"chat_service/internal/service/dto"
 	"chat_service/internal/service/helper"
 	"chat_service/pkg/grpc_client"
 	"context"
@@ -178,7 +179,7 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 	return nil
 }
 
-func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*models.Room, error) {
+func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*dto.GetRoomResponse, error) {
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
 		return nil, middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
@@ -189,29 +190,41 @@ func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*models.Ro
 		r.log.WithError(err).Warn("Failed to get room")
 		return nil, err
 	}
-	return room, nil
+	return &dto.GetRoomResponse{
+		Id:   room.Id,
+		Name: room.Name,
+	}, nil
 }
 
-func (r *RoomService) GetRoomList(ctx context.Context, search string, limit, offset int) ([]*models.Room, error) {
-	if len(search) > 100 {
-		search = search[:100]
+func (r *RoomService) GetRoomList(ctx context.Context, filter *dto.SearchFilter) ([]*dto.GetRoomResponse, error) {
+	if len(filter.Search) > 100 {
+		filter.Search = filter.Search[:100]
 	}
-	if limit <= 0 {
-		limit = 10
+	if filter.Limit <= 0 {
+		filter.Limit = 10
 	}
-	if offset < 0 {
-		offset = 0
+	if filter.Limit > 100 {
+		filter.Limit = 100
 	}
-	if limit > 100 {
-		limit = 100
+	if filter.Offset < 0 {
+		filter.Offset = 0
 	}
 
-	roomList, err := r.rRepo.GetAll(ctx, search, limit, offset)
+	roomList, err := r.rRepo.GetAll(ctx, filter.Search, filter.Limit, filter.Offset)
 	if err != nil {
 		r.log.WithError(err).Warn("Failed to get room list")
 		return nil, err
 	}
-	return roomList, nil
+
+	resp := make([]*dto.GetRoomResponse, len(roomList))
+	for i, room := range roomList {
+		resp[i] = &dto.GetRoomResponse{
+			Id:   room.Id,
+			Name: room.Name,
+		}
+	}
+
+	return resp, nil
 }
 
 func (r *RoomService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {

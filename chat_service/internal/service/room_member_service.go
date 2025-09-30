@@ -1,8 +1,8 @@
 package service
 
 import (
-	"chat_service/internal/models"
 	"chat_service/internal/repository/room_repo"
+	"chat_service/internal/service/dto"
 	"chat_service/internal/service/helper"
 	"chat_service/pkg/grpc_client"
 	"context"
@@ -142,7 +142,7 @@ func (r *RoomMemberService) RemoveMember(ctx context.Context, roomId, userId int
 	return nil
 }
 
-func (r *RoomMemberService) ListMembers(ctx context.Context, roomId int64) ([]*models.RoomMember, error) {
+func (r *RoomMemberService) ListMembers(ctx context.Context, roomId int64) ([]*dto.GetRoomMemberResponse, error) {
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
 		return nil, middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
@@ -158,7 +158,16 @@ func (r *RoomMemberService) ListMembers(ctx context.Context, roomId int64) ([]*m
 		return nil, middleware.NewCustomError(http.StatusInternalServerError, "failed to get room members", err)
 	}
 
-	return members, nil
+	resp := make([]*dto.GetRoomMemberResponse, len(members))
+	for i, member := range members {
+		resp[i] = &dto.GetRoomMemberResponse{
+			UserId:  member.UserId,
+			RoomId:  member.RoomId,
+			IsAdmin: member.IsAdmin,
+		}
+	}
+
+	return resp, nil
 }
 
 func (r *RoomMemberService) SetAdmin(ctx context.Context, roomId, userId int64, isAdmin bool) error {
@@ -209,7 +218,7 @@ func (r *RoomMemberService) SetAdmin(ctx context.Context, roomId, userId int64, 
 	return nil
 }
 
-func (r *RoomMemberService) ListUserRooms(ctx context.Context, userId int64) ([]*models.Room, error) {
+func (r *RoomMemberService) ListUserRooms(ctx context.Context, userId int64) ([]*dto.GetRoomResponse, error) {
 	if userId <= 0 {
 		r.log.Errorf("Room id %d is invalid", userId)
 		return nil, middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
@@ -228,12 +237,20 @@ func (r *RoomMemberService) ListUserRooms(ctx context.Context, userId int64) ([]
 		return nil, middleware.NewCustomError(http.StatusInternalServerError, "failed to get room by UserId", err)
 	}
 
+	resp := make([]*dto.GetRoomResponse, len(rooms))
+	for i, room := range rooms {
+		resp[i] = &dto.GetRoomResponse{
+			Id:   room.Id,
+			Name: room.Name,
+		}
+	}
+
 	r.log.WithFields(logrus.Fields{
 		"user_id": userId,
 		"rooms":   len(rooms),
 	})
 
-	return rooms, nil
+	return resp, nil
 }
 
 func (r *RoomMemberService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
