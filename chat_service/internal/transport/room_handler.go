@@ -4,9 +4,9 @@ import (
 	"chat_service/internal/service"
 	"chat_service/internal/transport/api_dto"
 	"chat_service/internal/transport/room_mapper"
+	"chat_service/middleware"
 	"net/http"
 	"os"
-	"proto/middleware"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

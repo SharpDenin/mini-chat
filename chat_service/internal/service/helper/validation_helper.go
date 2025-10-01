@@ -2,9 +2,9 @@ package helper
 
 import (
 	"chat_service/pkg/grpc_client"
+	"chat_service/pkg/grpc_generated/profile"
 	"context"
 	"fmt"
-	"proto/generated/profile"
 )
 
 func CheckUserExist(ctx context.Context, profileClient *grpc_client.ProfileClient, req *profile.UserExistsRequest) (bool, error) {

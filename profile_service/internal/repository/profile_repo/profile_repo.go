@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"profile_service/internal/app/user/models"
-	"profile_service/internal/app/user/service/dto"
+	"profile_service/internal/models"
+	"profile_service/internal/service/service_dto"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -72,7 +72,7 @@ func (u *ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, erro
 	return &person, nil
 }
 
-func (u *ProfileRepo) GetAll(ctx context.Context, filter dto.SearchUserFilter) (int, []*models.User, error) {
+func (u *ProfileRepo) GetAll(ctx context.Context, filter service_dto.SearchUserFilter) (int, []*models.User, error) {
 	if filter.Limit < 0 || filter.Offset < 0 {
 		u.log.WithFields(logrus.Fields{"limit": filter.Limit, "offset": filter.Offset}).Error("Invalid pagination params")
 		return 0, nil, fmt.Errorf("invalid pagination params: limit and offset must be positive")

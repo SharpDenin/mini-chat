@@ -1,10 +1,10 @@
-package auth
+package grpc_server
 
 import (
 	"context"
 	"os"
-	"profile_service/internal/app/auth/profile"
-	"profile_service/internal/app/user/service"
+	"profile_service/internal/service"
+	"profile_service/pkg/grpc_generated/profile"
 	"strconv"
 
 	"github.com/sirupsen/logrus"

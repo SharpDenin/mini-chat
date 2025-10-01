@@ -1,13 +1,13 @@
-package http
+package transport
 
 import (
 	"net/http"
 	"os"
-	"profile_service/internal/app/user/delivery/api_dto"
-	"profile_service/internal/app/user/delivery/mappers"
-	"profile_service/internal/app/user/service"
-	pb "proto/generated/profile"
-	"proto/middleware"
+	"profile_service/internal/service"
+	"profile_service/internal/transport/api_dto"
+	"profile_service/internal/transport/user_mapper"
+	"profile_service/middleware"
+	pb "profile_service/pkg/grpc_generated/profile"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -52,13 +52,13 @@ func (h *UserHandler) PostLogin(ctx *gin.Context) {
 		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid login request", err), h.log)
 		return
 	}
-	resp, err := h.authServer.Login(ctx.Request.Context(), mappers.ConvertToLoginRequest(req))
+	resp, err := h.authServer.Login(ctx.Request.Context(), user_mapper.ConvertToLoginRequest(req))
 	if err != nil {
 		h.log.WithError(err).Error("Failed to login")
 		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusUnauthorized, "Invalid credentials", err), h.log)
 		return
 	}
-	ctx.JSON(http.StatusOK, mappers.ConvertToLoginResponse(resp))
+	ctx.JSON(http.StatusOK, user_mapper.ConvertToLoginResponse(resp))
 }
 
 // PostUser
@@ -79,7 +79,7 @@ func (h *UserHandler) PostUser(ctx *gin.Context) {
 		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid create request", err), h.log)
 		return
 	}
-	mappedReq := mappers.ConvertToRegisterRequest(req)
+	mappedReq := user_mapper.ConvertToRegisterRequest(req)
 	id, err := h.authServer.Register(ctx.Request.Context(), mappedReq)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to create user")
@@ -115,7 +115,7 @@ func (h *UserHandler) GetUserById(ctx *gin.Context) {
 		middleware.HandleError(ctx, err, h.log)
 		return
 	}
-	resp := mappers.ConvertToServiceUser(user)
+	resp := user_mapper.ConvertToServiceUser(user)
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -141,14 +141,14 @@ func (h *UserHandler) GetFilteredUserList(ctx *gin.Context) {
 		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid filter request", err), h.log)
 		return
 	}
-	filter := mappers.ConvertToServiceFilter(req)
+	filter := user_mapper.ConvertToServiceFilter(req)
 	list, err := h.userService.GetAllUsers(ctx.Request.Context(), *filter)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to get users")
 		middleware.HandleError(ctx, err, h.log)
 		return
 	}
-	resp := mappers.ConvertToServiceList(list)
+	resp := user_mapper.ConvertToServiceList(list)
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -179,7 +179,7 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 		middleware.HandleError(ctx, middleware.NewCustomError(http.StatusBadRequest, "Invalid update request", err), h.log)
 		return
 	}
-	mappedReq := mappers.ConvertToServiceUpdate(req)
+	mappedReq := user_mapper.ConvertToServiceUpdate(req)
 	err = h.userService.UpdateUser(ctx.Request.Context(), id, mappedReq)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Error("Failed to update user")

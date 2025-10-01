@@ -1,14 +1,14 @@
-package auth
+package grpc_server
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"os"
-	"profile_service/internal/app/auth/profile"
-	"profile_service/internal/app/user/service"
-	"profile_service/internal/app/user/service/dto"
+	"profile_service/internal/service"
+	"profile_service/internal/service/service_dto"
 	"profile_service/middleware"
+	"profile_service/pkg/grpc_generated/profile"
 	"strconv"
 	"time"
 
@@ -52,7 +52,7 @@ func (s *AuthServer) Register(ctx context.Context, req *profile.RegisterRequest)
 		return nil, status.Error(codes.Internal, "Failed to hash password")
 	}
 
-	createReq := &dto.CreateUserRequest{
+	createReq := &service_dto.CreateUserRequest{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: string(hashedPassword),
@@ -78,7 +78,7 @@ func (s *AuthServer) Login(ctx context.Context, req *profile.LoginRequest) (*pro
 		"username": req.Username,
 	}).Debug("Login request")
 
-	filter := dto.SearchUserFilter{
+	filter := service_dto.SearchUserFilter{
 		Username: req.Username,
 		Limit:    1,
 		Offset:   0,

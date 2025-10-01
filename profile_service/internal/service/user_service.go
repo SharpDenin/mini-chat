@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"profile_service/internal/app/user/models"
-	"profile_service/internal/app/user/service/dto"
-	"profile_service/internal/app/user/service/helpers"
+	"profile_service/internal/models"
 	"profile_service/internal/repository/profile_repo"
-	"proto/middleware"
+	"profile_service/internal/service/helpers"
+	"profile_service/internal/service/service_dto"
+	"profile_service/middleware"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ func NewUserService(uRepo profile_repo.ProfileRepoInterface, log *logrus.Logger)
 	}
 }
 
-func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUserResponse, error) {
+func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_dto.GetUserResponse, error) {
 	u.log.Debugf("GetUserById %v", userId)
 	if err := helpers.ValidateUserId(userId); err != nil {
 		return nil, middleware.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
@@ -43,7 +43,7 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUs
 	if err != nil {
 		return nil, u.handleError(err, userId, "GetUserById")
 	}
-	response := &dto.GetUserResponse{
+	response := &service_dto.GetUserResponse{
 		Id:        user.Id,
 		Name:      user.Username,
 		Email:     user.Email,
@@ -52,7 +52,7 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*dto.GetUs
 	return response, nil
 }
 
-func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilter) (*dto.GetUserViewListResponse, error) {
+func (u *UserService) GetAllUsers(ctx context.Context, filter service_dto.SearchUserFilter) (*service_dto.GetUserViewListResponse, error) {
 	u.log.Debugf("GetAllUsers")
 	if filter.Limit > 50 {
 		return nil, middleware.NewCustomError(http.StatusBadRequest, "Limit should be between 0 and 50", nil)
@@ -64,14 +64,14 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 	if err != nil {
 		return nil, u.handleError(err, 0, "GetAllUsers")
 	}
-	response := &dto.GetUserViewListResponse{
-		UserList: make([]*dto.GetUserResponse, 0, len(users)),
+	response := &service_dto.GetUserViewListResponse{
+		UserList: make([]*service_dto.GetUserResponse, 0, len(users)),
 		Limit:    filter.Limit,
 		Offset:   filter.Offset,
 		Total:    total,
 	}
 	for _, user := range users {
-		response.UserList = append(response.UserList, &dto.GetUserResponse{
+		response.UserList = append(response.UserList, &service_dto.GetUserResponse{
 			Id:        user.Id,
 			Name:      user.Username,
 			Email:     user.Email,
@@ -82,7 +82,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter dto.SearchUserFilt
 	return response, nil
 }
 
-func (u *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (int64, error) {
+func (u *UserService) CreateUser(ctx context.Context, req *service_dto.CreateUserRequest) (int64, error) {
 	u.log.Debugf("CreateUser")
 	if err := helpers.ValidateUserForCreate(req); err != nil {
 		return 0, middleware.NewCustomError(http.StatusBadRequest, "Validation error", err)
@@ -99,7 +99,7 @@ func (u *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	return uModel.Id, nil
 }
 
-func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *dto.UpdateUserRequest) error {
+func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *service_dto.UpdateUserRequest) error {
 	u.log.Debugf("UpdateUser")
 	currentUser, err := u.uRepo.GetById(ctx, userId)
 	if err != nil {
