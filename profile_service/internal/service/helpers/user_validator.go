@@ -3,8 +3,8 @@ package helpers
 import (
 	"errors"
 	"fmt"
-	"profile_service/internal/app/user/models"
-	"profile_service/internal/app/user/service/dto"
+	"profile_service/internal/models"
+	"profile_service/internal/service/service_dto"
 )
 
 func ValidateUserId(userId int64) error {
@@ -14,7 +14,7 @@ func ValidateUserId(userId int64) error {
 	return nil
 }
 
-func ValidateUserForCreate(u *dto.CreateUserRequest) error {
+func ValidateUserForCreate(u *service_dto.CreateUserRequest) error {
 	if u == nil {
 		return errors.New("userModel is nil")
 	}

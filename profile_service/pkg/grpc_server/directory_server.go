@@ -3,8 +3,8 @@ package auth
 import (
 	"context"
 	"os"
+	"profile_service/internal/app/auth/profile"
 	"profile_service/internal/app/user/service"
-	"proto/generated/profile"
 	"strconv"
 
 	"github.com/sirupsen/logrus"

@@ -6,9 +6,9 @@ import (
 	"chat_service/internal/repository/room_repo"
 	"chat_service/internal/service"
 	"chat_service/internal/transport"
+	"chat_service/middleware"
 	"chat_service/pkg/grpc_client"
 	"context"
-	"proto/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

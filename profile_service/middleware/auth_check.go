@@ -2,8 +2,7 @@ package middleware
 
 import (
 	"net/http"
-	"proto/generated/profile"
-	"proto/middleware"
+	"profile_service/pkg/grpc_generated/profile"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,16 +19,16 @@ func NewAuthMiddleware(authServer profile.AuthServiceServer, log *logrus.Logger)
 		// Извлекаем токен
 		token := extractToken(ctx)
 		if token == "" {
-			err := middleware.NewCustomError(http.StatusUnauthorized, "Authorization token is missing", nil)
-			middleware.HandleError(ctx, err, log)
+			err := NewCustomError(http.StatusUnauthorized, "Authorization token is missing", nil)
+			HandleError(ctx, err, log)
 			ctx.Abort()
 			return
 		}
 
 		resp, err := authServer.ValidateToken(ctx, &profile.TokenRequest{Token: token})
 		if err != nil || !resp.Valid {
-			customErr := middleware.NewCustomError(http.StatusUnauthorized, "Invalid token", err)
-			middleware.HandleError(ctx, customErr, log)
+			customErr := NewCustomError(http.StatusUnauthorized, "Invalid token", err)
+			HandleError(ctx, customErr, log)
 			ctx.Abort()
 			return
 		}

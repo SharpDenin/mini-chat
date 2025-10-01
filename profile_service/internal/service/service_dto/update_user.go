@@ -1,4 +1,4 @@
-package dto
+package service_dto
 
 type UpdateUserRequest struct {
 	Username *string

@@ -1,9 +1,9 @@
 package middleware
 
 import (
+	"chat_service/pkg/grpc_generated/profile"
 	"context"
 	"net/http"
-	"proto/generated/profile"
 	"strings"
 
 	"github.com/gin-gonic/gin"

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"profile_service/internal/app/auth/profile"
 	"profile_service/internal/app/user/service"
 	"profile_service/internal/app/user/service/dto"
-	"proto/generated/profile"
-	"proto/middleware"
+	"profile_service/middleware"
 	"strconv"
 	"time"
 

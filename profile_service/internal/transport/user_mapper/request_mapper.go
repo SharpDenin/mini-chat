@@ -1,13 +1,13 @@
-package mappers
+package user_mapper
 
 import (
-	hDto "profile_service/internal/app/user/delivery/api_dto"
-	sDto "profile_service/internal/app/user/service/dto"
-	"proto/generated/profile"
+	"profile_service/internal/service/service_dto"
+	hDto "profile_service/internal/transport/api_dto"
+	"profile_service/pkg/grpc_generated/profile"
 )
 
-func ConvertToServiceFilter(f *hDto.UserFilterRequest) *sDto.SearchUserFilter {
-	return &sDto.SearchUserFilter{
+func ConvertToServiceFilter(f *hDto.UserFilterRequest) *service_dto.SearchUserFilter {
+	return &service_dto.SearchUserFilter{
 		Username: f.Name,
 		Email:    f.Email,
 		Limit:    f.Limit,
@@ -23,8 +23,8 @@ func ConvertToRegisterRequest(u *hDto.CreateUserRequest) *profile.RegisterReques
 	}
 }
 
-func ConvertToServiceUpdate(u *hDto.UpdateUserRequest) *sDto.UpdateUserRequest {
-	return &sDto.UpdateUserRequest{
+func ConvertToServiceUpdate(u *hDto.UpdateUserRequest) *service_dto.UpdateUserRequest {
+	return &service_dto.UpdateUserRequest{
 		Username: u.Name,
 		Email:    u.Email,
 	}

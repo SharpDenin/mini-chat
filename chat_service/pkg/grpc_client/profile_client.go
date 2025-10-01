@@ -1,9 +1,9 @@
 package grpc_client
 
 import (
+	"chat_service/pkg/grpc_generated/profile"
 	"context"
 	"fmt"
-	"proto/generated/profile"
 	"time"
 
 	"google.golang.org/grpc"

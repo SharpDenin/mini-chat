@@ -4,16 +4,14 @@ import (
 	"context"
 	"net"
 	_ "profile_service/cmd/docs"
-	"profile_service/internal/app/auth"
-	"profile_service/internal/app/user/delivery/http"
-	"profile_service/internal/app/user/service"
 	"profile_service/internal/config"
 	"profile_service/internal/repository/db"
 	"profile_service/internal/repository/profile_repo"
-	localMiddleware "profile_service/middleware"
-	"proto/middleware"
-
-	"proto/generated/profile"
+	"profile_service/internal/service"
+	"profile_service/internal/transport"
+	"profile_service/middleware"
+	"profile_service/pkg/grpc_generated/profile"
+	"profile_service/pkg/grpc_server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -58,7 +56,7 @@ func main() {
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
 	userService := service.NewUserService(userRepo, log)
 
-	authServer := auth.NewAuthServer(log, userService, cfg.Jwt)
+	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -72,7 +70,7 @@ func main() {
 		}
 	}()
 
-	directoryServer := auth.NewDirectoryServer(log, userService)
+	directoryServer := grpc_server.NewDirectoryServer(log, userService)
 	dirListener, err := net.Listen("tcp", "0.0.0.0:50052")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -86,9 +84,9 @@ func main() {
 		}
 	}()
 
-	userHandler := http.NewUserHandler(userService, authServer, log)
+	userHandler := transport.NewUserHandler(userService, authServer, log)
 
-	authMiddleware := localMiddleware.NewAuthMiddleware(authServer, log)
+	authMiddleware := middleware.NewAuthMiddleware(authServer, log)
 
 	router := gin.Default()
 	router.Use(
