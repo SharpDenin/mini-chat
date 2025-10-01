@@ -3,12 +3,17 @@ package main
 import (
 	"chat_service/internal/config"
 	"chat_service/internal/repository/db"
+	"chat_service/internal/repository/room_repo"
+	"chat_service/internal/service"
+	"chat_service/internal/transport"
 	"chat_service/pkg/grpc_client"
 	"context"
 	"proto/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -34,7 +39,8 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	//roomRepo := room_repo.NewRoomRepo(database.DB, log)
+	roomRepo := room_repo.NewRoomRepo(database.DB, log)
+	roomMemberRepo := room_repo.NewRoomMemberRepo(database.DB, log)
 
 	profileClient, err := grpc_client.NewProfileClient("profileService:50051", "profileService:50052")
 	if err != nil {
@@ -46,11 +52,43 @@ func main() {
 		}
 	}()
 
-	//roomService := service.NewRoomService(profileClient, roomRepo, log)
+	roomService := service.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+	roomMemberService := service.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+
+	roomHandler := transport.NewRoomHandler(log, roomService, roomMemberService)
 
 	// Создаем Gin-роутер
 	router := gin.Default()
+	router.Use(
+		gin.Recovery(),
+		middleware.NewAuthMiddleware(profileClient, log),
+		middleware.ErrorMiddleware(log),
+	)
 
-	router.Use(middleware.NewAuthMiddleware(profileClient, log))
+	api := router.Group("/api/v1")
+	{
+		room := api.Group("/room")
+		{
+			room.POST("/room", roomHandler.CreateRoom)
+			room.GET("/:id", roomHandler.GetRoom)
+			room.GET("", roomHandler.GetRoomList)
+			room.GET("", roomHandler.GetMemberList)
+			room.PUT("/:id", roomHandler.RenameRoom)
+			room.DELETE("/:id", roomHandler.DeleteRoom)
+		}
+		roomMember := api.Group("/room_member")
+		{
+			roomMember.POST("/room-member", roomHandler.CreateRoomMember)
+			roomMember.PUT("/:id", roomHandler.SetAdminMember)
+			roomMember.DELETE("/:id", roomHandler.DeleteRoomMember)
+		}
+	}
 
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Запуск сервера
+	log.Info("Starting server on :8080")
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal("Failed to start server: ", err)
+	}
 }
