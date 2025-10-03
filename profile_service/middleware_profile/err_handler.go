@@ -1,4 +1,4 @@
-package middleware
+package middleware_profile
 
 import (
 	"errors"
@@ -10,8 +10,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// ErrorResponse представляет ошибку, которая возвращается клиенту
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Error string `json:"error" binding:"omitempty" example:"Invalid request parameters"`
 }
 
 func ErrorHandler(message string) *ErrorResponse {

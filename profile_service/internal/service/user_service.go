@@ -10,7 +10,7 @@ import (
 	"profile_service/internal/repository/profile_repo"
 	"profile_service/internal/service/helpers"
 	"profile_service/internal/service/service_dto"
-	"profile_service/middleware"
+	"profile_service/middleware_profile"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -37,7 +37,7 @@ func NewUserService(uRepo profile_repo.ProfileRepoInterface, log *logrus.Logger)
 func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_dto.GetUserResponse, error) {
 	u.log.Debugf("GetUserById %v", userId)
 	if err := helpers.ValidateUserId(userId); err != nil {
-		return nil, middleware.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
+		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
 	}
 	user, err := u.uRepo.GetById(ctx, userId)
 	if err != nil {
@@ -55,10 +55,10 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_d
 func (u *UserService) GetAllUsers(ctx context.Context, filter service_dto.SearchUserFilter) (*service_dto.GetUserViewListResponse, error) {
 	u.log.Debugf("GetAllUsers")
 	if filter.Limit > 50 {
-		return nil, middleware.NewCustomError(http.StatusBadRequest, "Limit should be between 0 and 50", nil)
+		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, "Limit should be between 0 and 50", nil)
 	}
 	if filter.Offset < 0 {
-		return nil, middleware.NewCustomError(http.StatusBadRequest, "Offset cannot be negative", nil)
+		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, "Offset cannot be negative", nil)
 	}
 	total, users, err := u.uRepo.GetAll(ctx, filter)
 	if err != nil {
@@ -85,7 +85,7 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter service_dto.Search
 func (u *UserService) CreateUser(ctx context.Context, req *service_dto.CreateUserRequest) (int64, error) {
 	u.log.Debugf("CreateUser")
 	if err := helpers.ValidateUserForCreate(req); err != nil {
-		return 0, middleware.NewCustomError(http.StatusBadRequest, "Validation error", err)
+		return 0, middleware_profile.NewCustomError(http.StatusBadRequest, "Validation error", err)
 	}
 	userModel := &models.User{
 		Username: req.Username,
@@ -112,14 +112,14 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *service
 		currentUser.Email = *req.Email
 	}
 	if err := helpers.ValidateUserForUpdate(currentUser); err != nil {
-		return middleware.NewCustomError(http.StatusBadRequest, "Validation error", err)
+		return middleware_profile.NewCustomError(http.StatusBadRequest, "Validation error", err)
 	}
 	updatedUser, err := u.uRepo.Update(ctx, userId, currentUser)
 	if err != nil {
 		return u.handleError(err, userId, "UpdateUser")
 	}
 	if updatedUser == nil {
-		return middleware.NewCustomError(http.StatusNotFound, "User not found", nil)
+		return middleware_profile.NewCustomError(http.StatusNotFound, "User not found", nil)
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *service
 func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 	u.log.Debugf("DeleteUser")
 	if err := helpers.ValidateUserId(userId); err != nil {
-		return middleware.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
+		return middleware_profile.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Validation error %v", userId), err)
 	}
 	err := u.uRepo.Delete(ctx, userId)
 	if err != nil {
@@ -139,10 +139,10 @@ func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 func (u *UserService) handleError(err error, id int64, operation string) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		u.log.Infof("User Not Found, id: %d", id)
-		return middleware.NewCustomError(http.StatusNotFound, fmt.Sprintf("User not found, id: %d", id), err)
+		return middleware_profile.NewCustomError(http.StatusNotFound, fmt.Sprintf("User not found, id: %d", id), err)
 	}
 	if errors.Is(err, gorm.ErrDuplicatedKey) {
-		return middleware.NewCustomError(http.StatusConflict, fmt.Sprintf("User already exists in %s", operation), err)
+		return middleware_profile.NewCustomError(http.StatusConflict, fmt.Sprintf("User already exists in %s", operation), err)
 	}
-	return middleware.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("%s error", operation), err)
+	return middleware_profile.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("%s error", operation), err)
 }

@@ -1,20 +1,15 @@
-package middleware
+package middleware_profile
 
 import (
-	"chat_service/pkg/grpc_generated/profile"
-	"context"
 	"net/http"
+	"profile_service/pkg/grpc_generated/profile"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
-type ProfileClient interface {
-	ValidateToken(ctx context.Context, req *profile.TokenRequest) (*profile.TokenResponse, error)
-}
-
-func NewAuthMiddleware(client ProfileClient, log *logrus.Logger) gin.HandlerFunc {
+func NewAuthMiddleware(authServer profile.AuthServiceServer, log *logrus.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if isPublicEndpoint(ctx) {
 			ctx.Next()
@@ -30,8 +25,7 @@ func NewAuthMiddleware(client ProfileClient, log *logrus.Logger) gin.HandlerFunc
 			return
 		}
 
-		// Проверяем токен через gRPC-клиент
-		resp, err := client.ValidateToken(ctx, &profile.TokenRequest{Token: token})
+		resp, err := authServer.ValidateToken(ctx, &profile.TokenRequest{Token: token})
 		if err != nil || !resp.Valid {
 			customErr := NewCustomError(http.StatusUnauthorized, "Invalid token", err)
 			HandleError(ctx, customErr, log)

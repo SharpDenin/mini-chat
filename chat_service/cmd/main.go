@@ -6,7 +6,7 @@ import (
 	"chat_service/internal/repository/room_repo"
 	"chat_service/internal/service"
 	"chat_service/internal/transport"
-	"chat_service/middleware"
+	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"context"
 
@@ -61,8 +61,8 @@ func main() {
 	router := gin.Default()
 	router.Use(
 		gin.Recovery(),
-		middleware.NewAuthMiddleware(profileClient, log),
-		middleware.ErrorMiddleware(log),
+		middleware_chat.NewAuthMiddleware(profileClient, log),
+		middleware_chat.ErrorMiddleware(log),
 	)
 
 	api := router.Group("/api/v1")

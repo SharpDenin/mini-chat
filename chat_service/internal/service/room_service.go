@@ -5,7 +5,7 @@ import (
 	"chat_service/internal/repository/room_repo"
 	"chat_service/internal/service/dto"
 	"chat_service/internal/service/helper"
-	"chat_service/middleware"
+	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"context"
 	"errors"
@@ -46,14 +46,14 @@ func NewRoomService(profileClient *grpc_client.ProfileClient, rRepo room_repo.Ro
 func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error) {
 	userIdInt, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
-		return 0, middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+		return 0, middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 
 	if strings.TrimSpace(name) == "" {
 		r.log.WithFields(logrus.Fields{
 			"name": name,
 		}).Warn("Room name is empty")
-		return 0, middleware.NewCustomError(http.StatusBadRequest, "room name cannot be empty", nil)
+		return 0, middleware_chat.NewCustomError(http.StatusBadRequest, "room name cannot be empty", nil)
 	}
 
 	var roomId int64
@@ -96,28 +96,28 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name string) error {
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
-		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+		return middleware_chat.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
 	}
 
 	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
-		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 	if err = r.validateUserIsAdmin(ctx, roomId, userId); err != nil {
-		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
+		return middleware_chat.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
 	if strings.TrimSpace(name) == "" {
 		r.log.WithFields(logrus.Fields{
 			"name": name,
 		}).Warn("Room name is empty")
-		return middleware.NewCustomError(http.StatusBadRequest, "room name cannot be empty", nil)
+		return middleware_chat.NewCustomError(http.StatusBadRequest, "room name cannot be empty", nil)
 	}
 
 	updateData := &models.Room{Name: name}
 	if err := r.rRepo.Update(ctx, roomId, updateData); err != nil {
 		r.log.WithError(err).Warn("Failed to update room")
-		return middleware.NewCustomError(http.StatusInternalServerError, "failed to update room", err)
+		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to update room", err)
 	}
 
 	r.log.WithFields(logrus.Fields{
@@ -131,15 +131,15 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
-		return middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+		return middleware_chat.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
 	}
 
 	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
-		return middleware.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 	if err = r.validateUserIsAdmin(ctx, roomId, userId); err != nil {
-		return middleware.NewCustomError(http.StatusForbidden, err.Error(), err)
+		return middleware_chat.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -169,7 +169,7 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 		return nil
 	})
 	if err != nil {
-		return middleware.NewCustomError(http.StatusInternalServerError, "transaction failed", err)
+		return middleware_chat.NewCustomError(http.StatusInternalServerError, "transaction failed", err)
 	}
 
 	r.log.WithFields(logrus.Fields{
@@ -182,7 +182,7 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*dto.GetRoomResponse, error) {
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
-		return nil, middleware.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+		return nil, middleware_chat.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
 	}
 
 	room, err := r.rRepo.GetRoomById(ctx, roomId)

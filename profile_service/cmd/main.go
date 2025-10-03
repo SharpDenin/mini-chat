@@ -9,7 +9,7 @@ import (
 	"profile_service/internal/repository/profile_repo"
 	"profile_service/internal/service"
 	"profile_service/internal/transport"
-	"profile_service/middleware"
+	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
 
@@ -86,12 +86,12 @@ func main() {
 
 	userHandler := transport.NewUserHandler(userService, authServer, log)
 
-	authMiddleware := middleware.NewAuthMiddleware(authServer, log)
+	authMiddleware := middleware_profile.NewAuthMiddleware(authServer, log)
 
 	router := gin.Default()
 	router.Use(
 		gin.Recovery(),
-		middleware.ErrorMiddleware(log),
+		middleware_profile.ErrorMiddleware(log),
 	)
 
 	api := router.Group("/api/v1")

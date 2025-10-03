@@ -7,7 +7,7 @@ import (
 	"os"
 	"profile_service/internal/service"
 	"profile_service/internal/service/service_dto"
-	"profile_service/middleware"
+	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_generated/profile"
 	"strconv"
 	"time"
@@ -60,7 +60,7 @@ func (s *AuthServer) Register(ctx context.Context, req *profile.RegisterRequest)
 	id, err := s.uService.CreateUser(ctx, createReq)
 	if err != nil {
 		s.log.WithError(err).Error("Failed to create user")
-		var customErr *middleware.CustomError
+		var customErr *middleware_profile.CustomError
 		if errors.As(err, &customErr) {
 			return nil, status.Error(codes.Code(customErr.StatusCode), customErr.Message)
 		}
