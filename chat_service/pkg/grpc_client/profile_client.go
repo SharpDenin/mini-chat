@@ -62,6 +62,8 @@ func (c *ProfileClient) Close() error {
 }
 
 func (c *ProfileClient) ValidateToken(ctx context.Context, req *profile.TokenRequest) (*profile.TokenResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	return c.authClient.ValidateToken(ctx, req)
 }
 

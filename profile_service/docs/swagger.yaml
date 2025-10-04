@@ -108,6 +108,36 @@ paths:
       summary: Вход пользователя
       tags:
       - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя с указанными данными
+      parameters:
+      - description: Данные для создания пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданного пользователя
+          schema:
+            type: integer
+        "400":
+          description: Неверные данные пользователя
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      summary: Создать нового пользователя
+      tags:
+      - Auth
   /users:
     get:
       consumes:
@@ -150,35 +180,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Получить отфильтрованный список пользователей
-      tags:
-      - Users
-    post:
-      consumes:
-      - application/json
-      description: Создает нового пользователя с указанными данными
-      parameters:
-      - description: Данные для создания пользователя
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api_dto.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: ID созданного пользователя
-          schema:
-            type: integer
-        "400":
-          description: Неверные данные пользователя
-          schema:
-            $ref: '#/definitions/middleware_profile.ErrorResponse'
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            $ref: '#/definitions/middleware_profile.ErrorResponse'
-      summary: Создать нового пользователя
       tags:
       - Users
   /users/{id}:

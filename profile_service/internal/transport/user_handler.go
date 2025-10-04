@@ -64,14 +64,14 @@ func (h *UserHandler) PostLogin(ctx *gin.Context) {
 // PostUser
 // @Summary Создать нового пользователя
 // @Description Создает нового пользователя с указанными данными
-// @Tags Users
+// @Tags Auth
 // @Accept json
 // @Produce json
 // @Param request body api_dto.CreateUserRequest true "Данные для создания пользователя"
 // @Success 201 {integer} int "ID созданного пользователя"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные пользователя"
 // @Failure 500 {object} middleware_profile.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /users [post]
+// @Router /auth/register [post]
 func (h *UserHandler) PostUser(ctx *gin.Context) {
 	var req *api_dto.CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

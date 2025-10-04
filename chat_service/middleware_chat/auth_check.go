@@ -45,12 +45,7 @@ func NewAuthMiddleware(client ProfileClient, log *logrus.Logger) gin.HandlerFunc
 }
 
 func isPublicEndpoint(ctx *gin.Context) bool {
-	publicEndpoints := map[string]bool{
-		"/api/v1/auth/login":    true,
-		"/api/v1/auth/register": true,
-		"/swagger/*any":         true,
-	}
-	return publicEndpoints[ctx.Request.URL.Path]
+	return strings.HasPrefix(ctx.Request.URL.Path, "/swagger/")
 }
 
 func extractToken(ctx *gin.Context) string {

@@ -52,7 +52,7 @@ func main() {
 	roomRepo := room_repo.NewRoomRepo(database.DB, log)
 	roomMemberRepo := room_repo.NewRoomMemberRepo(database.DB, log)
 
-	profileClient, err := grpc_client.NewProfileClient("profileService:50051", "profileService:50054")
+	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
 	if err != nil {
 		log.Fatalf("failed to create profile client: %v", err)
 	}

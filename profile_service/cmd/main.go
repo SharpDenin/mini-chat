@@ -12,6 +12,7 @@ import (
 	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -57,35 +58,45 @@ func main() {
 	userService := service.NewUserService(userRepo, log)
 
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
-	lis, err := net.Listen("tcp", "0.0.0.0:50053")
+	directoryServer := grpc_server.NewDirectoryServer(log, userService)
+
+	// ЗАПУСК gRPC СЕРВЕРОВ ПЕРВЫМИ
+	log.Info("Starting gRPC servers...")
+
+	// Auth gRPC server
+	authListener, err := net.Listen("tcp", "0.0.0.0:50053")
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		log.Fatalf("Failed to listen on auth port 50053: %v", err)
 	}
-	grpcServer := grpc.NewServer()
-	profile.RegisterAuthServiceServer(grpcServer, authServer)
+	authGrpcServer := grpc.NewServer()
+	profile.RegisterAuthServiceServer(authGrpcServer, authServer)
 	go func() {
-		log.Printf("gRPC server running on :50053")
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve gRPC: %v", err)
+		log.Info("gRPC auth server starting on :50053")
+		if err := authGrpcServer.Serve(authListener); err != nil {
+			log.Fatalf("Failed to serve gRPC auth: %v", err)
 		}
 	}()
 
-	directoryServer := grpc_server.NewDirectoryServer(log, userService)
+	// Directory gRPC server
 	dirListener, err := net.Listen("tcp", "0.0.0.0:50054")
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		log.Fatalf("Failed to listen on directory port 50054: %v", err)
 	}
 	dirGrpcServer := grpc.NewServer()
 	profile.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
 	go func() {
-		log.Printf("gRPC server running on :50054")
+		log.Info("gRPC directory server starting on :50054")
 		if err := dirGrpcServer.Serve(dirListener); err != nil {
-			log.Fatalf("Failed to serve gRPC: %v", err)
+			log.Fatalf("Failed to serve gRPC directory: %v", err)
 		}
 	}()
 
-	userHandler := transport.NewUserHandler(userService, authServer, log)
+	// Даем время gRPC серверам запуститься
+	log.Info("Waiting for gRPC servers to start...")
+	time.Sleep(2 * time.Second)
 
+	// ЗАТЕМ запускаем HTTP сервер
+	userHandler := transport.NewUserHandler(userService, authServer, log)
 	authMiddleware := middleware_profile.NewAuthMiddleware(authServer, log)
 
 	router := gin.Default()
@@ -112,9 +123,8 @@ func main() {
 	}
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Запуск сервера
-	log.Info("Starting server on :8083")
+	log.Info("Starting HTTP server on :8083")
 	if err := router.Run(":8083"); err != nil {
-		log.Fatal("Failed to start server: ", err)
+		log.Fatal("Failed to start HTTP server: ", err)
 	}
 }
