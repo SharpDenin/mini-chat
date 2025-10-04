@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "localhost:8083",
     "basePath": "/api/v1",
     "paths": {
         "/auth/login": {
@@ -29,7 +29,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.LoginRequest"
+                            "$ref": "#/definitions/api_dto.LoginRequest"
                         }
                     }
                 ],
@@ -37,19 +37,19 @@
                     "200": {
                         "description": "Успешный вход",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.LoginResponse"
+                            "$ref": "#/definitions/api_dto.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Неверные данные",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Неверные учетные данные",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     }
                 }
@@ -105,19 +105,19 @@
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewListResponse"
+                            "$ref": "#/definitions/api_dto.UserViewListResponse"
                         }
                     },
                     "400": {
                         "description": "Неверные параметры фильтрации",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     }
                 }
@@ -141,7 +141,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.CreateUserRequest"
+                            "$ref": "#/definitions/api_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -155,13 +155,13 @@
                     "400": {
                         "description": "Неверные данные пользователя",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     }
                 }
@@ -198,25 +198,25 @@
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewResponse"
+                            "$ref": "#/definitions/api_dto.UserViewResponse"
                         }
                     },
                     "400": {
                         "description": "Неверный ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     }
                 }
@@ -252,7 +252,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UpdateUserRequest"
+                            "$ref": "#/definitions/api_dto.UpdateUserRequest"
                         }
                     }
                 ],
@@ -263,19 +263,19 @@
                     "400": {
                         "description": "Неверные данные запроса",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     }
                 }
@@ -313,19 +313,19 @@
                     "400": {
                         "description": "Неверный ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/profile_service_internal_utils.ErrorResponse"
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     }
                 }
@@ -333,7 +333,7 @@
         }
     },
     "definitions": {
-        "profile_service_internal_app_user_delivery_api_dto.CreateUserRequest": {
+        "api_dto.CreateUserRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -354,7 +354,7 @@
                 }
             }
         },
-        "profile_service_internal_app_user_delivery_api_dto.LoginRequest": {
+        "api_dto.LoginRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -369,7 +369,7 @@
                 }
             }
         },
-        "profile_service_internal_app_user_delivery_api_dto.LoginResponse": {
+        "api_dto.LoginResponse": {
             "type": "object",
             "properties": {
                 "token": {
@@ -380,7 +380,7 @@
                 }
             }
         },
-        "profile_service_internal_app_user_delivery_api_dto.UpdateUserRequest": {
+        "api_dto.UpdateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -393,7 +393,7 @@
                 }
             }
         },
-        "profile_service_internal_app_user_delivery_api_dto.UserViewListResponse": {
+        "api_dto.UserViewListResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -408,12 +408,12 @@
                 "users": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/profile_service_internal_app_user_delivery_api_dto.UserViewResponse"
+                        "$ref": "#/definitions/api_dto.UserViewResponse"
                     }
                 }
             }
         },
-        "profile_service_internal_app_user_delivery_api_dto.UserViewResponse": {
+        "api_dto.UserViewResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -430,11 +430,12 @@
                 }
             }
         },
-        "profile_service_internal_utils.ErrorResponse": {
+        "middleware_profile.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Invalid request parameters"
                 }
             }
         }

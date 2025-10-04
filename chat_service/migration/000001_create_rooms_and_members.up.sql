@@ -1,6 +1,6 @@
 -- 000001_create_rooms_and_members.up.sql
 
-CREATE TABLE rooms (
+CREATE TABLE IF NOT EXISTS rooms (
                        id BIGSERIAL PRIMARY KEY,
                        name VARCHAR(255) NOT NULL,
                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -8,7 +8,7 @@ CREATE TABLE rooms (
                        deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE room_members (
+CREATE TABLE IF NOT EXISTS room_members (
                               id BIGSERIAL PRIMARY KEY,
                               room_id BIGINT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
                               user_id BIGINT NOT NULL,

@@ -1,0 +1,657 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API для управления пользователями",
+        "title": "ChatService API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8084",
+    "basePath": "/api/v1",
+    "paths": {
+        "/room": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список комнат",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Получить список комнат",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Фильтр по имени",
+                        "name": "searchQuery",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Лимит (1-100)",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Смещение",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список комнат",
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.GetRoomListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры фильтрации",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает комнату и возвращает ее Id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Создание комнаты",
+                "parameters": [
+                    {
+                        "description": "Данные для создания комнаты",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.CreateRoomRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Id созданной комнаты",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные учетные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/room-member/{room_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список участников комнаты по Id комнаты",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "RoomMember"
+                ],
+                "summary": "Получить список участников комнаты",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "room_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.GetRoomMemberListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры фильтрации",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/room-member/{user_id}/{room_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Меняет статус участника комнаты на указанный",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "RoomMember"
+                ],
+                "summary": "Изменить статус участника комнаты",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "room_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Статус администратора",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.SetAdminStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Статус участника комнаты успешно изменен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные запроса",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Комната не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет участника с user_id из комнаты с room_id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "RoomMember"
+                ],
+                "summary": "Удалить участника из комнаты",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "room_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Пользователь успешно удален из комнаты"
+                    },
+                    "400": {
+                        "description": "Неверные данные запроса",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Комната не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/room/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает информацию о комнате по ее Id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Получение комнаты",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о комнате",
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.GetRoomResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные учетные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Комната не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет наименование комнаты по ее Id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Обновить наименование комнаты",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новое наименование комнаты",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.UpdateRoomRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Данные успешно обновлены"
+                    },
+                    "400": {
+                        "description": "Неверные данные запроса",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Комната не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет комнату по ее Id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Удалить комнату",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Комната успешно удалена"
+                    },
+                    "400": {
+                        "description": "Неверные данные запроса",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Комната не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/room_member": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Добавляет пользователя в комнату",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Добавление пользователя в комнату",
+                "parameters": [
+                    {
+                        "description": "Id's пользователя и комнаты",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api_dto.CreateRoomMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Id созданного члена комнаты",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные учетные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api_dto.CreateRoomMemberRequest": {
+            "type": "object",
+            "required": [
+                "room_id",
+                "user_id"
+            ],
+            "properties": {
+                "room_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api_dto.CreateRoomRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                }
+            }
+        },
+        "api_dto.GetRoomListResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "roomList": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_dto.GetRoomResponse"
+                    }
+                }
+            }
+        },
+        "api_dto.GetRoomMemberListResponse": {
+            "type": "object",
+            "properties": {
+                "roomId": {
+                    "type": "integer"
+                },
+                "roomMemberList": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_dto.GetRoomMemberResponse"
+                    }
+                }
+            }
+        },
+        "api_dto.GetRoomMemberResponse": {
+            "type": "object",
+            "properties": {
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api_dto.GetRoomResponse": {
+            "type": "object",
+            "properties": {
+                "Id": {
+                    "type": "integer"
+                },
+                "Name": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_dto.SetAdminStatusRequest": {
+            "type": "object",
+            "required": [
+                "set_admin"
+            ],
+            "properties": {
+                "set_admin": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "api_dto.UpdateRoomRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "middleware_chat.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid request parameters"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

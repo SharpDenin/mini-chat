@@ -1,0 +1,425 @@
+basePath: /api/v1
+definitions:
+  api_dto.CreateRoomMemberRequest:
+    properties:
+      room_id:
+        type: integer
+      user_id:
+        type: integer
+    required:
+    - room_id
+    - user_id
+    type: object
+  api_dto.CreateRoomRequest:
+    properties:
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  api_dto.GetRoomListResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      roomList:
+        items:
+          $ref: '#/definitions/api_dto.GetRoomResponse'
+        type: array
+    type: object
+  api_dto.GetRoomMemberListResponse:
+    properties:
+      roomId:
+        type: integer
+      roomMemberList:
+        items:
+          $ref: '#/definitions/api_dto.GetRoomMemberResponse'
+        type: array
+    type: object
+  api_dto.GetRoomMemberResponse:
+    properties:
+      isAdmin:
+        type: boolean
+      userId:
+        type: integer
+    type: object
+  api_dto.GetRoomResponse:
+    properties:
+      Id:
+        type: integer
+      Name:
+        type: string
+    type: object
+  api_dto.SetAdminStatusRequest:
+    properties:
+      set_admin:
+        type: boolean
+    required:
+    - set_admin
+    type: object
+  api_dto.UpdateRoomRequest:
+    properties:
+      name:
+        maxLength: 255
+        type: string
+    type: object
+  middleware_chat.ErrorResponse:
+    properties:
+      error:
+        example: Invalid request parameters
+        type: string
+    type: object
+host: localhost:8084
+info:
+  contact: {}
+  description: API для управления пользователями
+  title: ChatService API
+  version: "1.0"
+paths:
+  /room:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список комнат
+      parameters:
+      - description: Фильтр по имени
+        in: query
+        name: searchQuery
+        type: string
+      - description: Лимит (1-100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        required: true
+        type: integer
+      - description: Смещение
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список комнат
+          schema:
+            $ref: '#/definitions/api_dto.GetRoomListResponse'
+        "400":
+          description: Неверные параметры фильтрации
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список комнат
+      tags:
+      - Room
+    post:
+      consumes:
+      - application/json
+      description: Создает комнату и возвращает ее Id
+      parameters:
+      - description: Данные для создания комнаты
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_dto.CreateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Id созданной комнаты
+          schema:
+            type: integer
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создание комнаты
+      tags:
+      - Room
+  /room-member/{room_id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список участников комнаты по Id комнаты
+      parameters:
+      - description: Id комнаты
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный запрос
+          schema:
+            $ref: '#/definitions/api_dto.GetRoomMemberListResponse'
+        "400":
+          description: Неверные параметры фильтрации
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список участников комнаты
+      tags:
+      - RoomMember
+  /room-member/{user_id}/{room_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет участника с user_id из комнаты с room_id
+      parameters:
+      - description: Id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Id комнаты
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Пользователь успешно удален из комнаты
+        "400":
+          description: Неверные данные запроса
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "404":
+          description: Комната не найдена
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить участника из комнаты
+      tags:
+      - RoomMember
+    put:
+      consumes:
+      - application/json
+      description: Меняет статус участника комнаты на указанный
+      parameters:
+      - description: Id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Id комнаты
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      - description: Статус администратора
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_dto.SetAdminStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус участника комнаты успешно изменен
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Неверные данные запроса
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "404":
+          description: Комната не найдена
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Изменить статус участника комнаты
+      tags:
+      - RoomMember
+  /room/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет комнату по ее Id
+      parameters:
+      - description: Id комнаты
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Комната успешно удалена
+        "400":
+          description: Неверные данные запроса
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "404":
+          description: Комната не найдена
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить комнату
+      tags:
+      - Room
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о комнате по ее Id
+      parameters:
+      - description: Id комнаты
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о комнате
+          schema:
+            $ref: '#/definitions/api_dto.GetRoomResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "404":
+          description: Комната не найдена
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение комнаты
+      tags:
+      - Room
+    put:
+      consumes:
+      - application/json
+      description: Обновляет наименование комнаты по ее Id
+      parameters:
+      - description: Id комнаты
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новое наименование комнаты
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_dto.UpdateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Данные успешно обновлены
+        "400":
+          description: Неверные данные запроса
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "404":
+          description: Комната не найдена
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить наименование комнаты
+      tags:
+      - Room
+  /room_member:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет пользователя в комнату
+      parameters:
+      - description: Id's пользователя и комнаты
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_dto.CreateRoomMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Id созданного члена комнаты
+          schema:
+            type: integer
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавление пользователя в комнату
+      tags:
+      - Room
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

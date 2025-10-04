@@ -19,7 +19,7 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	if err := godotenv.Load("../.env"); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		logrus.Error("Failed to load .env file: ", err)
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}

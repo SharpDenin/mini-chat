@@ -72,7 +72,7 @@ func (h *RoomHandler) CreateRoom(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Id комнаты"
-// @Success 201 {object} api_dto.GetRoomResponse "Информация о комнате"
+// @Success 200 {object} api_dto.GetRoomResponse "Информация о комнате"
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные"
 // @Failure 404 {object} middleware_chat.ErrorResponse "Комната не найдена"
 // @Failure 401 {object} middleware_chat.ErrorResponse "Неверные учетные данные"
@@ -101,12 +101,14 @@ func (h *RoomHandler) GetRoom(ctx *gin.Context) {
 // GetRoomList
 // @Summary Получить список комнат
 // @Description Возвращает список комнат
-// @Tags Users
+// @Tags Room
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param filter request body api_dto.SearchRoomRequest string false "Фильтр по имени"
-// @Success 200 {object} api_dto.GetRoomListResponse "Успешный запрос"
+// @Param searchQuery query string false "Фильтр по имени"
+// @Param limit query int true "Лимит (1-100)" minimum(1) maximum(100)
+// @Param offset query int false "Смещение" minimum(0)
+// @Success 200 {object} api_dto.GetRoomListResponse "Список комнат"
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные параметры фильтрации"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /room [get]
@@ -133,7 +135,7 @@ func (h *RoomHandler) GetRoomList(ctx *gin.Context) {
 // RenameRoom
 // @Summary Обновить наименование комнаты
 // @Description Обновляет наименование комнаты по ее Id
-// @Tags Users
+// @Tags Room
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -146,7 +148,7 @@ func (h *RoomHandler) GetRoomList(ctx *gin.Context) {
 // @Router /room/{id} [put]
 func (h *RoomHandler) RenameRoom(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
-	if err = ctx.ShouldBindJSON(&id); err != nil {
+	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
 		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
 		return
@@ -166,13 +168,13 @@ func (h *RoomHandler) RenameRoom(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, id)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Room renamed successfully"})
 }
 
 // DeleteRoom
 // @Summary Удалить комнату
 // @Description Удаляет комнату по ее Id
-// @Tags Users
+// @Tags Room
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -207,41 +209,34 @@ func (h *RoomHandler) DeleteRoom(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param user_id path int true "Id пользователя"
-// @Param room_id path int true "Id комнаты"
+// @Param request body api_dto.CreateRoomMemberRequest true "Id's пользователя и комнаты"
 // @Success 201 {integer} int "Id созданного члена комнаты"
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_chat.ErrorResponse "Неверные учетные данные"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /room_member [post]
 func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
-	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
-	if err != nil {
+	var req *api_dto.CreateRoomMemberRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
-		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
-		return
-	}
-	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
-	if err != nil {
-		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
-		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		middleware_chat.HandleError(ctx, err, h.log)
 		return
 	}
 
-	err = h.roomMemberService.AddMember(ctx, userId, roomId)
+	err := h.roomMemberService.AddMember(ctx, req.UserId, req.RoomId)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error adding member")
 		middleware_chat.HandleError(ctx, err, h.log)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, userId)
+	ctx.JSON(http.StatusCreated, req.UserId)
 }
 
 // GetMemberList
 // @Summary Получить список участников комнаты
 // @Description Возвращает список участников комнаты по Id комнаты
-// @Tags Users
+// @Tags RoomMember
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -249,7 +244,7 @@ func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
 // @Success 200 {object} api_dto.GetRoomMemberListResponse "Успешный запрос"
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные параметры фильтрации"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room-member [get]
+// @Router /room-member/{room_id} [get]
 func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
 	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
 	if err != nil {
@@ -273,7 +268,7 @@ func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
 // SetAdminMember
 // @Summary Изменить статус участника комнаты
 // @Description Меняет статус участника комнаты на указанный
-// @Tags Users
+// @Tags RoomMember
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -284,7 +279,7 @@ func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные запроса"
 // @Failure 404 {object} middleware_chat.ErrorResponse "Комната не найдена"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room-member/{id} [put]
+// @Router /room-member/{user_id}/{room_id} [put]
 func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
 	if err != nil {
@@ -328,7 +323,7 @@ func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 // DeleteRoomMember
 // @Summary Удалить участника из комнаты
 // @Description Удаляет участника с user_id из комнаты с room_id
-// @Tags Users
+// @Tags RoomMember
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -338,7 +333,7 @@ func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные запроса"
 // @Failure 404 {object} middleware_chat.ErrorResponse "Комната не найдена"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room-member/{id} [delete]
+// @Router /room-member/{user_id}/{room_id} [delete]
 func (h *RoomHandler) DeleteRoomMember(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
 	if err != nil {
@@ -360,5 +355,5 @@ func (h *RoomHandler) DeleteRoomMember(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusNoContent, nil)
+	ctx.Status(http.StatusNoContent)
 }

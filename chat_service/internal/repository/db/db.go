@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -41,7 +43,7 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("database ping failed: %w", err)
 	}
 
-	migrationPath := filepath.Join("..", "migration")
+	migrationPath := filepath.Join("./", "migration")
 	if _, err := os.Stat(migrationPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("migrations directory not found: %w", err)
 	}

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"net"
-	_ "profile_service/cmd/docs"
+	_ "profile_service/docs"
 	"profile_service/internal/config"
 	"profile_service/internal/repository/db"
 	"profile_service/internal/repository/profile_repo"
@@ -24,7 +24,7 @@ import (
 // @title ProfileService API
 // @version 1.0
 // @description API для управления пользователями
-// @host localhost:8080
+// @host localhost:8083
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -57,28 +57,28 @@ func main() {
 	userService := service.NewUserService(userRepo, log)
 
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
-	lis, err := net.Listen("tcp", "0.0.0.0:50051")
+	lis, err := net.Listen("tcp", "0.0.0.0:50053")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
 	profile.RegisterAuthServiceServer(grpcServer, authServer)
 	go func() {
-		log.Printf("gRPC server running on :50051")
+		log.Printf("gRPC server running on :50053")
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve gRPC: %v", err)
 		}
 	}()
 
 	directoryServer := grpc_server.NewDirectoryServer(log, userService)
-	dirListener, err := net.Listen("tcp", "0.0.0.0:50052")
+	dirListener, err := net.Listen("tcp", "0.0.0.0:50054")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	dirGrpcServer := grpc.NewServer()
 	profile.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
 	go func() {
-		log.Printf("gRPC server running on :50052")
+		log.Printf("gRPC server running on :50054")
 		if err := dirGrpcServer.Serve(dirListener); err != nil {
 			log.Fatalf("Failed to serve gRPC: %v", err)
 		}
@@ -113,8 +113,8 @@ func main() {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Запуск сервера
-	log.Info("Starting server on :8080")
-	if err := router.Run(":8080"); err != nil {
+	log.Info("Starting server on :8083")
+	if err := router.Run(":8083"); err != nil {
 		log.Fatal("Failed to start server: ", err)
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "chat_service/docs"
 	"chat_service/internal/config"
 	"chat_service/internal/repository/db"
 	"chat_service/internal/repository/room_repo"
@@ -16,6 +17,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title ChatService API
+// @version 1.0
+// @description API для управления пользователями
+// @host localhost:8084
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
@@ -42,7 +52,7 @@ func main() {
 	roomRepo := room_repo.NewRoomRepo(database.DB, log)
 	roomMemberRepo := room_repo.NewRoomMemberRepo(database.DB, log)
 
-	profileClient, err := grpc_client.NewProfileClient("profileService:50051", "profileService:50052")
+	profileClient, err := grpc_client.NewProfileClient("profileService:50051", "profileService:50054")
 	if err != nil {
 		log.Fatalf("failed to create profile client: %v", err)
 	}
@@ -61,34 +71,34 @@ func main() {
 	router := gin.Default()
 	router.Use(
 		gin.Recovery(),
-		middleware_chat.NewAuthMiddleware(profileClient, log),
 		middleware_chat.ErrorMiddleware(log),
 	)
 
 	api := router.Group("/api/v1")
 	{
+		api.Use(middleware_chat.NewAuthMiddleware(profileClient, log))
 		room := api.Group("/room")
 		{
-			room.POST("/room", roomHandler.CreateRoom)
+			room.POST("", roomHandler.CreateRoom)
 			room.GET("/:id", roomHandler.GetRoom)
 			room.GET("", roomHandler.GetRoomList)
-			room.GET("", roomHandler.GetMemberList)
 			room.PUT("/:id", roomHandler.RenameRoom)
 			room.DELETE("/:id", roomHandler.DeleteRoom)
 		}
 		roomMember := api.Group("/room_member")
 		{
-			roomMember.POST("/room-member", roomHandler.CreateRoomMember)
-			roomMember.PUT("/:id", roomHandler.SetAdminMember)
-			roomMember.DELETE("/:id", roomHandler.DeleteRoomMember)
+			roomMember.POST("", roomHandler.CreateRoomMember)
+			roomMember.GET("/:room_id", roomHandler.GetMemberList)
+			roomMember.PUT("/:user_id/:room_id", roomHandler.SetAdminMember)
+			roomMember.DELETE("/:user_id/:room_id", roomHandler.DeleteRoomMember)
 		}
 	}
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Запуск сервера
-	log.Info("Starting server on :8080")
-	if err := router.Run(":8080"); err != nil {
+	log.Info("Starting server on :8084")
+	if err := router.Run(":8084"); err != nil {
 		log.Fatal("Failed to start server: ", err)
 	}
 }
