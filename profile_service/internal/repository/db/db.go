@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"profile_service/internal/app/user/models"
 	"profile_service/internal/config"
+	"profile_service/internal/models"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -43,7 +43,7 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("database ping failed: %w", err)
 	}
 
-	migrationPath := filepath.Join("..", "migration")
+	migrationPath := filepath.Join("./", "migration")
 	if _, err := os.Stat(migrationPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("migrations directory not found: %w", err)
 	}
@@ -63,7 +63,6 @@ func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("failed to initialize migrate: %w", err)
 	}
 
-	// 6. Автоматическое создание таблиц
 	if err := gormDB.AutoMigrate(&models.User{}); err != nil {
 		return nil, fmt.Errorf("auto migration failed: %w", err)
 	}
