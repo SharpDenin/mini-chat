@@ -27,7 +27,7 @@ services:
       PROFILE_GRPC_AUTH_PORT: "50053"
       PROFILE_GRPC_DIRECTORY_PORT: "50054"
       PROFILE_HTTP_PORT: "8083"
-      PROFILE_DB_URL: "postgres://postgres:postgres@profile-db:5432/profile_db"
+      PROFILE_DB_URL: "postgres://postgres:postgres@profile-db:5432/profile_db?sslmode=disable"
     ports:
       - "8080:8083"
       - "50051:50053"
@@ -35,7 +35,6 @@ services:
     depends_on:
       profile-db:
         condition: service_healthy
-    # УБРАЛ HEALTHCHECK - временно
     networks:
       - haxer-net
     restart: unless-stopped
@@ -99,7 +98,7 @@ services:
       PROFILE_SERVICE_AUTH_ADDR: "profile-service:50053"
       PROFILE_SERVICE_DIRECTORY_ADDR: "profile-service:50054"
       CHAT_HTTP_PORT: "8084"
-      CHAT_DB_URL: "postgres://postgres:postgres@chat-db:5432/chat_db"
+      CHAT_DB_URL: "postgres://postgres:postgres@chat-db:5432/chat_db?sslmode=disable"
     ports:
       - "8081:8084"
     depends_on:
