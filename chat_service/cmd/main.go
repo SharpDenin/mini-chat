@@ -10,6 +10,12 @@ import (
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"context"
+	"errors"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -96,9 +102,40 @@ func main() {
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Запуск сервера
-	log.Info("Starting server on :8084")
-	if err := router.Run(":8084"); err != nil {
-		log.Fatal("Failed to start server: ", err)
+	srv := &http.Server{
+		Addr:    ":8084",
+		Handler: router,
+		// Настройки таймаутов для защиты от медленных клиентов
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+	serverErr := make(chan error, 1)
+
+	go func() {
+		log.Info("Starting server on :8084")
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-quit:
+		log.Info("Received shutdown signal...")
+	case err := <-serverErr:
+		log.Errorf("Server error: %v", err)
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log.Info("Shutting down server...")
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Errorf("Server forced to shutdown: %v", err)
+	}
+
+	log.Info("Server exiting properly")
 }
