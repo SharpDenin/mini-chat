@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -293,12 +292,12 @@ func (r *RoomMemberService) validateUserExists(ctx context.Context, userId int64
 }
 
 func (r *RoomMemberService) validateRoomExists(ctx context.Context, roomId int64) error {
-	_, err := r.rRepo.GetRoomById(ctx, roomId)
+	room, err := r.rRepo.GetRoomById(ctx, roomId)
 	if err != nil {
-		if strings.Contains(err.Error(), "room not found") {
-			return middleware_chat.NewCustomError(http.StatusNotFound, "room does not exist", nil)
-		}
 		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to verify room", err)
+	}
+	if room == nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, "room not found", nil)
 	}
 	return nil
 }

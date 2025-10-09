@@ -64,7 +64,7 @@ func (u *ProfileRepo) GetById(ctx context.Context, id int64) (*models.User, erro
 	if err != nil {
 		u.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get user by Id")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user not found: %w", err)
+			return nil, nil
 		}
 		return nil, fmt.Errorf("get user by id error: %w", err)
 	}
@@ -149,7 +149,7 @@ func (u *ProfileRepo) Update(ctx context.Context, id int64, person *models.User)
 	if err := tx.First(&existingUser, id).Error; err != nil {
 		u.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to fetch user")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user not found: %w", err)
+			return nil, nil
 		}
 		return nil, fmt.Errorf("fetch user error: %w", err)
 	}
@@ -204,7 +204,7 @@ func (u *ProfileRepo) Delete(ctx context.Context, id int64) error {
 	if err := tx.Delete(&models.User{}, id).Error; err != nil {
 		u.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to delete user")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("user not found: %w", err)
+			return nil
 		}
 		return fmt.Errorf("delete user error: %w", err)
 	}

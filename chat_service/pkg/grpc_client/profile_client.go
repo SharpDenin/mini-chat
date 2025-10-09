@@ -19,13 +19,13 @@ type ProfileClient struct {
 }
 
 func NewProfileClient(authAddress, userDirAddress string) (*ProfileClient, error) {
-	authConn, err := grpc.NewClient(authAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.Dial(authAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to dial auth service: %w", err)
 	}
 	authClient := profile.NewAuthServiceClient(authConn)
 
-	userDirConn, err := grpc.NewClient(userDirAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userDirConn, err := grpc.Dial(userDirAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		err = authConn.Close()
 		if err != nil {

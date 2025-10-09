@@ -190,6 +190,11 @@ func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*dto.GetRo
 		r.log.WithError(err).Warn("Failed to get room")
 		return nil, err
 	}
+
+	if room == nil {
+		return nil, middleware_chat.NewCustomError(http.StatusNotFound, "room not found", nil)
+	}
+	
 	return &dto.GetRoomResponse{
 		Id:   room.Id,
 		Name: room.Name,

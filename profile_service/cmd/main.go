@@ -98,7 +98,7 @@ func main() {
 
 	// Даем время gRPC серверам запуститься
 	log.Info("Waiting for gRPC servers to start...")
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// ЗАТЕМ запускаем HTTP сервер
 	userHandler := transport.NewUserHandler(userService, authServer, log)

@@ -30,7 +30,7 @@ func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) er
 		r.log.Error("User is already member of room")
 		return fmt.Errorf("user is already member of room")
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("error: %w", err)
+		return nil
 	}
 
 	member := models.RoomMember{
@@ -68,7 +68,7 @@ func (r *RoomMemberRepo) RemoveMember(ctx context.Context, roomId, userId int64)
 		First(&existingMember, "room_id = ? AND user_id = ?", roomId, userId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			r.log.Errorf("User: %d not found in room: %d", userId, roomId)
-			return fmt.Errorf("user not found in room")
+			return nil
 		}
 		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("Failed to find user")
 		return fmt.Errorf("find user: %w", err)
@@ -133,7 +133,7 @@ func (r *RoomMemberRepo) SetAdmin(ctx context.Context, roomId, userId int64, isA
 	if err := r.db.WithContext(ctx).
 		Where("room_id = ? AND user_id = ?", roomId, userId).First(&existingMember).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("room member not found (roomId=%d, userId=%d)", roomId, userId)
+			return nil
 		}
 		return fmt.Errorf("failed to get room member: %w", err)
 	}

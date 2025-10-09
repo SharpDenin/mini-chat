@@ -38,7 +38,7 @@ func (r *RoomRepo) GetRoomById(ctx context.Context, id int64) (*models.Room, err
 	if err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get room by Id")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("room not found: %w", err)
+			return nil, nil
 		}
 		return nil, fmt.Errorf("get room by id error: %w", err)
 	}
@@ -70,7 +70,7 @@ func (r *RoomRepo) Update(ctx context.Context, id int64, room *models.Room) erro
 		First(&existingRoom, id).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": id}).Error("Failed to get room by Id")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("room not found: %w", err)
+			return nil
 		}
 		return fmt.Errorf("get room by id error: %w", err)
 	}

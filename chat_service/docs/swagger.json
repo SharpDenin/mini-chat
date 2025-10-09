@@ -128,7 +128,7 @@
                 }
             }
         },
-        "/room-member/{room_id}": {
+        "/room-member/rooms/{room_id}/members": {
             "get": {
                 "security": [
                     {
@@ -177,14 +177,14 @@
                 }
             }
         },
-        "/room-member/{user_id}/{room_id}": {
-            "put": {
+        "/room-member/rooms/{room_id}/members/{user_id}": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Меняет статус участника комнаты на указанный",
+                "description": "Добавляет пользователя в комнату",
                 "consumes": [
                     "application/json"
                 ],
@@ -194,7 +194,7 @@
                 "tags": [
                     "RoomMember"
                 ],
-                "summary": "Изменить статус участника комнаты",
+                "summary": "Добавление пользователя в комнату",
                 "parameters": [
                     {
                         "type": "integer",
@@ -209,33 +209,23 @@
                         "name": "room_id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Статус администратора",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api_dto.SetAdminStatusRequest"
-                        }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Статус участника комнаты успешно изменен",
+                    "201": {
+                        "description": "Id созданного члена комнаты",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "type": "integer"
                         }
                     },
                     "400": {
-                        "description": "Неверные данные запроса",
+                        "description": "Неверные данные",
                         "schema": {
                             "$ref": "#/definitions/middleware_chat.ErrorResponse"
                         }
                     },
-                    "404": {
-                        "description": "Комната не найдена",
+                    "401": {
+                        "description": "Неверные учетные данные",
                         "schema": {
                             "$ref": "#/definitions/middleware_chat.ErrorResponse"
                         }
@@ -284,6 +274,76 @@
                 "responses": {
                     "204": {
                         "description": "Пользователь успешно удален из комнаты"
+                    },
+                    "400": {
+                        "description": "Неверные данные запроса",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Комната не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/room-member/rooms/{room_id}/members/{user_id}/admin": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Меняет статус участника комнаты на указанный",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "RoomMember"
+                ],
+                "summary": "Изменить статус участника комнаты",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id пользователя",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Id комнаты",
+                        "name": "room_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Назначить администратором (true) или снять (false)",
+                        "name": "set_admin",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Статус участника комнаты успешно изменен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     },
                     "400": {
                         "description": "Неверные данные запроса",
@@ -475,81 +535,9 @@
                     }
                 }
             }
-        },
-        "/room_member": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Добавляет пользователя в комнату",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Room"
-                ],
-                "summary": "Добавление пользователя в комнату",
-                "parameters": [
-                    {
-                        "description": "Id's пользователя и комнаты",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api_dto.CreateRoomMemberRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Id созданного члена комнаты",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    "400": {
-                        "description": "Неверные данные",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Неверные учетные данные",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_chat.ErrorResponse"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "api_dto.CreateRoomMemberRequest": {
-            "type": "object",
-            "required": [
-                "room_id",
-                "user_id"
-            ],
-            "properties": {
-                "room_id": {
-                    "type": "integer"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
         "api_dto.CreateRoomRequest": {
             "type": "object",
             "required": [
@@ -613,17 +601,6 @@
                 },
                 "Name": {
                     "type": "string"
-                }
-            }
-        },
-        "api_dto.SetAdminStatusRequest": {
-            "type": "object",
-            "required": [
-                "set_admin"
-            ],
-            "properties": {
-                "set_admin": {
-                    "type": "boolean"
                 }
             }
         },

@@ -43,6 +43,11 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_d
 	if err != nil {
 		return nil, u.handleError(err, userId, "GetUserById")
 	}
+
+	if user == nil {
+		return nil, fmt.Errorf("user with id %d not found", userId)
+	}
+
 	response := &service_dto.GetUserResponse{
 		Id:        user.Id,
 		Name:      user.Username,
@@ -105,6 +110,11 @@ func (u *UserService) UpdateUser(ctx context.Context, userId int64, req *service
 	if err != nil {
 		return u.handleError(err, userId, "UpdateUser")
 	}
+
+	if currentUser == nil {
+		return middleware_profile.NewCustomError(http.StatusNotFound, "User not found", nil)
+	}
+
 	if req.Username != nil {
 		currentUser.Username = *req.Username
 	}

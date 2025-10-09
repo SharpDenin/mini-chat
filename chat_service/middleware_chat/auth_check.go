@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -20,7 +21,6 @@ func NewAuthMiddleware(client ProfileClient, log *logrus.Logger) gin.HandlerFunc
 			ctx.Next()
 			return
 		}
-
 		// Извлекаем токен
 		token := extractToken(ctx)
 		if token == "" {
@@ -30,8 +30,11 @@ func NewAuthMiddleware(client ProfileClient, log *logrus.Logger) gin.HandlerFunc
 			return
 		}
 
+		grpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second) // Увеличили таймаут
+		defer cancel()
+
 		// Проверяем токен через gRPC-клиент
-		resp, err := client.ValidateToken(ctx, &profile.TokenRequest{Token: token})
+		resp, err := client.ValidateToken(grpcCtx, &profile.TokenRequest{Token: token})
 		if err != nil || !resp.Valid {
 			customErr := NewCustomError(http.StatusUnauthorized, "Invalid token", err)
 			HandleError(ctx, customErr, log)

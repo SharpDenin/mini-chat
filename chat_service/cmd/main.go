@@ -91,21 +91,20 @@ func main() {
 			room.PUT("/:id", roomHandler.RenameRoom)
 			room.DELETE("/:id", roomHandler.DeleteRoom)
 		}
-		roomMember := api.Group("/room_member")
+		roomMember := api.Group("/room-member")
 		{
-			roomMember.POST("", roomHandler.CreateRoomMember)
-			roomMember.GET("/:room_id", roomHandler.GetMemberList)
-			roomMember.PUT("/:user_id/:room_id", roomHandler.SetAdminMember)
-			roomMember.DELETE("/:user_id/:room_id", roomHandler.DeleteRoomMember)
+			roomMember.GET("/rooms/:room_id/members", roomHandler.GetMemberList)
+			roomMember.POST("/rooms/:room_id/members/:user_id", roomHandler.CreateRoomMember)
+			roomMember.PUT("/rooms/:room_id/members/:user_id/admin", roomHandler.SetAdminMember)
+			roomMember.DELETE("/rooms/:room_id/members/:user_id", roomHandler.DeleteRoomMember)
 		}
 	}
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	srv := &http.Server{
-		Addr:    ":8084",
-		Handler: router,
-		// Настройки таймаутов для защиты от медленных клиентов
+		Addr:         ":8084",
+		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

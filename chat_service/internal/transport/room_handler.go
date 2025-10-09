@@ -202,37 +202,6 @@ func (h *RoomHandler) DeleteRoom(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// CreateRoomMember
-// @Summary Добавление пользователя в комнату
-// @Description Добавляет пользователя в комнату
-// @Tags Room
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param request body api_dto.CreateRoomMemberRequest true "Id's пользователя и комнаты"
-// @Success 201 {integer} int "Id созданного члена комнаты"
-// @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные"
-// @Failure 401 {object} middleware_chat.ErrorResponse "Неверные учетные данные"
-// @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room_member [post]
-func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
-	var req *api_dto.CreateRoomMemberRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
-		middleware_chat.HandleError(ctx, err, h.log)
-		return
-	}
-
-	err := h.roomMemberService.AddMember(ctx, req.UserId, req.RoomId)
-	if err != nil {
-		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error adding member")
-		middleware_chat.HandleError(ctx, err, h.log)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, req.UserId)
-}
-
 // GetMemberList
 // @Summary Получить список участников комнаты
 // @Description Возвращает список участников комнаты по Id комнаты
@@ -244,7 +213,7 @@ func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
 // @Success 200 {object} api_dto.GetRoomMemberListResponse "Успешный запрос"
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные параметры фильтрации"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room-member/{room_id} [get]
+// @Router /room-member/rooms/{room_id}/members [get]
 func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
 	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
 	if err != nil {
@@ -265,6 +234,44 @@ func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// CreateRoomMember
+// @Summary Добавление пользователя в комнату
+// @Description Добавляет пользователя в комнату
+// @Tags RoomMember
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param user_id path int true "Id пользователя"
+// @Param room_id path int true "Id комнаты"
+// @Success 201 {integer} int "Id созданного члена комнаты"
+// @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные"
+// @Failure 401 {object} middleware_chat.ErrorResponse "Неверные учетные данные"
+// @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /room-member/rooms/{room_id}/members/{user_id} [post]
+func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
+	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
+	roomId, err := strconv.ParseInt(ctx.Param("room_id"), 10, 64)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
+		return
+	}
+
+	err = h.roomMemberService.AddMember(ctx, userId, roomId)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error adding member")
+		middleware_chat.HandleError(ctx, err, h.log)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, userId)
+}
+
 // SetAdminMember
 // @Summary Изменить статус участника комнаты
 // @Description Меняет статус участника комнаты на указанный
@@ -274,12 +281,12 @@ func (h *RoomHandler) GetMemberList(ctx *gin.Context) {
 // @Produce json
 // @Param user_id path int true "Id пользователя"
 // @Param room_id path int true "Id комнаты"
-// @Param request body api_dto.SetAdminStatusRequest true "Статус администратора"
+// @Param set_admin query boolean true "Назначить администратором (true) или снять (false)"
 // @Success 200 {object} map[string]any "Статус участника комнаты успешно изменен"
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные запроса"
 // @Failure 404 {object} middleware_chat.ErrorResponse "Комната не найдена"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room-member/{user_id}/{room_id} [put]
+// @Router /room-member/rooms/{room_id}/members/{user_id}/admin [put]
 func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
 	if err != nil {
@@ -293,31 +300,27 @@ func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request parameters", err), h.log)
 		return
 	}
-	var req *api_dto.SetAdminStatusRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.log.WithFields(logrus.Fields{
-			"error":   err,
-			"user_id": userId,
-			"room_id": roomId,
-		}).Warn("Invalid request body")
-		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "Invalid request body", err), h.log)
+	setAdminStr := ctx.Query("set_admin")
+	setAdmin, err := strconv.ParseBool(setAdminStr)
+	if err != nil {
+		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid request parameters")
+		middleware_chat.HandleError(ctx, middleware_chat.NewCustomError(http.StatusBadRequest, "set_admin must be boolean", err), h.log)
 		return
 	}
 
-	err = h.roomMemberService.SetAdmin(ctx, userId, roomId, req.SetAdmin)
+	err = h.roomMemberService.SetAdmin(ctx, userId, roomId, setAdmin)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error setting admin")
 		middleware_chat.HandleError(ctx, err, h.log)
 		return
 	}
 
-	resp := gin.H{
+	ctx.JSON(http.StatusOK, map[string]any{
+		"message":  "Admin status updated successfully",
 		"user_id":  userId,
 		"room_id":  roomId,
-		"is_admin": req.SetAdmin,
-	}
-
-	ctx.JSON(http.StatusOK, resp)
+		"is_admin": setAdmin,
+	})
 }
 
 // DeleteRoomMember
@@ -333,7 +336,7 @@ func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 // @Failure 400 {object} middleware_chat.ErrorResponse "Неверные данные запроса"
 // @Failure 404 {object} middleware_chat.ErrorResponse "Комната не найдена"
 // @Failure 500 {object} middleware_chat.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /room-member/{user_id}/{room_id} [delete]
+// @Router /room-member/rooms/{room_id}/members/{user_id} [delete]
 func (h *RoomHandler) DeleteRoomMember(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
 	if err != nil {

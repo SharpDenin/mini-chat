@@ -1,15 +1,5 @@
 basePath: /api/v1
 definitions:
-  api_dto.CreateRoomMemberRequest:
-    properties:
-      room_id:
-        type: integer
-      user_id:
-        type: integer
-    required:
-    - room_id
-    - user_id
-    type: object
   api_dto.CreateRoomRequest:
     properties:
       name:
@@ -52,13 +42,6 @@ definitions:
         type: integer
       Name:
         type: string
-    type: object
-  api_dto.SetAdminStatusRequest:
-    properties:
-      set_admin:
-        type: boolean
-    required:
-    - set_admin
     type: object
   api_dto.UpdateRoomRequest:
     properties:
@@ -156,7 +139,7 @@ paths:
       summary: Создание комнаты
       tags:
       - Room
-  /room-member/{room_id}:
+  /room-member/rooms/{room_id}/members:
     get:
       consumes:
       - application/json
@@ -187,7 +170,7 @@ paths:
       summary: Получить список участников комнаты
       tags:
       - RoomMember
-  /room-member/{user_id}/{room_id}:
+  /room-member/rooms/{room_id}/members/{user_id}:
     delete:
       consumes:
       - application/json
@@ -225,6 +208,46 @@ paths:
       summary: Удалить участника из комнаты
       tags:
       - RoomMember
+    post:
+      consumes:
+      - application/json
+      description: Добавляет пользователя в комнату
+      parameters:
+      - description: Id пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Id комнаты
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Id созданного члена комнаты
+          schema:
+            type: integer
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/middleware_chat.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавление пользователя в комнату
+      tags:
+      - RoomMember
+  /room-member/rooms/{room_id}/members/{user_id}/admin:
     put:
       consumes:
       - application/json
@@ -240,12 +263,11 @@ paths:
         name: room_id
         required: true
         type: integer
-      - description: Статус администратора
-        in: body
-        name: request
+      - description: Назначить администратором (true) или снять (false)
+        in: query
+        name: set_admin
         required: true
-        schema:
-          $ref: '#/definitions/api_dto.SetAdminStatusRequest'
+        type: boolean
       produces:
       - application/json
       responses:
@@ -378,42 +400,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Обновить наименование комнаты
-      tags:
-      - Room
-  /room_member:
-    post:
-      consumes:
-      - application/json
-      description: Добавляет пользователя в комнату
-      parameters:
-      - description: Id's пользователя и комнаты
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api_dto.CreateRoomMemberRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Id созданного члена комнаты
-          schema:
-            type: integer
-        "400":
-          description: Неверные данные
-          schema:
-            $ref: '#/definitions/middleware_chat.ErrorResponse'
-        "401":
-          description: Неверные учетные данные
-          schema:
-            $ref: '#/definitions/middleware_chat.ErrorResponse'
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            $ref: '#/definitions/middleware_chat.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Добавление пользователя в комнату
       tags:
       - Room
 securityDefinitions:
