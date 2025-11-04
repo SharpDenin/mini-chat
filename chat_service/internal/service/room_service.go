@@ -232,6 +232,7 @@ func (r *RoomService) GetRoomList(ctx context.Context, filter *dto.SearchFilter)
 	return resp, nil
 }
 
+
 func (r *RoomService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
 	roomMember, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
 	if err != nil {

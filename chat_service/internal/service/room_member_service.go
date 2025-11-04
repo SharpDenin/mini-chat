@@ -252,6 +252,7 @@ func (r *RoomMemberService) ListUserRooms(ctx context.Context, userId int64) ([]
 	return resp, nil
 }
 
+
 func (r *RoomMemberService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
 	roomMember, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
 	if err != nil {

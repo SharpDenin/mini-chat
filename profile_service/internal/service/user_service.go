@@ -146,6 +146,7 @@ func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 	return nil
 }
 
+
 func (u *UserService) handleError(err error, id int64, operation string) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		u.log.Infof("User Not Found, id: %d", id)
