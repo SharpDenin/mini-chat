@@ -262,7 +262,7 @@ func (h *RoomHandler) CreateRoomMember(ctx *gin.Context) {
 		return
 	}
 
-	err = h.roomMemberService.AddMember(ctx, userId, roomId)
+	err = h.roomMemberService.AddMember(ctx, roomId, userId)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error adding member")
 		middleware_chat.HandleError(ctx, err, h.log)
@@ -308,7 +308,7 @@ func (h *RoomHandler) SetAdminMember(ctx *gin.Context) {
 		return
 	}
 
-	err = h.roomMemberService.SetAdmin(ctx, userId, roomId, setAdmin)
+	err = h.roomMemberService.SetAdmin(ctx, roomId, userId, setAdmin)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error setting admin")
 		middleware_chat.HandleError(ctx, err, h.log)
@@ -351,7 +351,7 @@ func (h *RoomHandler) DeleteRoomMember(ctx *gin.Context) {
 		return
 	}
 
-	err = h.roomMemberService.RemoveMember(ctx, userId, roomId)
+	err = h.roomMemberService.RemoveMember(ctx, roomId, userId)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Error removing member")
 		middleware_chat.HandleError(ctx, err, h.log)

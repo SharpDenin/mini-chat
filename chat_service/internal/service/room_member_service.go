@@ -55,12 +55,12 @@ func (r *RoomMemberService) AddMember(ctx context.Context, roomId, userId int64)
 		return middleware_chat.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
-	if err = r.validateUserExists(ctx, userId); err != nil {
-		return err
+	if err := r.validateUserExists(ctx, userId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
-	if err = r.validateRoomExists(ctx, roomId); err != nil {
-		return err
+	if err := r.validateRoomExists(ctx, roomId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
 	member, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
@@ -92,20 +92,20 @@ func (r *RoomMemberService) RemoveMember(ctx context.Context, roomId, userId int
 		return err
 	}
 
+	if err := r.validateUserExists(ctx, userId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
+	}
+
+	if err := r.validateRoomExists(ctx, roomId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
+	}
+
 	currentUserId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 	if err = r.validateUserIsAdmin(ctx, roomId, currentUserId); err != nil {
 		return middleware_chat.NewCustomError(http.StatusForbidden, err.Error(), err)
-	}
-
-	if err = r.validateUserExists(ctx, userId); err != nil {
-		return err
-	}
-
-	if err = r.validateRoomExists(ctx, roomId); err != nil {
-		return err
 	}
 
 	member, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
@@ -148,7 +148,7 @@ func (r *RoomMemberService) ListMembers(ctx context.Context, roomId int64) ([]*d
 	}
 
 	if err := r.validateRoomExists(ctx, roomId); err != nil {
-		return nil, err
+		return nil, middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
 	members, err := r.rMRepo.GetMembersByRoom(ctx, roomId)
@@ -182,12 +182,12 @@ func (r *RoomMemberService) SetAdmin(ctx context.Context, roomId, userId int64, 
 		return middleware_chat.NewCustomError(http.StatusForbidden, err.Error(), err)
 	}
 
-	if err = r.validateUserExists(ctx, userId); err != nil {
-		return err
+	if err := r.validateUserExists(ctx, userId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
 	}
 
-	if err = r.validateRoomExists(ctx, roomId); err != nil {
-		return err
+	if err := r.validateRoomExists(ctx, roomId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
 	member, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
@@ -252,24 +252,6 @@ func (r *RoomMemberService) ListUserRooms(ctx context.Context, userId int64) ([]
 	return resp, nil
 }
 
-
-func (r *RoomMemberService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
-	roomMember, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
-	if err != nil {
-		r.log.WithFields(logrus.Fields{
-			"user_id": userId,
-			"error":   err,
-		}).Warn("Failed to get room member")
-		return errors.New("failed to get room member")
-	}
-	if roomMember == nil || !roomMember.IsAdmin {
-		r.log.WithField("user_id", userId).Warn("User is not admin")
-		return errors.New("user is not admin")
-	}
-
-	return nil
-}
-
 func (r *RoomMemberService) validateBaseParams(roomId, userId int64) error {
 	if roomId <= 0 {
 		return middleware_chat.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
@@ -284,10 +266,15 @@ func (r *RoomMemberService) validateUserExists(ctx context.Context, userId int64
 	userReq := &profile.UserExistsRequest{UserId: strconv.FormatInt(userId, 10)}
 	exist, err := helper.CheckUserExist(ctx, r.profileClient, userReq)
 	if err != nil {
-		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to verify user", err)
+		r.log.WithFields(logrus.Fields{
+			"user_id": userId,
+			"error":   err,
+		}).Warn("Failed to get user")
+		return errors.New("failed to get user")
 	}
 	if !exist {
-		return middleware_chat.NewCustomError(http.StatusNotFound, "user does not exist", nil)
+		r.log.WithField("user_id", userId).Warn("User not found")
+		return errors.New("user not found")
 	}
 	return nil
 }
@@ -295,10 +282,40 @@ func (r *RoomMemberService) validateUserExists(ctx context.Context, userId int64
 func (r *RoomMemberService) validateRoomExists(ctx context.Context, roomId int64) error {
 	room, err := r.rRepo.GetRoomById(ctx, roomId)
 	if err != nil {
-		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to verify room", err)
+		r.log.WithFields(logrus.Fields{
+			"room_id": roomId,
+			"error":   err,
+		}).Warn("Failed to get room")
+		return errors.New("failed to get room")
 	}
 	if room == nil {
-		return middleware_chat.NewCustomError(http.StatusNotFound, "room not found", nil)
+		r.log.WithField("room_id", roomId).Warn("Room not found")
+		return errors.New("room not found")
 	}
+
+	return nil
+}
+
+func (r *RoomMemberService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
+	roomMember, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
+	if err != nil {
+		r.log.WithFields(logrus.Fields{
+			"user_id": userId,
+			"error":   err,
+		}).Warn("Failed to get room member")
+		return errors.New("failed to get room member")
+	}
+	if roomMember == nil {
+		r.log.WithFields(logrus.Fields{
+			"user_id": userId,
+			"error":   err,
+		}).Warn("Failed to get room member")
+		return errors.New("user is not member of the room")
+	}
+	if !roomMember.IsAdmin {
+		r.log.WithField("user_id", userId).Warn("User is not admin")
+		return errors.New("user is not admin")
+	}
+
 	return nil
 }
