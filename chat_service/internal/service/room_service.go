@@ -99,6 +99,10 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 		return middleware_chat.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
 	}
 
+	if err := r.validateRoomExists(ctx, roomId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
+	}
+
 	userId, err := helper.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
@@ -132,6 +136,10 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 	if roomId <= 0 {
 		r.log.Errorf("Room id %d is invalid", roomId)
 		return middleware_chat.NewCustomError(http.StatusBadRequest, "room id is invalid", nil)
+	}
+
+	if err := r.validateRoomExists(ctx, roomId); err != nil {
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
 	userId, err := helper.GetUserIdFromContext(ctx)
@@ -194,7 +202,7 @@ func (r *RoomService) GetRoomById(ctx context.Context, roomId int64) (*dto.GetRo
 	if room == nil {
 		return nil, middleware_chat.NewCustomError(http.StatusNotFound, "room not found", nil)
 	}
-	
+
 	return &dto.GetRoomResponse{
 		Id:   room.Id,
 		Name: room.Name,
@@ -232,6 +240,22 @@ func (r *RoomService) GetRoomList(ctx context.Context, filter *dto.SearchFilter)
 	return resp, nil
 }
 
+func (r *RoomService) validateRoomExists(ctx context.Context, roomId int64) error {
+	room, err := r.rRepo.GetRoomById(ctx, roomId)
+	if err != nil {
+		r.log.WithFields(logrus.Fields{
+			"room_id": roomId,
+			"error":   err,
+		}).Warn("Failed to get room")
+		return errors.New("failed to get room")
+	}
+	if room == nil {
+		r.log.WithField("room_id", roomId).Warn("Room not found")
+		return errors.New("room not found")
+	}
+
+	return nil
+}
 
 func (r *RoomService) validateUserIsAdmin(ctx context.Context, roomId, userId int64) error {
 	roomMember, err := r.rMRepo.GetMemberByUserId(ctx, roomId, userId)
@@ -242,7 +266,14 @@ func (r *RoomService) validateUserIsAdmin(ctx context.Context, roomId, userId in
 		}).Warn("Failed to get room member")
 		return errors.New("failed to get room member")
 	}
-	if roomMember == nil || !roomMember.IsAdmin {
+	if roomMember == nil {
+		r.log.WithFields(logrus.Fields{
+			"user_id": userId,
+			"error":   err,
+		}).Warn("Failed to get room member")
+		return errors.New("user is not member of the room")
+	}
+	if !roomMember.IsAdmin {
 		r.log.WithField("user_id", userId).Warn("User is not admin")
 		return errors.New("user is not admin")
 	}
