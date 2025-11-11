@@ -2,7 +2,7 @@ package db
 
 import (
 	"chat_service/internal/config"
-	"chat_service/internal/models"
+	"chat_service/internal/room/models"
 	"context"
 	"errors"
 	"fmt"

@@ -1,7 +1,7 @@
-package room_repo
+package repository
 
 import (
-	"chat_service/internal/models"
+	"chat_service/internal/room/models"
 	"context"
 	"errors"
 	"fmt"

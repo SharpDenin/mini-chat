@@ -1,7 +1,7 @@
 package room_mapper
 
 import (
-	"chat_service/internal/service/dto"
+	"chat_service/internal/room/service/dto"
 	"chat_service/internal/transport/api_dto"
 )
 

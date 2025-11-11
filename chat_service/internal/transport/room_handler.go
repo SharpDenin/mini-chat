@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"chat_service/internal/service"
+	"chat_service/internal/room/service"
 	"chat_service/internal/transport/api_dto"
 	"chat_service/internal/transport/room_mapper"
 	"chat_service/middleware_chat"

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"chat_service/internal/service/dto"
+	"chat_service/internal/room/service/dto"
 	"context"
 )
 

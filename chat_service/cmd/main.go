@@ -3,9 +3,9 @@ package main
 import (
 	_ "chat_service/docs"
 	"chat_service/internal/config"
-	"chat_service/internal/repository/db"
-	"chat_service/internal/repository/room_repo"
-	"chat_service/internal/service"
+	"chat_service/internal/room/repository"
+	"chat_service/internal/room/repository/db"
+	"chat_service/internal/room/service"
 	"chat_service/internal/transport"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
@@ -55,8 +55,8 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	roomRepo := room_repo.NewRoomRepo(database.DB, log)
-	roomMemberRepo := room_repo.NewRoomMemberRepo(database.DB, log)
+	roomRepo := repository.NewRoomRepo(database.DB, log)
+	roomMemberRepo := repository.NewRoomMemberRepo(database.DB, log)
 
 	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
 	if err != nil {
