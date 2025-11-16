@@ -1,4 +1,4 @@
-package config
+package room_config
 
 import (
 	"fmt"

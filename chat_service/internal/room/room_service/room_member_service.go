@@ -1,9 +1,9 @@
-package service
+package room_service
 
 import (
-	"chat_service/internal/room/repository"
-	"chat_service/internal/room/service/dto"
-	"chat_service/internal/room/service/helper"
+	"chat_service/internal/room/room_repository"
+	"chat_service/internal/room/room_service/dto"
+	"chat_service/internal/room/room_service/helper"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"chat_service/pkg/grpc_generated/profile"
@@ -19,14 +19,14 @@ import (
 
 type RoomMemberService struct {
 	profileClient *grpc_client.ProfileClient
-	rRepo         repository.RoomRepoInterface
-	rMRepo        repository.RoomMemberRepoInterface
+	rRepo         room_repository.RoomRepoInterface
+	rMRepo        room_repository.RoomMemberRepoInterface
 	db            *gorm.DB
 	log           *logrus.Logger
 }
 
-func NewRoomMemberService(profileClient *grpc_client.ProfileClient, rRepo repository.RoomRepoInterface,
-	rMRepo repository.RoomMemberRepoInterface, db *gorm.DB, log *logrus.Logger) RoomMemberServiceInterface {
+func NewRoomMemberService(profileClient *grpc_client.ProfileClient, rRepo room_repository.RoomRepoInterface,
+	rMRepo room_repository.RoomMemberRepoInterface, db *gorm.DB, log *logrus.Logger) RoomMemberServiceInterface {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})

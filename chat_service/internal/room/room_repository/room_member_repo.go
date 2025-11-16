@@ -1,7 +1,7 @@
-package repository
+package room_repository
 
 import (
-	"chat_service/internal/room/models"
+	"chat_service/internal/room/room_models"
 	"context"
 	"errors"
 	"fmt"
@@ -23,7 +23,7 @@ func NewRoomMemberRepo(db *gorm.DB, log *logrus.Logger) RoomMemberRepoInterface 
 }
 
 func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) error {
-	var existingMember models.RoomMember
+	var existingMember room_models.RoomMember
 	if err := r.db.WithContext(ctx).
 		Where("room_id = ? AND user_id = ?", roomId, userId).
 		First(&existingMember).Error; err == nil {
@@ -33,7 +33,7 @@ func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) er
 		return nil
 	}
 
-	member := models.RoomMember{
+	member := room_models.RoomMember{
 		RoomId: roomId,
 		UserId: userId,
 	}
@@ -47,8 +47,8 @@ func (r *RoomMemberRepo) AddMember(ctx context.Context, roomId, userId int64) er
 	return nil
 }
 
-func (r *RoomMemberRepo) GetMemberByUserId(ctx context.Context, roomId, userId int64) (*models.RoomMember, error) {
-	var member models.RoomMember
+func (r *RoomMemberRepo) GetMemberByUserId(ctx context.Context, roomId, userId int64) (*room_models.RoomMember, error) {
+	var member room_models.RoomMember
 	if err := r.db.WithContext(ctx).
 		Where("room_id = ? AND user_id = ?", roomId, userId).First(&member).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -63,7 +63,7 @@ func (r *RoomMemberRepo) GetMemberByUserId(ctx context.Context, roomId, userId i
 }
 
 func (r *RoomMemberRepo) RemoveMember(ctx context.Context, roomId, userId int64) error {
-	var existingMember models.RoomMember
+	var existingMember room_models.RoomMember
 	if err := r.db.WithContext(ctx).
 		First(&existingMember, "room_id = ? AND user_id = ?", roomId, userId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -86,7 +86,7 @@ func (r *RoomMemberRepo) RemoveMember(ctx context.Context, roomId, userId int64)
 func (r *RoomMemberRepo) RemoveAllMembers(ctx context.Context, roomId int64) error {
 	result := r.db.WithContext(ctx).
 		Where("room_id = ?", roomId).
-		Delete(&models.RoomMember{})
+		Delete(&room_models.RoomMember{})
 
 	if result.Error != nil {
 		r.log.WithError(result.Error).
@@ -103,8 +103,8 @@ func (r *RoomMemberRepo) RemoveAllMembers(ctx context.Context, roomId int64) err
 	return nil
 }
 
-func (r *RoomMemberRepo) GetMembersByRoom(ctx context.Context, roomId int64) ([]*models.RoomMember, error) {
-	var members []*models.RoomMember
+func (r *RoomMemberRepo) GetMembersByRoom(ctx context.Context, roomId int64) ([]*room_models.RoomMember, error) {
+	var members []*room_models.RoomMember
 	if err := r.db.WithContext(ctx).Where("room_id = ?", roomId).Find(&members).Error; err != nil {
 		r.log.WithFields(logrus.Fields{"error": err, "id": roomId}).Error("Failed to find user")
 		return nil, fmt.Errorf("find user: %w", err)
@@ -113,8 +113,8 @@ func (r *RoomMemberRepo) GetMembersByRoom(ctx context.Context, roomId int64) ([]
 	return members, nil
 }
 
-func (r *RoomMemberRepo) GetRoomsByUserId(ctx context.Context, userId int64) ([]*models.Room, error) {
-	var rooms []*models.Room
+func (r *RoomMemberRepo) GetRoomsByUserId(ctx context.Context, userId int64) ([]*room_models.Room, error) {
+	var rooms []*room_models.Room
 	err := r.db.WithContext(ctx).
 		Table("rooms").
 		Joins("JOIN room_members ON room_members.room_id = rooms.id").
@@ -129,7 +129,7 @@ func (r *RoomMemberRepo) GetRoomsByUserId(ctx context.Context, userId int64) ([]
 }
 
 func (r *RoomMemberRepo) SetAdmin(ctx context.Context, roomId, userId int64, isAdmin bool) error {
-	var existingMember models.RoomMember
+	var existingMember room_models.RoomMember
 	if err := r.db.WithContext(ctx).
 		Where("room_id = ? AND user_id = ?", roomId, userId).First(&existingMember).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

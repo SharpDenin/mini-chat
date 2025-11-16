@@ -1,4 +1,4 @@
-package models
+package room_models
 
 type OnlineStatus struct {
 	Id       int64  `gorm:"primary_key;autoIncrement;column:id"`
