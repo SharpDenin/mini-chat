@@ -3,11 +3,11 @@ package transport
 import (
 	"net/http"
 	"os"
-	"profile_service/internal/service"
-	"profile_service/internal/transport/api_dto"
-	"profile_service/internal/transport/user_mapper"
+	"profile_service/internal/user/service"
 	"profile_service/middleware_profile"
 	pb "profile_service/pkg/grpc_generated/profile"
+	"profile_service/transport/api_dto"
+	"profile_service/transport/user_mapper"
 	"strconv"
 
 	"github.com/gin-gonic/gin"

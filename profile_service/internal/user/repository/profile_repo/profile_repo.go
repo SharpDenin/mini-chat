@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"profile_service/internal/models"
-	"profile_service/internal/service/service_dto"
+	"profile_service/internal/user/models"
+	"profile_service/internal/user/service/service_dto"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"

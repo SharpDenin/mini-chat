@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"profile_service/internal/models"
-	"profile_service/internal/repository/profile_repo"
-	"profile_service/internal/service/helpers"
-	"profile_service/internal/service/service_dto"
+	"profile_service/internal/user/models"
+	"profile_service/internal/user/repository/profile_repo"
+	"profile_service/internal/user/service/helpers"
+	"profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
 
 	"github.com/sirupsen/logrus"
@@ -145,7 +145,6 @@ func (u *UserService) DeleteUser(ctx context.Context, userId int64) error {
 	}
 	return nil
 }
-
 
 func (u *UserService) handleError(err error, id int64, operation string) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {

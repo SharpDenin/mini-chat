@@ -2,9 +2,9 @@ package transport
 
 import (
 	"chat_service/internal/room/room_service"
-	"chat_service/internal/transport/api_dto"
-	"chat_service/internal/transport/room_mapper"
 	"chat_service/middleware_chat"
+	"chat_service/transport/api_dto"
+	"chat_service/transport/room_mapper"
 	"net/http"
 	"os"
 	"strconv"

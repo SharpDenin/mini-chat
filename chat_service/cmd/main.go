@@ -6,9 +6,9 @@ import (
 	"chat_service/internal/room/room_repository"
 	"chat_service/internal/room/room_repository/db"
 	"chat_service/internal/room/room_service"
-	"chat_service/internal/transport"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
+	"chat_service/transport"
 	"context"
 	"errors"
 	"net/http"
@@ -50,10 +50,16 @@ func main() {
 			log.Printf("Failed to close database: %v", err)
 		}
 	}()
-
 	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
+
+	//redisCfg, err := presence_config.Load()
+	//if err != nil {
+	//	log.Fatalf("Failed to load redis config: %v", err)
+	//}
+	//
+	//_, err = presence_repository.NewRedisRepo(redisCfg)
 
 	roomRepo := room_repository.NewRoomRepo(database.DB, log)
 	roomMemberRepo := room_repository.NewRoomMemberRepo(database.DB, log)

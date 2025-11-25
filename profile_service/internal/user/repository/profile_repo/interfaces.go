@@ -2,8 +2,8 @@ package profile_repo
 
 import (
 	"context"
-	uModel "profile_service/internal/models"
-	"profile_service/internal/service/service_dto"
+	uModel "profile_service/internal/user/models"
+	"profile_service/internal/user/service/service_dto"
 )
 
 type ProfileRepoInterface interface {

@@ -2,7 +2,7 @@ package room_mapper
 
 import (
 	"chat_service/internal/room/room_service/dto"
-	"chat_service/internal/transport/api_dto"
+	"chat_service/transport/api_dto"
 )
 
 func GetRoomToHandlerDto(r *dto.GetRoomResponse) *api_dto.GetRoomResponse {

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"profile_service/internal/service/service_dto"
+	"profile_service/internal/user/service/service_dto"
 )
 
 type UserServiceInterface interface {
