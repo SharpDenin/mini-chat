@@ -22,7 +22,7 @@ type RedisRepo struct {
 	config *config.RedisConfig
 }
 
-func NewRedisRepo(config *config.RedisConfig) (PresenceRepo, error) {
+func NewRedisRepo(config *config.RedisConfig) (PresenceRepoInterface, error) {
 	db, err := strconv.Atoi(config.DB)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DB number: %w", err)

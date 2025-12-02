@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type PresenceRepo interface {
+type PresenceRepoInterface interface {
 	SetOnline(ctx context.Context, userId string) error
 	SetOffline(ctx context.Context, userId string) error
 	SetLastSeen(ctx context.Context, userId string) error
