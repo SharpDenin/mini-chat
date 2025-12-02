@@ -1,4 +1,4 @@
-package presence_config
+package config
 
 import (
 	"fmt"

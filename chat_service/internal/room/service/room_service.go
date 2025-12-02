@@ -1,10 +1,10 @@
-package room_service
+package service
 
 import (
-	"chat_service/internal/room/room_models"
-	"chat_service/internal/room/room_repository"
-	"chat_service/internal/room/room_service/dto"
-	"chat_service/internal/room/room_service/helper"
+	"chat_service/internal/room/models"
+	"chat_service/internal/room/repository"
+	"chat_service/internal/room/service/dto"
+	"chat_service/internal/room/service/helper"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"context"
@@ -20,14 +20,14 @@ import (
 
 type RoomService struct {
 	profileClient *grpc_client.ProfileClient
-	rRepo         room_repository.RoomRepoInterface
-	rMRepo        room_repository.RoomMemberRepoInterface
+	rRepo         repository.RoomRepoInterface
+	rMRepo        repository.RoomMemberRepoInterface
 	db            *gorm.DB
 	log           *logrus.Logger
 }
 
-func NewRoomService(profileClient *grpc_client.ProfileClient, rRepo room_repository.RoomRepoInterface,
-	rMRepo room_repository.RoomMemberRepoInterface, db *gorm.DB, log *logrus.Logger) RoomServiceInterface {
+func NewRoomService(profileClient *grpc_client.ProfileClient, rRepo repository.RoomRepoInterface,
+	rMRepo repository.RoomMemberRepoInterface, db *gorm.DB, log *logrus.Logger) RoomServiceInterface {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -62,7 +62,7 @@ func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error
 		type txKey struct{}
 		txCtx := context.WithValue(ctx, txKey{}, tx)
 
-		room := &room_models.Room{Name: name}
+		room := &models.Room{Name: name}
 		if err := r.rRepo.Create(txCtx, room); err != nil {
 			r.log.WithError(err).Warn("Failed to create room")
 			return fmt.Errorf("failed to create room: %w", err)
@@ -118,7 +118,7 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 		return middleware_chat.NewCustomError(http.StatusBadRequest, "room name cannot be empty", nil)
 	}
 
-	updateData := &room_models.Room{Name: name}
+	updateData := &models.Room{Name: name}
 	if err := r.rRepo.Update(ctx, roomId, updateData); err != nil {
 		r.log.WithError(err).Warn("Failed to update room")
 		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to update room", err)

@@ -2,10 +2,10 @@ package main
 
 import (
 	_ "chat_service/docs"
-	"chat_service/internal/room/room_config"
-	"chat_service/internal/room/room_repository"
-	"chat_service/internal/room/room_repository/db"
-	"chat_service/internal/room/room_service"
+	"chat_service/internal/room/config"
+	"chat_service/internal/room/repository"
+	"chat_service/internal/room/repository/db"
+	"chat_service/internal/room/service"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"chat_service/transport"
@@ -36,7 +36,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
 	ctx := context.Background()
-	cfg, err := room_config.Load()
+	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Ошибка получения конфигурации %w", err)
 	}
@@ -54,15 +54,8 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	//redisCfg, err := presence_config.Load()
-	//if err != nil {
-	//	log.Fatalf("Failed to load redis config: %v", err)
-	//}
-	//
-	//_, err = presence_repository.NewRedisRepo(redisCfg)
-
-	roomRepo := room_repository.NewRoomRepo(database.DB, log)
-	roomMemberRepo := room_repository.NewRoomMemberRepo(database.DB, log)
+	roomRepo := repository.NewRoomRepo(database.DB, log)
+	roomMemberRepo := repository.NewRoomMemberRepo(database.DB, log)
 
 	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
 	if err != nil {
@@ -74,8 +67,8 @@ func main() {
 		}
 	}()
 
-	roomService := room_service.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
-	roomMemberService := room_service.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+	roomService := service.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+	roomMemberService := service.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
 
 	roomHandler := transport.NewRoomHandler(log, roomService, roomMemberService)
 

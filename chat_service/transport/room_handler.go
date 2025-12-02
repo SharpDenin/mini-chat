@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"chat_service/internal/room/room_service"
+	"chat_service/internal/room/service"
 	"chat_service/middleware_chat"
 	"chat_service/transport/api_dto"
 	"chat_service/transport/room_mapper"
@@ -15,11 +15,11 @@ import (
 
 type RoomHandler struct {
 	log               *logrus.Logger
-	roomService       room_service.RoomServiceInterface
-	roomMemberService room_service.RoomMemberServiceInterface
+	roomService       service.RoomServiceInterface
+	roomMemberService service.RoomMemberServiceInterface
 }
 
-func NewRoomHandler(log *logrus.Logger, roomService room_service.RoomServiceInterface, roomMemberService room_service.RoomMemberServiceInterface) *RoomHandler {
+func NewRoomHandler(log *logrus.Logger, roomService service.RoomServiceInterface, roomMemberService service.RoomMemberServiceInterface) *RoomHandler {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})

@@ -1,4 +1,4 @@
-package room_models
+package models
 
 import (
 	"time"

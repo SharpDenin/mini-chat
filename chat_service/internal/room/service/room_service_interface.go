@@ -1,7 +1,7 @@
-package room_service
+package service
 
 import (
-	"chat_service/internal/room/room_service/dto"
+	"chat_service/internal/room/service/dto"
 	"context"
 )
 

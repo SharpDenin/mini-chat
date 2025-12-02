@@ -1,8 +1,8 @@
 package db
 
 import (
-	"chat_service/internal/room/room_config"
-	"chat_service/internal/room/room_models"
+	"chat_service/internal/room/config"
+	"chat_service/internal/room/models"
 	"context"
 	"errors"
 	"fmt"
@@ -22,7 +22,7 @@ type Database struct {
 	Migrate *migrate.Migrate
 }
 
-func NewDB(ctx context.Context, cfg *room_config.Config) (*Database, error) {
+func NewDB(ctx context.Context, cfg *config.Config) (*Database, error) {
 	dsn :=
 		`host=` + cfg.Host +
 			` user=` + cfg.User +
@@ -63,7 +63,7 @@ func NewDB(ctx context.Context, cfg *room_config.Config) (*Database, error) {
 		return nil, fmt.Errorf("failed to initialize migrate: %w", err)
 	}
 
-	if err := gormDB.AutoMigrate(&room_models.Room{}); err != nil {
+	if err := gormDB.AutoMigrate(&models.Room{}); err != nil {
 		return nil, fmt.Errorf("auto migration failed: %w", err)
 	}
 
