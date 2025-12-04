@@ -2,23 +2,23 @@ package dto
 
 import "time"
 
-type MarkOptionRequest func(*markOptions)
+type MarkOptionRequest func(*MarkOptions)
 
-type markOptions struct {
+type MarkOptions struct {
 	Source    string
-	DeviceID  string
+	DeviceId  int64
 	Force     bool
 	Timestamp time.Time
 }
 
 func WithSource(source string) MarkOptionRequest {
-	return func(o *markOptions) { o.Source = source }
+	return func(o *MarkOptions) { o.Source = source }
 }
 
-func WithDeviceID(deviceID string) MarkOptionRequest {
-	return func(o *markOptions) { o.DeviceID = deviceID }
+func WithDeviceID(deviceId int64) MarkOptionRequest {
+	return func(o *MarkOptions) { o.DeviceId = deviceId }
 }
 
 func WithForce() MarkOptionRequest {
-	return func(o *markOptions) { o.Force = true }
+	return func(o *MarkOptions) { o.Force = true }
 }

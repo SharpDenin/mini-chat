@@ -7,18 +7,18 @@ import (
 )
 
 type PresenceServiceInterface interface {
-	MarkOnline(ctx context.Context, userId string, opt ...sDto.MarkOptionRequest) error
-	MarkOffline(ctx context.Context, userId string, opt ...sDto.MarkOptionRequest) error
-	UpdateLastSeen(ctx context.Context, userId string) error
+	MarkOnline(ctx context.Context, userId int64, opts ...sDto.MarkOptionRequest) error
+	MarkOffline(ctx context.Context, userId int64, opts ...sDto.MarkOptionRequest) error
+	UpdateLastSeen(ctx context.Context, userId int64) error
 
-	GetPresence(ctx context.Context, userId string) (*sDto.PresenceResponse, error)
-	GetBulkPresence(ctx context.Context, userIds []string) (*sDto.BulkPresenceResponse, error)
-	GetOnlineUsers(ctx context.Context, userIds []string) ([]string, error)
-	GetRecentlyOnline(ctx context.Context, since time.Time) ([]string, error)
+	GetPresence(ctx context.Context, userId int64) (*sDto.PresenceResponse, error)
+	GetBulkPresence(ctx context.Context, userIds []int64) (*sDto.BulkPresenceResponse, error)
+	GetOnlineUsers(ctx context.Context, userIds []int64) ([]int64, error)
+	GetRecentlyOnline(ctx context.Context, since time.Time) ([]int64, error)
 
-	AddConnection(ctx context.Context, userId string, connId string, deviceType string) error
-	RemoveConnection(ctx context.Context, userId string, connId string) error
-	GetUserConnections(ctx context.Context, userId string) ([]string, error)
+	AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error
+	RemoveConnection(ctx context.Context, userId int64, connId int64) error
+	GetUserConnections(ctx context.Context, userId int64) ([]int64, error)
 
 	CleanupStaleData(ctx context.Context) error
 	HealthCheck(ctx context.Context) error

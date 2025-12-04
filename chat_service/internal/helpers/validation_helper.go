@@ -1,4 +1,4 @@
-package helper
+package helpers
 
 import (
 	"chat_service/pkg/grpc_client"

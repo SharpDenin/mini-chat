@@ -3,7 +3,7 @@ package dto
 import "errors"
 
 var (
-	ErrInvalidUserID      = errors.New("invalid user id")
+	ErrInvalidUserId      = errors.New("invalid user id")
 	ErrUserNotFound       = errors.New("user not found")
 	ErrRateLimitExceeded  = errors.New("rate limit exceeded")
 	ErrServiceUnavailable = errors.New("presence service unavailable")
@@ -13,7 +13,7 @@ var (
 
 type PresenceError struct {
 	Err     error
-	UserId  string
+	UserId  int64
 	Action  string
 	Context map[string]interface{}
 }

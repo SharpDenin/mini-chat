@@ -4,7 +4,7 @@ import "time"
 
 // UserPresence - DTO для возврата из репозитория
 type UserPresence struct {
-	UserId   string
+	UserId   int64
 	Online   bool
 	Status   string
 	LastSeen time.Time

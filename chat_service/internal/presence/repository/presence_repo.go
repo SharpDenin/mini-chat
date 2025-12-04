@@ -52,7 +52,7 @@ func NewRedisRepo(config *config.RedisConfig) (PresenceRepoInterface, error) {
 	}, nil
 }
 
-func (r *RedisRepo) SetOnline(ctx context.Context, userId string) error {
+func (r *RedisRepo) SetOnline(ctx context.Context, userId int64) error {
 	now := time.Now().UnixMilli()
 	userKey := r.userKey(userId)
 	onlineSet := r.onlineSetKey()
@@ -69,11 +69,11 @@ func (r *RedisRepo) SetOnline(ctx context.Context, userId string) error {
 
 	ttlSeconds := int(r.config.StatusTTL.Seconds())
 	return script.Run(ctx, r.client,
-		[]string{userKey, onlineSet, userId},
+		[]string{userKey, onlineSet, strconv.FormatInt(userId, 10)},
 		ttlSeconds, now).Err()
 }
 
-func (r *RedisRepo) SetOffline(ctx context.Context, userId string) error {
+func (r *RedisRepo) SetOffline(ctx context.Context, userId int64) error {
 	userKey := r.userKey(userId)
 	onlineSet := r.onlineSetKey()
 
@@ -85,10 +85,10 @@ func (r *RedisRepo) SetOffline(ctx context.Context, userId string) error {
 	`)
 
 	return script.Run(ctx, r.client,
-		[]string{userKey, onlineSet, userId}).Err()
+		[]string{userKey, onlineSet, strconv.FormatInt(userId, 10)}).Err()
 }
 
-func (r *RedisRepo) SetLastSeen(ctx context.Context, userId string) error {
+func (r *RedisRepo) SetLastSeen(ctx context.Context, userId int64) error {
 	now := time.Now().UnixMilli()
 	userKey := r.userKey(userId)
 	onlineSet := r.onlineSetKey()
@@ -107,14 +107,14 @@ func (r *RedisRepo) SetLastSeen(ctx context.Context, userId string) error {
 
 	ttlSeconds := int(r.config.StatusTTL.Seconds())
 	return script.Run(ctx, r.client,
-		[]string{userKey, onlineSet, userId},
+		[]string{userKey, onlineSet, strconv.FormatInt(userId, 10)},
 		ttlSeconds, now).Err()
 }
 
-func (r *RedisRepo) IsOnline(ctx context.Context, userId string) (bool, error) {
+func (r *RedisRepo) IsOnline(ctx context.Context, userId int64) (bool, error) {
 	onlineSet := r.onlineSetKey()
 
-	score, err := r.client.ZScore(ctx, onlineSet, userId).Result()
+	score, err := r.client.ZScore(ctx, onlineSet, strconv.FormatInt(userId, 10)).Result()
 	if errors.Is(err, redis.Nil) {
 		return false, nil
 	}
@@ -136,7 +136,7 @@ func (r *RedisRepo) IsOnline(ctx context.Context, userId string) (bool, error) {
 	return true, nil
 }
 
-func (r *RedisRepo) GetLastSeen(ctx context.Context, userId string) (time.Time, error) {
+func (r *RedisRepo) GetLastSeen(ctx context.Context, userId int64) (time.Time, error) {
 	userKey := r.userKey(userId)
 
 	tsStr, err := r.client.HGet(ctx, userKey, "lastSeen").Result()
@@ -155,9 +155,9 @@ func (r *RedisRepo) GetLastSeen(ctx context.Context, userId string) (time.Time, 
 	return time.UnixMilli(tsMs), nil
 }
 
-func (r *RedisRepo) GetOnlineFriends(ctx context.Context, userId string, friendsIds []string) ([]string, error) {
+func (r *RedisRepo) GetOnlineFriends(ctx context.Context, userId int64, friendsIds []int64) ([]int64, error) {
 	if len(friendsIds) == 0 {
-		return []string{}, nil
+		return []int64{}, nil
 	}
 
 	onlineSet := r.onlineSetKey()
@@ -166,7 +166,7 @@ func (r *RedisRepo) GetOnlineFriends(ctx context.Context, userId string, friends
 
 	cmds, err := r.client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, friendId := range friendsIds {
-			pipe.ZScore(ctx, onlineSet, friendId)
+			pipe.ZScore(ctx, onlineSet, strconv.FormatInt(friendId, 10))
 		}
 		return nil
 	})
@@ -174,7 +174,7 @@ func (r *RedisRepo) GetOnlineFriends(ctx context.Context, userId string, friends
 		return nil, fmt.Errorf("pipeline failed: %w", err)
 	}
 
-	onlineFriends := make([]string, 0, len(friendsIds))
+	onlineFriends := make([]int64, 0, len(friendsIds))
 
 	for i, cmd := range cmds {
 		score, err := cmd.(*redis.FloatCmd).Result()
@@ -200,7 +200,7 @@ func (r *RedisRepo) CleanupStaleOnline(ctx context.Context) error {
 	return r.client.ZRemRangeByScore(ctx, onlineSet, "0", strconv.FormatFloat(threshold, 'f', -1, 64)).Err()
 }
 
-func (r *RedisRepo) GetUserPresence(ctx context.Context, userId string) (*rModels.UserPresence, error) {
+func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels.UserPresence, error) {
 	userKey := r.userKey(userId)
 	onlineSet := r.onlineSetKey()
 
@@ -209,7 +209,7 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId string) (*rModel
 	statusCmd := pipe.HGet(ctx, userKey, "status")
 	lastSeenCmd := pipe.HGet(ctx, userKey, "lastSeen")
 
-	onlineScoreCmd := pipe.ZScore(ctx, onlineSet, userId)
+	onlineScoreCmd := pipe.ZScore(ctx, onlineSet, strconv.FormatInt(userId, 10))
 
 	if _, err := pipe.Exec(ctx); err != nil {
 		return nil, fmt.Errorf("failed to get presence data: %w", err)
@@ -251,8 +251,8 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId string) (*rModel
 	return presence, nil
 }
 
-func (r *RedisRepo) userKey(userId string) string {
-	return fmt.Sprintf("user:presence:%s", userId)
+func (r *RedisRepo) userKey(userId int64) string {
+	return fmt.Sprintf("user:presence:%v", userId)
 }
 func (r *RedisRepo) onlineSetKey() string {
 	return fmt.Sprintf("%s:presence:online", r.config.Namespace)
