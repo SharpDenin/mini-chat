@@ -1,12 +1,15 @@
 package dto
 
-import "time"
+import (
+	"time"
+)
 
 type UserStatus string
 
 const (
 	StatusOnline  UserStatus = "online"
 	StatusOffline UserStatus = "offline"
+	StatusIdle    UserStatus = "idle"
 )
 
 type PresenceResponse struct {
@@ -18,8 +21,8 @@ type PresenceResponse struct {
 }
 
 type BulkPresenceResponse struct {
-	Presences map[string]PresenceResponse `json:"presences"`
-	Errors    map[string]string           `json:"errors,omitempty"`
+	Presences map[int64]PresenceResponse `json:"presences"`
+	Errors    map[int64]PresenceError    `json:"errors,omitempty"`
 }
 
 type StatusChangeEvent struct {

@@ -16,12 +16,12 @@ type PresenceServiceInterface interface {
 	GetOnlineUsers(ctx context.Context, userIds []int64) ([]int64, error)
 	GetRecentlyOnline(ctx context.Context, since time.Time) ([]int64, error)
 
-	AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error
-	RemoveConnection(ctx context.Context, userId int64, connId int64) error
-	GetUserConnections(ctx context.Context, userId int64) ([]int64, error)
+	//TODO Реализовать (service + repo)
+	//AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error
+	//RemoveConnection(ctx context.Context, userId int64, connId int64) error
+	//GetUserConnections(ctx context.Context, userId int64) ([]int64, error)
 
 	CleanupStaleData(ctx context.Context) error
-	HealthCheck(ctx context.Context) error
 
 	SubscribeStatusChanges(ctx context.Context) (<-chan sDto.StatusChangeEvent, error)
 }
