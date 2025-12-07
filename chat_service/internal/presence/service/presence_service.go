@@ -112,7 +112,7 @@ func (p *PresenceService) MarkOnline(ctx context.Context, userId int64, opts ...
 	}
 
 	if p.notifier != nil && currentPresence != nil {
-		event := sDto.StatusChangeEvent{
+		event := sDto.StatusChangeResponse{
 			UserId:    userId,
 			OldStatus: sDto.StatusOffline,
 			NewStatus: sDto.StatusOnline,
@@ -207,7 +207,7 @@ func (p *PresenceService) MarkOffline(ctx context.Context, userId int64, opts ..
 	}
 
 	if p.notifier != nil && currentPresence != nil && currentPresence.Online {
-		event := sDto.StatusChangeEvent{
+		event := sDto.StatusChangeResponse{
 			UserId:    userId,
 			OldStatus: sDto.StatusOnline,
 			NewStatus: sDto.StatusOffline,
@@ -450,7 +450,7 @@ func (p *PresenceService) GetOnlineUsers(ctx context.Context, userIds []int64) (
 				"error":  err,
 			}).Warn("one of userId is invalid, it will be ignored")
 
-			break
+			continue
 		}
 		if err := p.validateUserExists(ctx, userId); err != nil {
 			err = &sDto.PresenceError{
@@ -464,7 +464,7 @@ func (p *PresenceService) GetOnlineUsers(ctx context.Context, userIds []int64) (
 				"error":  err,
 			}).Warn("one of user does not exist, it will be ignored")
 
-			break
+			continue
 		}
 
 		checkedUserIds = append(checkedUserIds, userId)
@@ -484,25 +484,320 @@ func (p *PresenceService) GetOnlineUsers(ctx context.Context, userIds []int64) (
 }
 
 func (p *PresenceService) GetRecentlyOnline(ctx context.Context, since time.Time) ([]int64, error) {
-	//TODO implement me
-	panic("implement me")
+	start := time.Now()
+	defer func() {
+		p.metrics.ObserveLatency("GetRecentlyOnline", time.Since(start))
+	}()
+
+	if since.IsZero() {
+		since = time.Now().Add(-24 * time.Hour)
+	}
+
+	if since.After(time.Now()) {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidTimestamp,
+			UserId: 0,
+			Action: "GetBulkPresence",
+		}
+
+		return nil, middleware_chat.NewCustomError(http.StatusInternalServerError, "Future timestamp not allowed", err)
+	}
+
+	recentlyOnlineUsers, err := p.repo.GetRecentlyOnline(ctx, since)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"since": since,
+			"error": err,
+		}).Error("failed to get recently online users")
+
+		return nil, middleware_chat.NewCustomError(http.StatusInternalServerError, "Failed to get recently online users", err)
+	}
+
+	p.log.WithFields(logrus.Fields{
+		"since":       since,
+		"users_count": len(recentlyOnlineUsers),
+		"duration_ms": time.Since(start).Milliseconds(),
+	}).Info("get recently online users")
+
+	return recentlyOnlineUsers, nil
 }
 
-//TODO Реализовать (service + repo)
-//func (p *PresenceService) AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (p *PresenceService) RemoveConnection(ctx context.Context, userId int64, connId int64) error {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (p *PresenceService) GetUserConnections(ctx context.Context, userId int64) ([]int64, error) {
-//	//TODO implement me
-//	panic("implement me")
-//}
+func (p *PresenceService) AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error {
+	start := time.Now()
+	defer func() {
+		p.metrics.ObserveLatency("AddConnection", time.Since(start))
+	}()
+
+	if userId <= 0 {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidUserId,
+			UserId: userId,
+			Action: "AddConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	if connId <= 0 {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidConnId,
+			UserId: userId,
+			Action: "AddConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	validDevices := map[string]bool{
+		sDto.DeviceWeb:     true,
+		sDto.DeviceDesktop: true,
+		sDto.DeviceAndroid: true,
+		sDto.DeviceIOS:     true,
+	}
+
+	if !validDevices[deviceType] {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidDeviceType,
+			UserId: userId,
+			Action: "AddConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	if err := p.validateUserExists(ctx, userId); err != nil {
+		err = &sDto.PresenceError{
+			Err:    sDto.ErrUserNotFound,
+			UserId: userId,
+			Action: "AddConnection",
+		}
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
+	}
+
+	existingConn, err := p.repo.GetConnectionInfo(ctx, userId, connId)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"connId": connId,
+			"error":  err,
+		}).Warn("failed to check existing conn")
+	}
+
+	if existingConn != nil {
+		if err := p.repo.UpdateConnectionActivity(ctx, userId, connId); err != nil {
+			p.log.WithFields(logrus.Fields{
+				"userId": userId,
+				"connId": connId,
+				"error":  err,
+			}).Error("failed to update connection activity")
+
+			return middleware_chat.NewCustomError(http.StatusInternalServerError, "Failed to update connection activity", nil)
+		}
+
+		p.metrics.IncConnectionOpened(userId, "reconnect")
+
+	} else {
+		if err := p.repo.AddConnection(ctx, userId, connId, deviceType); err != nil {
+			p.log.WithFields(logrus.Fields{
+				"userId":     userId,
+				"connId":     connId,
+				"deviceType": deviceType,
+				"error":      err,
+			}).Error("failed to add connection")
+
+			return middleware_chat.NewCustomError(http.StatusInternalServerError, "Failed to add connection", nil)
+		}
+
+		p.metrics.IncConnectionOpened(userId, "new_connection")
+
+	}
+
+	p.log.WithFields(logrus.Fields{
+		"userId":     userId,
+		"connId":     connId,
+		"deviceType": deviceType,
+	}).Info("added/updated connection")
+
+	return nil
+}
+
+func (p *PresenceService) RemoveConnection(ctx context.Context, userId int64, connId int64) error {
+	start := time.Now()
+	defer func() {
+		p.metrics.ObserveLatency("RemoveConnection", time.Since(start))
+	}()
+
+	if userId <= 0 {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidUserId,
+			UserId: userId,
+			Action: "RemoveConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	if connId <= 0 {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidConnId,
+			UserId: userId,
+			Action: "RemoveConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	if err := p.validateUserExists(ctx, userId); err != nil {
+		err = &sDto.PresenceError{
+			Err:    sDto.ErrUserNotFound,
+			UserId: userId,
+			Action: "RemoveConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
+	}
+
+	existingConn, err := p.repo.GetConnectionInfo(ctx, userId, connId)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"connId": connId,
+			"error":  err,
+		}).Warn("failed to get connection info")
+	}
+
+	if existingConn == nil {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrConnectionNotFound,
+			UserId: userId,
+			Action: "RemoveConnection",
+		}
+
+		return middleware_chat.NewCustomError(http.StatusInternalServerError, err.Error(), nil)
+	}
+
+	if err := p.repo.RemoveConnection(ctx, userId, connId); err != nil {
+		p.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"connId": connId,
+			"error":  err,
+		}).Error("failed to remove connection")
+
+		return middleware_chat.NewCustomError(http.StatusInternalServerError, err.Error(), nil)
+	}
+
+	remainingConns, err := p.repo.GetUserConnections(ctx, userId)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"error":  err,
+		}).Warn("failed to get remaining connections")
+	}
+
+	if len(remainingConns) == 0 {
+		if err := p.MarkOffline(ctx, userId, sDto.WithSource("connection_removed")); err != nil {
+			p.log.WithFields(logrus.Fields{
+				"userId": userId,
+				"error":  err,
+			}).Error("failed to mark user offline after last connection removed")
+		}
+	}
+
+	p.metrics.IncConnectionOpened(userId, "connection_removed")
+
+	p.log.WithFields(logrus.Fields{
+		"userId": userId,
+		"connId": connId,
+	}).Info("removed connection")
+
+	return nil
+}
+
+func (p *PresenceService) GetUserConnections(ctx context.Context, userId int64) ([]*sDto.ConnectionInfoResponse, error) {
+	start := time.Now()
+	defer func() {
+		p.metrics.ObserveLatency("RemoveConnection", time.Since(start))
+	}()
+
+	if userId <= 0 {
+		err := &sDto.PresenceError{
+			Err:    sDto.ErrInvalidUserId,
+			UserId: userId,
+			Action: "RemoveConnection",
+		}
+
+		return nil, middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
+	}
+
+	if err := p.validateUserExists(ctx, userId); err != nil {
+		err = &sDto.PresenceError{
+			Err:    sDto.ErrUserNotFound,
+			UserId: userId,
+			Action: "RemoveConnection",
+		}
+
+		return nil, middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
+	}
+
+	repoConnections, err := p.repo.GetAllUserConnections(ctx, userId)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"error":  err,
+		}).Error("failed to get user connections")
+
+		return nil, middleware_chat.NewCustomError(http.StatusInternalServerError, "Failed to get user connections", nil)
+	}
+
+	conns := make([]*sDto.ConnectionInfoResponse, 0, len(repoConnections))
+	for _, repoConn := range repoConnections {
+		conn := &sDto.ConnectionInfoResponse{
+			ConnId:       repoConn.ConnId,
+			UserId:       repoConn.UserId,
+			DeviceType:   repoConn.DeviceType,
+			ConnectedAt:  repoConn.ConnectedAt,
+			LastActivity: repoConn.LastActivity,
+		}
+
+		conns = append(conns, conn)
+	}
+
+	return conns, nil
+}
+
+func (p *PresenceService) UpdateConnectionActivity(ctx context.Context, userId int64, connId int64) error {
+	if userId <= 0 || connId <= 0 {
+		return nil
+	}
+
+	if err := p.repo.UpdateConnectionActivity(ctx, userId, connId); err != nil {
+		p.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"connId": connId,
+			"error":  err,
+		}).Warn("failed to update connection activity")
+	}
+
+	return nil
+}
+
+func (p *PresenceService) GetConnectionStats(ctx context.Context, userId int64) (*sDto.ConnectionStatsResponse, error) {
+	connections, err := p.repo.GetAllUserConnections(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &sDto.ConnectionStatsResponse{
+		TotalConnections: len(connections),
+		Devices:          make(map[string]int64),
+	}
+
+	for _, conn := range connections {
+		stats.Devices[conn.DeviceType]++
+	}
+
+	return stats, nil
+}
 
 func (p *PresenceService) CleanupStaleData(ctx context.Context) error {
 	p.log.Info("starting stale data cleanup")
@@ -518,9 +813,21 @@ func (p *PresenceService) CleanupStaleData(ctx context.Context) error {
 	return nil
 }
 
-func (p *PresenceService) SubscribeStatusChanges(ctx context.Context) (<-chan sDto.StatusChangeEvent, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *PresenceService) SubscribeStatusChanges(ctx context.Context) (<-chan sDto.StatusChangeResponse, error) {
+	if p.notifier == nil {
+		return nil, middleware_chat.NewCustomError(http.StatusServiceUnavailable, "status change notifications not available", nil)
+	}
+
+	ch, err := p.notifier.Subscribe(ctx)
+	if err != nil {
+		p.log.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to subscribe to status change notifications")
+
+		return nil, middleware_chat.NewCustomError(http.StatusInternalServerError, "Failed to subscribe to status change notifications", nil)
+	}
+
+	return ch, nil
 }
 
 func (p *PresenceService) validateUserExists(ctx context.Context, userId int64) error {

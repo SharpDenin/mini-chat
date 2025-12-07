@@ -200,7 +200,7 @@ func (r *RedisRepo) CleanupStaleOnline(ctx context.Context) error {
 	return r.client.ZRemRangeByScore(ctx, onlineSet, "0", strconv.FormatFloat(threshold, 'f', -1, 64)).Err()
 }
 
-func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels.UserPresence, error) {
+func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels.UserPresenceResponse, error) {
 	userKey := r.userKey(userId)
 	onlineSet := r.onlineSetKey()
 
@@ -215,7 +215,7 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels
 		return nil, fmt.Errorf("failed to get presence data: %w", err)
 	}
 
-	presence := &rModels.UserPresence{
+	presence := &rModels.UserPresenceResponse{
 		UserId: userId,
 	}
 
@@ -251,9 +251,280 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels
 	return presence, nil
 }
 
+func (r *RedisRepo) GetRecentlyOnline(ctx context.Context, since time.Time) ([]int64, error) {
+	onlineSet := r.onlineSetKey()
+
+	threshold := float64(since.UnixMilli())
+
+	userIdsStr, err := r.client.ZRangeByScore(ctx, onlineSet, &redis.ZRangeBy{
+		Min: strconv.FormatFloat(threshold, 'f', -1, 64),
+		Max: "+inf",
+	}).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recently online users: %w", err)
+	}
+
+	userIds := make([]int64, 0, len(userIdsStr))
+	for _, userIdStr := range userIdsStr {
+		if userId, err := strconv.ParseInt(userIdStr, 10, 64); err == nil {
+			userIds = append(userIds, userId)
+		}
+	}
+
+	return userIds, nil
+}
+
+func (r *RedisRepo) AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error {
+	now := time.Now().UnixMilli()
+	connKey := r.connectionKey(userId, connId)
+	userConnSet := r.userConnectionsSetKey(userId)
+	deviceConnSet := r.deviceConnectionsKey(userId, deviceType)
+
+	script := redis.NewScript(`
+			local connKey = KEYS[1]
+			local userConnSet = KEYS[2]
+			local deviceConnSet = KEYS[3]
+
+			local timestamp = ARGV[1]
+			local deviceType = ARGV[2]
+			local ttl = ARGV[3]
+			
+			redis.call('HSET', connKey,
+					'user_id', KEYS[4],
+					'conn_id', KEYS[5],
+					'device_type', deviceType,
+					'connected_at', timestamp,
+					'last_activity', timestamp,
+			)
+
+			redis.call('EXPIRE', connKey, ttl)
+			redis.call('SADD', userConnSet, KEYS[5])
+			redis.call('SADD', deviceConnSet, KEYS[5])
+			redis.call('EXPIRE', userConnSet, ttl)
+			redis.call('EXPIRE', deviceConnSet, ttl)
+
+			return 1
+	`)
+
+	ttlSeconds := int(r.config.StatusTTL.Seconds())
+
+	return script.Run(ctx, r.client,
+		[]string{
+			connKey,
+			userConnSet,
+			deviceConnSet,
+			strconv.FormatInt(userId, 10),
+			strconv.FormatInt(connId, 10),
+		},
+		now,
+		deviceType,
+		ttlSeconds,
+	).Err()
+}
+
+func (r *RedisRepo) RemoveConnection(ctx context.Context, userId int64, connId int64) error {
+	connKey := r.connectionKey(userId, connId)
+	userConnSet := r.userConnectionsSetKey(userId)
+
+	connInfo, err := r.GetConnectionInfo(ctx, userId, connId)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return fmt.Errorf("failed to get connection info: %w", err)
+	}
+
+	script := redis.NewScript(`
+			local connKey = KEYS[1]
+			local userConnSet = KEYS[2]
+			local deviceConnSet = KEYS[3]
+			
+			redis.call('DEL', connKey)
+			redis.call('SREM', userConnSet, KEYS[4)
+			
+			if deviceConnSet ~= '' then
+					redis.call('SREM', deviceConnSet, KEYS[4])
+			end
+			
+			local count = redis.call('SCARD', userConnSet)
+			if count == 0 then
+					redis.call('DEL', userConnSet)
+			end
+			
+			if deviceConnSet ~= '' then
+					local deviceCount = redis.call('SCARD', deviceConnSet)
+					if deviceCount == 0 then
+							redis.call('DEL', deviceConnSet)
+					end
+			end
+			
+			return 1
+	`)
+
+	deviceConnSet := ""
+	if connInfo != nil {
+		deviceConnSet = r.deviceConnectionsKey(userId, connInfo.DeviceType)
+	}
+
+	return script.Run(ctx, r.client,
+		[]string{
+			connKey,
+			userConnSet,
+			deviceConnSet,
+			strconv.FormatInt(connId, 10),
+		}).Err()
+}
+
+func (r *RedisRepo) GetUserConnections(ctx context.Context, userId int64) ([]int64, error) {
+	userConnSet := r.userConnectionsSetKey(userId)
+
+	connIdsStr, err := r.client.SMembers(ctx, userConnSet).Result()
+	if errors.Is(err, redis.Nil) {
+		return []int64{}, nil
+	}
+	if err != nil {
+		return []int64{}, fmt.Errorf("failed to get user connections: %w", err)
+	}
+
+	connIds := make([]int64, 0, len(connIdsStr))
+	for _, connIdStr := range connIdsStr {
+		if connId, err := strconv.ParseInt(connIdStr, 10, 64); err == nil {
+			connIds = append(connIds, connId)
+		}
+	}
+
+	return connIds, nil
+}
+
+func (r *RedisRepo) GetConnectionInfo(ctx context.Context, userId int64, connId int64) (*rModels.ConnectionInfoResponse, error) {
+	connKey := r.connectionKey(userId, connId)
+
+	result, err := r.client.HGetAll(ctx, connKey).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get connection info: %w", err)
+	}
+
+	if len(result) == 0 {
+		return nil, nil
+	}
+
+	connInfo := &rModels.ConnectionInfoResponse{
+		UserId:     userId,
+		ConnId:     connId,
+		DeviceType: result["device_type"],
+	}
+
+	if connectedAtStr, ok := result["connected_at"]; ok && connectedAtStr != "" {
+		if ts, err := strconv.ParseInt(connectedAtStr, 10, 64); err == nil {
+			connInfo.ConnectedAt = time.UnixMilli(ts)
+		}
+	}
+
+	if lastActivityStr, ok := result["last_activity"]; ok && lastActivityStr != "" {
+		if ts, err := strconv.ParseInt(lastActivityStr, 10, 64); err == nil {
+			connInfo.LastActivity = time.UnixMilli(ts)
+		}
+	}
+
+	return connInfo, nil
+}
+
+func (r *RedisRepo) UpdateConnectionActivity(ctx context.Context, userId int64, connId int64) error {
+	now := time.Now().UnixMilli()
+	connKey := r.connectionKey(userId, connId)
+
+	script := redis.NewScript(`
+			local connKey = KEYS[1]
+			local timestamp = ARGV[1]
+			local ttl = ARGV[2]
+			
+			if redis.call('EXISTS', connKey) == 1 then
+					redis.call('HSET', connKey, 'last_activity' timestamp)
+					redis.call('EXPIRE', connKey, ttl)
+					
+					return 1
+			end
+			
+			return 0
+	`)
+
+	ttlSeconds := int(r.config.StatusTTL.Seconds())
+
+	return script.Run(ctx, r.client,
+		[]string{connKey},
+		now,
+		ttlSeconds,
+	).Err()
+}
+
+func (r *RedisRepo) GetAllUserConnections(ctx context.Context, userId int64) ([]rModels.ConnectionInfoResponse, error) {
+	connIds, err := r.GetUserConnections(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	pipe := r.client.Pipeline()
+	cmds := make([]*redis.MapStringStringCmd, 0, len(connIds))
+
+	for i, connId := range connIds {
+		cmds[i] = pipe.HGetAll(ctx, r.connectionKey(userId, connId))
+	}
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, fmt.Errorf("pipeline failed (get all connections): %w", err)
+	}
+
+	connections := make([]rModels.ConnectionInfoResponse, 0, len(connIds))
+	for i, connId := range connIds {
+		result, err := cmds[i].Result()
+		if err != nil && !errors.Is(err, redis.Nil) {
+			continue
+		}
+
+		if len(result) == 0 {
+			continue
+		}
+
+		connInfo := &rModels.ConnectionInfoResponse{
+			UserId:     userId,
+			ConnId:     connId,
+			DeviceType: result["device_type"],
+		}
+
+		if connectedAtStr, ok := result["connected_at"]; ok && connectedAtStr != "" {
+			if ts, err := strconv.ParseInt(connectedAtStr, 10, 64); err == nil {
+				connInfo.ConnectedAt = time.UnixMilli(ts)
+			}
+		}
+
+		if lastActivityStr, ok := result["last_activity"]; ok && lastActivityStr != "" {
+			if ts, err := strconv.ParseInt(lastActivityStr, 10, 64); err == nil {
+				connInfo.LastActivity = time.UnixMilli(ts)
+			}
+		}
+
+		connections = append(connections, *connInfo)
+	}
+
+	return connections, nil
+}
+
 func (r *RedisRepo) userKey(userId int64) string {
 	return fmt.Sprintf("user:presence:%v", userId)
 }
+
 func (r *RedisRepo) onlineSetKey() string {
 	return fmt.Sprintf("%s:presence:online", r.config.Namespace)
+}
+
+func (r *RedisRepo) connectionKey(userId int64, connId int64) string {
+	return fmt.Sprintf("user:%d:conn:%d", userId, connId)
+}
+
+func (r *RedisRepo) userConnectionsSetKey(userId int64) string {
+	return fmt.Sprintf("user:%d:connections", userId)
+}
+
+func (r *RedisRepo) deviceConnectionsKey(userId int64, deviceType string) string {
+	return fmt.Sprintf("user:%d:device:%s:connections", userId, deviceType)
 }

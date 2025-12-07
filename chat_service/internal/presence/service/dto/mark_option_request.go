@@ -15,7 +15,7 @@ func WithSource(source string) MarkOptionRequest {
 	return func(o *MarkOptions) { o.Source = source }
 }
 
-func WithDeviceID(deviceId int64) MarkOptionRequest {
+func WithDeviceId(deviceId int64) MarkOptionRequest {
 	return func(o *MarkOptions) { o.DeviceId = deviceId }
 }
 

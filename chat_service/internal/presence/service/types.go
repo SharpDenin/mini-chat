@@ -20,5 +20,6 @@ type MetricsCollector interface {
 }
 
 type StatusNotifier interface {
-	NotifyStatusChange(ctx context.Context, event sDto.StatusChangeEvent) error
+	NotifyStatusChange(ctx context.Context, event sDto.StatusChangeResponse) error
+	Subscribe(ctx context.Context) (<-chan sDto.StatusChangeResponse, error)
 }

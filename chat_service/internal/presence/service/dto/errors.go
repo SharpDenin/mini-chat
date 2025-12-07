@@ -9,6 +9,13 @@ var (
 	ErrServiceUnavailable = errors.New("presence service unavailable")
 	ErrAlreadyOnline      = errors.New("user is already online")
 	ErrAlreadyOffline     = errors.New("user is already offline")
+
+	ErrInvalidConnId      = errors.New("invalid connection id")
+	ErrInvalidDeviceType  = errors.New("invalid device type")
+	ErrConnectionNotFound = errors.New("connection not found")
+	ErrTooManyConnections = errors.New("too many active connections")
+
+	ErrInvalidTimestamp = errors.New("invalid timestamp")
 )
 
 type PresenceError struct {
