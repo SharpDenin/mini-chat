@@ -6,13 +6,6 @@ import (
 	"time"
 )
 
-type Config struct {
-	MaxConnectionsPerUser int
-	RateLimitPerUser      time.Duration
-	CleanupInterval       time.Duration
-	IdleThreshold         time.Duration
-}
-
 type MetricsCollector interface {
 	IncStatusChange(userId int64, from, to string)
 	IncConnectionOpened(userId int64, op string)

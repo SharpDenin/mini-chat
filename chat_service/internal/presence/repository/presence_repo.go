@@ -19,10 +19,10 @@ const (
 
 type RedisRepo struct {
 	client *redis.Client
-	config *config.RedisConfig
+	config *config.RedisRepositoryConfig
 }
 
-func NewRedisRepo(config *config.RedisConfig) (PresenceRepoInterface, error) {
+func NewRedisRepo(config *config.RedisRepositoryConfig) (PresenceRepoInterface, error) {
 	db, err := strconv.Atoi(config.DB)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DB number: %w", err)

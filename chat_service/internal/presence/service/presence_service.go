@@ -2,6 +2,7 @@ package service
 
 import (
 	"chat_service/internal/helpers"
+	"chat_service/internal/presence/config"
 	pRepo "chat_service/internal/presence/repository"
 	sDto "chat_service/internal/presence/service/dto"
 	"chat_service/middleware_chat"
@@ -21,13 +22,13 @@ type PresenceService struct {
 	profileClient *grpc_client.ProfileClient
 	repo          pRepo.PresenceRepoInterface
 	log           *logrus.Logger
-	config        *Config
+	config        *config.RedisServiceConfig
 	metrics       MetricsCollector
 	notifier      StatusNotifier
 }
 
 func NewPresenceService(repo pRepo.PresenceRepoInterface, log *logrus.Logger,
-	config *Config, metrics MetricsCollector,
+	config *config.RedisServiceConfig, metrics MetricsCollector,
 	notifier StatusNotifier) PresenceServiceInterface {
 	if log == nil {
 		log = logrus.New()

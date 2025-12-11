@@ -2,10 +2,13 @@ package main
 
 import (
 	_ "chat_service/docs"
-	"chat_service/internal/room/config"
-	"chat_service/internal/room/repository"
+	pConfig "chat_service/internal/presence/config"
+	pRepo "chat_service/internal/presence/repository"
+	pService "chat_service/internal/presence/service"
+	rConfig "chat_service/internal/room/config"
+	rRepo "chat_service/internal/room/repository"
 	"chat_service/internal/room/repository/db"
-	"chat_service/internal/room/service"
+	rService "chat_service/internal/room/service"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"chat_service/transport"
@@ -33,30 +36,30 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token
 func main() {
+	// Инициализация логгера и контекста
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
 	ctx := context.Background()
-	cfg, err := config.Load()
+
+	// Загрузка конфигурации room/roomMember-сервиса
+	rCfg, err := rConfig.Load()
 	if err != nil {
-		log.Fatal("Ошибка получения конфигурации %w", err)
+		log.Fatal("Ошибка получения конфигурации (room) %w", err)
 	}
 
-	database, err := db.NewDB(ctx, cfg)
+	// Загрузка конфигурации presence-репозитория
+	prCfg, err := pConfig.PRCfgLoad()
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer func() {
-		if err := database.Close(); err != nil {
-			log.Printf("Failed to close database: %v", err)
-		}
-	}()
-	if err := database.RunMigrations(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		log.Fatal("Ошибка получения конфигурации (presence repo) %w", err)
 	}
 
-	roomRepo := repository.NewRoomRepo(database.DB, log)
-	roomMemberRepo := repository.NewRoomMemberRepo(database.DB, log)
+	// Загрузка конфигурации presence-сервиса
+	psCfg, err := pConfig.PRSrvLoad()
+	if err != nil {
+		log.Fatal("Ошибка получения конфигурации (presence service) %w", err)
+	}
 
+	// Инициализация gRPC-клиента (ProfileClient)
 	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
 	if err != nil {
 		log.Fatalf("failed to create profile client: %v", err)
@@ -67,9 +70,50 @@ func main() {
 		}
 	}()
 
-	roomService := service.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
-	roomMemberService := service.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+	// Инициализация БД room/roomMember-сервиса
+	database, err := db.NewDB(ctx, rCfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
+	// Миграция БД room/roomMember-сервиса
+	if err := database.RunMigrations(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// Инициализация room/roomMember-репозиториев
+	roomRepo := rRepo.NewRoomRepo(database.DB, log)
+	roomMemberRepo := rRepo.NewRoomMemberRepo(database.DB, log)
+
+	// Инициализация presence-репозитория
+	presenceRepo, err := pRepo.NewRedisRepo(prCfg)
+
+	// Инициализация room/roomMember-сервисов
+	roomService := rService.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+	roomMemberService := rService.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
+
+	// Инициализация presence-сервиса
+	presenceService := pService.NewPresenceService(presenceRepo, log, psCfg, nil, nil)
+
+	// Запуск cleanup-горутины
+	go func() {
+		ticker := time.NewTicker(psCfg.CleanupInterval)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			ctx := context.Background()
+			if err := presenceService.CleanupStaleData(ctx); err != nil {
+				log.Errorf("failed to cleanup stale presence: %v", err)
+			}
+		}
+	}()
+
+	// Инициализация room/roomMember-хэндлера
 	roomHandler := transport.NewRoomHandler(log, roomService, roomMemberService)
 
 	// Создаем Gin-роутер
