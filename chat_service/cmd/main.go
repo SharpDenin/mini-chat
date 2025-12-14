@@ -59,17 +59,6 @@ func main() {
 		log.Fatal("Ошибка получения конфигурации (presence service) %w", err)
 	}
 
-	// Инициализация gRPC-клиента (ProfileClient)
-	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
-	if err != nil {
-		log.Fatalf("failed to create profile client: %v", err)
-	}
-	defer func() {
-		if err := profileClient.Close(); err != nil {
-			log.Printf("failed to close profile client: %v", err)
-		}
-	}()
-
 	// Инициализация БД room/roomMember-сервиса
 	database, err := db.NewDB(ctx, rCfg)
 	if err != nil {
@@ -85,6 +74,17 @@ func main() {
 	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
+
+	// Инициализация gRPC-клиента (ProfileClient)
+	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
+	if err != nil {
+		log.Fatalf("failed to create profile client: %v", err)
+	}
+	defer func() {
+		if err := profileClient.Close(); err != nil {
+			log.Printf("failed to close profile client: %v", err)
+		}
+	}()
 
 	// Инициализация room/roomMember-репозиториев
 	roomRepo := rRepo.NewRoomRepo(database.DB, log)
@@ -116,13 +116,14 @@ func main() {
 	// Инициализация room/roomMember-хэндлера
 	roomHandler := transport.NewRoomHandler(log, roomService, roomMemberService)
 
-	// Создаем Gin-роутер
+	// Создание gin-роутера
 	router := gin.Default()
 	router.Use(
 		gin.Recovery(),
 		middleware_chat.ErrorMiddleware(log),
 	)
 
+	// Регистрация методов API
 	api := router.Group("/api/v1")
 	{
 		api.Use(middleware_chat.NewAuthMiddleware(profileClient, log))
@@ -142,18 +143,20 @@ func main() {
 			roomMember.DELETE("/rooms/:room_id/members/:user_id", roomHandler.DeleteRoomMember)
 		}
 	}
-
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Объявление параметров запуска сервера + graceful shutdown
 	srv := &http.Server{
-		Addr:         ":8084",
-		Handler:      router,
+		Addr:    ":8084",
+		Handler: router,
+		// Настройки timeouts для защиты от медленных клиентов
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 	serverErr := make(chan error, 1)
 
+	// Запуск сервера в горутине
 	go func() {
 		log.Info("Starting server on :8084")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -161,6 +164,7 @@ func main() {
 		}
 	}()
 
+	// Отправка сигнала об остановке сервера в канал
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -171,9 +175,11 @@ func main() {
 		log.Errorf("Server error: %v", err)
 	}
 
+	// Задание контекста с ожиданием timeout через 30сек (завершение всех запросов, находящихся в обработке)
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Остановка сервера
 	log.Info("Shutting down server...")
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Errorf("Server forced to shutdown: %v", err)
