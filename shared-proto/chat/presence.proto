@@ -79,7 +79,6 @@ message HealthCheckResponse{
 }
 
 // Models
-// Модели
 message Presence {
   int64 user_id = 1;
   UserStatus status = 2;

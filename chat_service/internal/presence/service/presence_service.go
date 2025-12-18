@@ -350,7 +350,7 @@ func (p *PresenceService) GetBulkPresence(ctx context.Context, userIds []int64) 
 
 	if len(userIds) == 0 {
 		return &sDto.BulkPresenceResponse{
-			Presences: make(map[int64]sDto.PresenceResponse),
+			Presences: make(map[int64]*sDto.PresenceResponse),
 		}, nil
 	}
 
@@ -363,7 +363,7 @@ func (p *PresenceService) GetBulkPresence(ctx context.Context, userIds []int64) 
 	}
 
 	response := &sDto.BulkPresenceResponse{
-		Presences: make(map[int64]sDto.PresenceResponse),
+		Presences: make(map[int64]*sDto.PresenceResponse),
 		Errors:    make(map[int64]sDto.PresenceError),
 	}
 
@@ -421,7 +421,7 @@ func (p *PresenceService) GetBulkPresence(ctx context.Context, userIds []int64) 
 			LastSeen: presence.LastSeen,
 		}
 
-		response.Presences[userId] = *sPresence
+		response.Presences[userId] = sPresence
 	}
 
 	return response, nil
