@@ -61,9 +61,9 @@ func PRSrvLoad() (*RedisServiceConfig, error) {
 
 	config := &RedisServiceConfig{
 		MaxConnectionsPerUser: os.Getenv("MAX_CONNECTIONS_PER_USER"),
-		RateLimitPerUser:      toDuration("REDIS_RATE_LIMIT"),
-		CleanupInterval:       toDuration("REDIS_CLEANUP_INTERVAL"),
-		IdleThreshold:         toDuration("REDIS_IDLE_THRESHOLD"),
+		RateLimitPerUser:      toDuration("RATE_LIMIT_PER_USER"),
+		CleanupInterval:       toDuration("CLEANUP_INTERVAL"),
+		IdleThreshold:         toDuration("IDLE_THRESHOLD"),
 	}
 	return config, nil
 }

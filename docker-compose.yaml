@@ -103,6 +103,7 @@ services:
       REDIS_DB: "0"
     ports:
       - "8081:8084"
+      - "50055:50056"
     depends_on:
       chat-db:
         condition: service_healthy

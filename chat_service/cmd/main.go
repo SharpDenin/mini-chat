@@ -11,9 +11,12 @@ import (
 	rService "chat_service/internal/room/service"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
+	"chat_service/pkg/grpc_generated/chat"
+	"chat_service/pkg/grpc_server"
 	"chat_service/transport"
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,6 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"google.golang.org/grpc"
 )
 
 // @title ChatService API
@@ -110,6 +114,25 @@ func main() {
 			if err := presenceService.CleanupStaleData(ctx); err != nil {
 				log.Errorf("failed to cleanup stale presence: %v", err)
 			}
+		}
+	}()
+
+	// Инициализация gRPC-сервера
+	presenceServer := grpc_server.NewPresenceServer(log, presenceService)
+
+	// Запуск gRPC-сервера
+	log.Info("Starting gRPC server...")
+
+	presenceListener, err := net.Listen("tcp", "0.0.0.0:50056")
+	if err != nil {
+		log.Fatalf("failed to listen on presence port 50056: %v", err)
+	}
+	presenceGrpcServer := grpc.NewServer()
+	chat.RegisterPresenceServiceServer(presenceGrpcServer, presenceServer)
+	go func() {
+		log.Info("gRPC presence service starting on :50056")
+		if err := presenceGrpcServer.Serve(presenceListener); err != nil {
+			log.Fatalf("Failed to serve gRPC auth: %v", err)
 		}
 	}()
 

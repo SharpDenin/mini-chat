@@ -266,7 +266,7 @@ func (s *PresenceServer) GetRecentlyOnline(ctx context.Context, req *chat.GetRec
 }
 
 // HealthCheck
-//TODO Доработки
+// TODO Доработки
 func (s *PresenceServer) HealthCheck(ctx context.Context, req *emptypb.Empty) (*chat.HealthCheckResponse, error) {
 	s.log.Info("Health check request")
 	return &chat.HealthCheckResponse{
