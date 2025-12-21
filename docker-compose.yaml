@@ -99,13 +99,18 @@ services:
       PROFILE_SERVICE_DIRECTORY_ADDR: "profile-service:50054"
       CHAT_HTTP_PORT: "8084"
       CHAT_DB_URL: "postgres://postgres:postgres@chat-db:5432/chat_db?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      REDIS_DB: "0"
     ports:
       - "8081:8084"
+      - "50055:50056"
     depends_on:
       chat-db:
         condition: service_healthy
       profile-service:
         condition: service_started
+      redis:
+        condition: service_healthy
     links:
       - profile-service
     networks:

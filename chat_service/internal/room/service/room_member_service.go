@@ -1,9 +1,9 @@
 package service
 
 import (
+	"chat_service/internal/helpers"
 	"chat_service/internal/room/repository"
 	"chat_service/internal/room/service/dto"
-	"chat_service/internal/room/service/helper"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"chat_service/pkg/grpc_generated/profile"
@@ -47,7 +47,7 @@ func (r *RoomMemberService) AddMember(ctx context.Context, roomId, userId int64)
 		return err
 	}
 
-	currentUserId, err := helper.GetUserIdFromContext(ctx)
+	currentUserId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
@@ -100,7 +100,7 @@ func (r *RoomMemberService) RemoveMember(ctx context.Context, roomId, userId int
 		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
-	currentUserId, err := helper.GetUserIdFromContext(ctx)
+	currentUserId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
@@ -174,7 +174,7 @@ func (r *RoomMemberService) SetAdmin(ctx context.Context, roomId, userId int64, 
 		return err
 	}
 
-	currentUserId, err := helper.GetUserIdFromContext(ctx)
+	currentUserId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
@@ -264,7 +264,7 @@ func (r *RoomMemberService) validateBaseParams(roomId, userId int64) error {
 
 func (r *RoomMemberService) validateUserExists(ctx context.Context, userId int64) error {
 	userReq := &profile.UserExistsRequest{UserId: strconv.FormatInt(userId, 10)}
-	exist, err := helper.CheckUserExist(ctx, r.profileClient, userReq)
+	exist, err := helpers.CheckUserExist(ctx, r.profileClient, userReq)
 	if err != nil {
 		r.log.WithFields(logrus.Fields{
 			"user_id": userId,

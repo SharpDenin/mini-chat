@@ -8,14 +8,14 @@ import (
 	"os"
 	"os/signal"
 	_ "profile_service/docs"
-	"profile_service/internal/config"
-	"profile_service/internal/repository/db"
-	"profile_service/internal/repository/profile_repo"
-	"profile_service/internal/service"
-	"profile_service/internal/transport"
+	"profile_service/internal/user/config"
+	"profile_service/internal/user/repository/db"
+	"profile_service/internal/user/repository/profile_repo"
+	"profile_service/internal/user/service"
 	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
+	"profile_service/transport"
 	"syscall"
 	"time"
 
@@ -37,14 +37,18 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token
 func main() {
+	// Инициализация логгера и контекста
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
 	ctx := context.Background()
+
+	// Загрузка конфигурации user-сервиса
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Ошибка получения конфигурации %w", err)
 	}
 
+	// Инициализация БД user-сервиса
 	database, err := db.NewDB(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -55,20 +59,23 @@ func main() {
 		}
 	}()
 
+	// Миграция БД user-сервиса
 	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Инициализация user-репозитория и user-сервиса
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
 	userService := service.NewUserService(userRepo, log)
 
+	// Инициализация gRPC-серверов
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
 	directoryServer := grpc_server.NewDirectoryServer(log, userService)
 
-	// ЗАПУСК gRPC СЕРВЕРОВ ПЕРВЫМИ
+	// Запуск gRPC серверов
 	log.Info("Starting gRPC servers...")
 
-	// Auth gRPC server
+	// Auth gRPC-server
 	authListener, err := net.Listen("tcp", "0.0.0.0:50053")
 	if err != nil {
 		log.Fatalf("Failed to listen on auth port 50053: %v", err)
@@ -82,7 +89,7 @@ func main() {
 		}
 	}()
 
-	// Directory gRPC server
+	// Directory gRPC-server
 	dirListener, err := net.Listen("tcp", "0.0.0.0:50054")
 	if err != nil {
 		log.Fatalf("Failed to listen on directory port 50054: %v", err)
@@ -96,20 +103,24 @@ func main() {
 		}
 	}()
 
-	// Даем время gRPC серверам запуститься
+	// Ожидание запуска gRPC-серверов
 	log.Info("Waiting for gRPC servers to start...")
 	time.Sleep(5 * time.Second)
 
-	// ЗАТЕМ запускаем HTTP сервер
+	// Запуск HTTP-сервера
 	userHandler := transport.NewUserHandler(userService, authServer, log)
+
+	// Подключение auth-middleware
 	authMiddleware := middleware_profile.NewAuthMiddleware(authServer, log)
 
+	// Создание gin-роутера
 	router := gin.Default()
 	router.Use(
 		gin.Recovery(),
 		middleware_profile.ErrorMiddleware(log),
 	)
 
+	// Регистрация методов API
 	api := router.Group("/api/v1")
 	{
 		authUser := api.Group("/auth")
@@ -128,16 +139,18 @@ func main() {
 	}
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Объявление параметров запуска сервера + graceful shutdown
 	srv := &http.Server{
 		Addr:    ":8083",
 		Handler: router,
-		// Настройки таймаутов для защиты от медленных клиентов
+		// Настройки timeouts для защиты от медленных клиентов
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 	serverErr := make(chan error, 1)
 
+	// Запуск сервера в горутине
 	go func() {
 		log.Info("Starting server on :8083")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -145,6 +158,7 @@ func main() {
 		}
 	}()
 
+	// Отправка сигнала об остановке сервера в канал
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -155,9 +169,11 @@ func main() {
 		log.Errorf("Server error: %v", err)
 	}
 
+	// Задание контекста с ожиданием timeout через 30сек (завершение всех запросов, находящихся в обработке)
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Остановка сервера
 	log.Info("Shutting down server...")
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Errorf("Server forced to shutdown: %v", err)

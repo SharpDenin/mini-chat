@@ -1,10 +1,10 @@
 package service
 
 import (
+	"chat_service/internal/helpers"
 	"chat_service/internal/room/models"
 	"chat_service/internal/room/repository"
 	"chat_service/internal/room/service/dto"
-	"chat_service/internal/room/service/helper"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"context"
@@ -44,7 +44,7 @@ func NewRoomService(profileClient *grpc_client.ProfileClient, rRepo repository.R
 }
 
 func (r *RoomService) CreateRoom(ctx context.Context, name string) (int64, error) {
-	userIdInt, err := helper.GetUserIdFromContext(ctx)
+	userIdInt, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return 0, middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
@@ -103,7 +103,7 @@ func (r *RoomService) RenameRoomById(ctx context.Context, roomId int64, name str
 		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
-	userId, err := helper.GetUserIdFromContext(ctx)
+	userId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
@@ -142,7 +142,7 @@ func (r *RoomService) DeleteRoomById(ctx context.Context, roomId int64) error {
 		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
-	userId, err := helper.GetUserIdFromContext(ctx)
+	userId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return middleware_chat.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
