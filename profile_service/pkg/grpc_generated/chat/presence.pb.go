@@ -4,16 +4,17 @@
 // 	protoc        v6.31.1
 // source: chat/presence.proto
 
-package gRPC
+package chat
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -667,9 +668,9 @@ func (x *HealthCheckResponse) GetTimestampUnix() int64 {
 // Models
 type Presence struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Status        UserStatus             `protobuf:"varint,2,opt,name=status,proto3,enum=chat.UserStatus" json:"status,omitempty"`
-	LastSeen      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	UserId   int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Status   UserStatus             `protobuf:"varint,2,opt,name=status,proto3,enum=chat.UserStatus" json:"status,omitempty"`
+	LastSeen *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
 	DeviceType    *string                `protobuf:"bytes,4,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
 	IsIdle        *bool                  `protobuf:"varint,5,opt,name=is_idle,json=isIdle,proto3,oneof" json:"is_idle,omitempty"`
 	unknownFields protoimpl.UnknownFields

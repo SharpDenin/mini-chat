@@ -66,16 +66,7 @@ func main() {
 	}
 
 	// Инициализация gRPC-клиента (PresenceClient)
-	//profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
-	//if err != nil {
-	//	log.Fatalf("failed to create profile client: %v", err)
-	//}
-	//defer func() {
-	//	if err := profileClient.Close(); err != nil {
-	//		log.Printf("failed to close profile client: %v", err)
-	//	}
-	//}()
-	presenceClient, err := grpc_client.NewPresenceClient("localhost:50055")
+	presenceClient, err := grpc_client.NewPresenceClient("localhost:50056")
 	if err != nil {
 		log.Fatalf("failed to create presence client: %v", err)
 	}
