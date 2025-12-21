@@ -78,7 +78,7 @@ func main() {
 
 	// Инициализация user-репозитория и user-сервиса
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
-	userService := service.NewUserService(userRepo, log)
+	userService := service.NewUserService(presenceClient, userRepo, log)
 
 	// Инициализация gRPC-серверов
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
