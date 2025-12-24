@@ -9,6 +9,7 @@ type UserStatus string
 const (
 	StatusOnline  UserStatus = "online"
 	StatusOffline UserStatus = "offline"
+	StatusUnknown UserStatus = "unknown"
 )
 
 type GetUserResponse struct {

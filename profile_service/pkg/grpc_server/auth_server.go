@@ -103,6 +103,7 @@ func (s *AuthServer) Login(ctx context.Context, req *profile.LoginRequest) (*pro
 		s.log.WithError(err).Error("Failed to generate token")
 		return nil, status.Error(codes.Internal, "Failed to generate token")
 	}
+
 	return &profile.LoginResponse{
 		Token:  tokenString,
 		UserId: strconv.FormatInt(user.Id, 10),

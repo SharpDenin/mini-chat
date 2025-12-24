@@ -11,6 +11,7 @@ func ConvertToServiceUser(u *sDto.GetUserResponse) *hDto.UserViewResponse {
 		Id:        u.Id,
 		Name:      u.Name,
 		Email:     u.Email,
+		Status:    string(u.Status),
 		CreatedAt: u.CreatedAt,
 	}
 }

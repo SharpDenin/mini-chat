@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"profile_service/internal/user/models"
@@ -15,6 +13,9 @@ import (
 	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_client"
 	"profile_service/pkg/grpc_generated/chat"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -51,16 +52,9 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_d
 		return nil, fmt.Errorf("user with id %d not found", userId)
 	}
 
-	chatReq := &chat.GetPresenceRequest{UserId: user.Id}
-	status, err := u.presenceClient.GetPresence(ctx, chatReq)
+	serviceStatus, err := u.getUserPresence(ctx, user.Id)
 	if err != nil {
-		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Failed get presence for user%v", userId), err)
-	}
-	var serviceStatus service_dto.UserStatus
-	if status.GetPresence() != nil && status.GetPresence().Status == chat.UserStatus_ONLINE {
-		serviceStatus = service_dto.StatusOnline
-	} else {
-		serviceStatus = service_dto.StatusOffline
+		return nil, middleware_profile.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("failed to get user presence: %v", userId), err)
 	}
 
 	response := &service_dto.GetUserResponse{
@@ -171,4 +165,31 @@ func (u *UserService) handleError(err error, id int64, operation string) error {
 		return middleware_profile.NewCustomError(http.StatusConflict, fmt.Sprintf("User already exists in %s", operation), err)
 	}
 	return middleware_profile.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("%s error", operation), err)
+}
+
+func (u *UserService) getUserPresence(ctx context.Context, userId int64) (service_dto.UserStatus, error) {
+	if u.presenceClient == nil {
+		u.log.WithFields(logrus.Fields{
+			"userId": userId,
+		}).Debug("Presence client not available, returning unknown status")
+		return service_dto.StatusUnknown, nil
+	}
+
+	chatReq := &chat.GetPresenceRequest{UserId: userId}
+
+	isOnline, err := helpers.CheckUserPresence(ctx, u.presenceClient, chatReq)
+	if err != nil {
+		u.log.WithFields(logrus.Fields{
+			"userId": userId,
+			"error":  err,
+		}).Warn("Failed to get userPresence")
+
+		return service_dto.StatusUnknown, nil
+	}
+
+	if isOnline {
+		return service_dto.StatusOnline, nil
+	}
+
+	return service_dto.StatusOffline, nil
 }

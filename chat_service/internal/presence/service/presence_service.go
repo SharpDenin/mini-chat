@@ -1,35 +1,35 @@
 package service
 
 import (
-	"chat_service/internal/helpers"
 	"chat_service/internal/presence/config"
 	pRepo "chat_service/internal/presence/repository"
 	sDto "chat_service/internal/presence/service/dto"
 	"chat_service/middleware_chat"
-	"chat_service/pkg/grpc_client"
-	"chat_service/pkg/grpc_generated/profile"
 	"context"
-	"errors"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 type PresenceService struct {
-	profileClient *grpc_client.ProfileClient
-	repo          pRepo.PresenceRepoInterface
-	log           *logrus.Logger
-	config        *config.RedisServiceConfig
-	metrics       MetricsCollector
-	notifier      StatusNotifier
+	repo     pRepo.PresenceRepoInterface
+	log      *logrus.Logger
+	config   *config.RedisServiceConfig
+	metrics  MetricsCollector
+	notifier StatusNotifier
 }
 
 func NewPresenceService(repo pRepo.PresenceRepoInterface, log *logrus.Logger,
 	config *config.RedisServiceConfig, metrics MetricsCollector,
 	notifier StatusNotifier) PresenceServiceInterface {
+	if metrics == nil {
+		metrics = &nullMetricsCollector{}
+	}
+	if notifier == nil {
+		notifier = &nullStatusNotifier{}
+	}
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -60,16 +60,6 @@ func (p *PresenceService) MarkOnline(ctx context.Context, userId int64, opts ...
 		}
 
 		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
-	}
-
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "MarkOnline",
-		}
-
-		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
 	options := &sDto.MarkOptions{
@@ -157,16 +147,6 @@ func (p *PresenceService) MarkOffline(ctx context.Context, userId int64, opts ..
 		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
 	}
 
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "MarkOnline",
-		}
-
-		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
-	}
-
 	options := &sDto.MarkOptions{
 		Source:    "api",
 		Timestamp: time.Now(),
@@ -251,16 +231,6 @@ func (p *PresenceService) UpdateLastSeen(ctx context.Context, userId int64) erro
 		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
 	}
 
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "UpdateLastSeen",
-		}
-
-		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
-	}
-
 	//// Проверяем rate limit (опционально)
 	//if err := p.checkRateLimit(ctx, userId, "online"); err != nil {
 	//	return err
@@ -283,7 +253,7 @@ func (p *PresenceService) UpdateLastSeen(ctx context.Context, userId int64) erro
 func (p *PresenceService) GetPresence(ctx context.Context, userId int64) (*sDto.PresenceResponse, error) {
 	start := time.Now()
 	defer func() {
-		p.metrics.ObserveLatency("MarkOffline", time.Since(start))
+		p.metrics.ObserveLatency("GetPresence", time.Since(start))
 	}()
 
 	if userId <= 0 {
@@ -296,16 +266,6 @@ func (p *PresenceService) GetPresence(ctx context.Context, userId int64) (*sDto.
 		return nil, middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
 	}
 
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "GetPresence",
-		}
-
-		return nil, middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
-	}
-
 	repoPresence, err := p.repo.GetUserPresence(ctx, userId)
 	if err != nil {
 		p.log.WithFields(logrus.Fields{
@@ -313,7 +273,11 @@ func (p *PresenceService) GetPresence(ctx context.Context, userId int64) (*sDto.
 			"error":  err,
 		}).Error("failed to get presence")
 
-		return nil, middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to get presence", nil)
+		return &sDto.PresenceResponse{
+			UserId:   userId,
+			Status:   sDto.StatusOffline,
+			LastSeen: time.Time{},
+		}, nil
 	}
 
 	var presence *sDto.PresenceResponse
@@ -334,8 +298,9 @@ func (p *PresenceService) GetPresence(ctx context.Context, userId int64) (*sDto.
 		}
 	} else {
 		presence = &sDto.PresenceResponse{
-			UserId: userId,
-			Status: sDto.StatusOffline,
+			UserId:   userId,
+			Status:   sDto.StatusOffline,
+			LastSeen: time.Time{},
 		}
 	}
 
@@ -379,20 +344,6 @@ func (p *PresenceService) GetBulkPresence(ctx context.Context, userIds []int64) 
 				"userId": userId,
 				"error":  err,
 			}).Warn("one of userId is invalid, it will be ignored")
-
-			continue
-		}
-		if err := p.validateUserExists(ctx, userId); err != nil {
-			err = &sDto.PresenceError{
-				Err:    sDto.ErrUserNotFound,
-				UserId: userId,
-				Action: "GetBulkPresence",
-			}
-
-			p.log.WithFields(logrus.Fields{
-				"userId": userId,
-				"error":  err,
-			}).Warn("one of user does not exist, it will be ignored")
 
 			continue
 		}
@@ -450,20 +401,6 @@ func (p *PresenceService) GetOnlineUsers(ctx context.Context, userIds []int64) (
 				"userId": userId,
 				"error":  err,
 			}).Warn("one of userId is invalid, it will be ignored")
-
-			continue
-		}
-		if err := p.validateUserExists(ctx, userId); err != nil {
-			err = &sDto.PresenceError{
-				Err:    sDto.ErrUserNotFound,
-				UserId: userId,
-				Action: "GetBulkPresence",
-			}
-
-			p.log.WithFields(logrus.Fields{
-				"userId": userId,
-				"error":  err,
-			}).Warn("one of user does not exist, it will be ignored")
 
 			continue
 		}
@@ -566,15 +503,6 @@ func (p *PresenceService) AddConnection(ctx context.Context, userId int64, connI
 		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
 	}
 
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "AddConnection",
-		}
-		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
-	}
-
 	existingConn, err := p.repo.GetConnectionInfo(ctx, userId, connId)
 	if err != nil {
 		p.log.WithFields(logrus.Fields{
@@ -648,16 +576,6 @@ func (p *PresenceService) RemoveConnection(ctx context.Context, userId int64, co
 		return middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
 	}
 
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "RemoveConnection",
-		}
-
-		return middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
-	}
-
 	existingConn, err := p.repo.GetConnectionInfo(ctx, userId, connId)
 	if err != nil {
 		p.log.WithFields(logrus.Fields{
@@ -728,16 +646,6 @@ func (p *PresenceService) GetUserConnections(ctx context.Context, userId int64) 
 		}
 
 		return nil, middleware_chat.NewCustomError(http.StatusBadRequest, err.Error(), nil)
-	}
-
-	if err := p.validateUserExists(ctx, userId); err != nil {
-		err = &sDto.PresenceError{
-			Err:    sDto.ErrUserNotFound,
-			UserId: userId,
-			Action: "RemoveConnection",
-		}
-
-		return nil, middleware_chat.NewCustomError(http.StatusNotFound, err.Error(), nil)
 	}
 
 	repoConnections, err := p.repo.GetAllUserConnections(ctx, userId)
@@ -829,21 +737,4 @@ func (p *PresenceService) SubscribeStatusChanges(ctx context.Context) (<-chan sD
 	}
 
 	return ch, nil
-}
-
-func (p *PresenceService) validateUserExists(ctx context.Context, userId int64) error {
-	userReq := &profile.UserExistsRequest{UserId: strconv.FormatInt(userId, 10)}
-	exist, err := helpers.CheckUserExist(ctx, p.profileClient, userReq)
-	if err != nil {
-		p.log.WithFields(logrus.Fields{
-			"user_id": userId,
-			"error":   err,
-		}).Warn("Failed to get user")
-		return errors.New("failed to get user")
-	}
-	if !exist {
-		p.log.WithField("user_id", userId).Warn("User not found")
-		return errors.New("user not found")
-	}
-	return nil
 }

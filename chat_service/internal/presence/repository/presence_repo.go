@@ -60,7 +60,7 @@ func (r *RedisRepo) SetOnline(ctx context.Context, userId int64) error {
 	script := redis.NewScript(`
 			redis.call('HSET', KEYS[1],
 					'status', 'online',
-					'lastSeen', ARGV[1]
+					'lastSeen', ARGV[1])
 			redis.call('EXPIRE', KEYS[1], ARGV[2])
 			redis.call('ZADD', KEYS[2], ARGV[1], KEYS[3])
 			
@@ -208,44 +208,51 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels
 
 	statusCmd := pipe.HGet(ctx, userKey, "status")
 	lastSeenCmd := pipe.HGet(ctx, userKey, "lastSeen")
-
 	onlineScoreCmd := pipe.ZScore(ctx, onlineSet, strconv.FormatInt(userId, 10))
 
-	if _, err := pipe.Exec(ctx); err != nil {
+	_, err := pipe.Exec(ctx)
+	if err != nil && err != redis.Nil {
 		return nil, fmt.Errorf("failed to get presence data: %w", err)
 	}
 
 	presence := &rModels.UserPresenceResponse{
-		UserId: userId,
+		UserId:   userId,
+		Status:   "offline",
+		Online:   false,
+		LastSeen: time.Time{},
 	}
 
-	status, _ := statusCmd.Result()
+	status, statusErr := statusCmd.Result()
+	if statusErr == nil && status != "" {
+		presence.Status = status
+		presence.Online = (status == "online")
+	}
+
 	onlineScore, onlineErr := onlineScoreCmd.Result()
 	if onlineErr == nil {
-		if time.Since(time.UnixMilli(int64(onlineScore))) <= r.config.StatusTTL {
+		lastSeenTime := time.UnixMilli(int64(onlineScore))
+		presence.LastSeen = lastSeenTime
+
+		// Если пользователь в online set и не истек TTL
+		if time.Since(lastSeenTime) <= r.config.StatusTTL {
 			presence.Online = true
 			presence.Status = "online"
 		} else {
-			if status == "" {
-				presence.Status = "offline"
-			} else {
-				presence.Status = status
-			}
 			presence.Online = false
+			if presence.Status == "online" {
+				presence.Status = "offline"
+			}
 		}
-	} else {
-		if status == "" {
-			presence.Status = "offline"
-		} else {
-			presence.Status = status
-		}
-		presence.Online = false
 	}
 
-	if lastSeenStr, err := lastSeenCmd.Result(); err == nil && lastSeenStr != "" {
-		if tsMs, err := strconv.ParseInt(lastSeenStr, 10, 64); err == nil {
+	if lastSeenStr, lastSeenErr := lastSeenCmd.Result(); lastSeenErr == nil && lastSeenStr != "" {
+		if tsMs, parseErr := strconv.ParseInt(lastSeenStr, 10, 64); parseErr == nil {
 			presence.LastSeen = time.UnixMilli(tsMs)
 		}
+	}
+
+	if presence.Online && presence.LastSeen.IsZero() {
+		presence.LastSeen = time.Now()
 	}
 
 	return presence, nil
