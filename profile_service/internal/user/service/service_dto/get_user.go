@@ -1,12 +1,22 @@
 package service_dto
 
-import "time"
+import (
+	"time"
+)
+
+type UserStatus string
+
+const (
+	StatusOnline  UserStatus = "online"
+	StatusOffline UserStatus = "offline"
+)
 
 type GetUserResponse struct {
 	Id        int64
 	Name      string
 	Email     string
 	Password  string
+	Status    UserStatus `json:"status"`
 	CreatedAt time.Time
 }
 

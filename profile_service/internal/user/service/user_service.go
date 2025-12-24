@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"profile_service/internal/user/models"
@@ -12,9 +14,7 @@ import (
 	"profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_client"
-
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
+	"profile_service/pkg/grpc_generated/chat"
 )
 
 type UserService struct {
@@ -51,10 +51,23 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_d
 		return nil, fmt.Errorf("user with id %d not found", userId)
 	}
 
+	chatReq := &chat.GetPresenceRequest{UserId: user.Id}
+	status, err := u.presenceClient.GetPresence(ctx, chatReq)
+	if err != nil {
+		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, fmt.Sprintf("Failed get presence for user%v", userId), err)
+	}
+	var serviceStatus service_dto.UserStatus
+	if status.GetPresence() != nil && status.GetPresence().Status == chat.UserStatus_ONLINE {
+		serviceStatus = service_dto.StatusOnline
+	} else {
+		serviceStatus = service_dto.StatusOffline
+	}
+
 	response := &service_dto.GetUserResponse{
 		Id:        user.Id,
 		Name:      user.Username,
 		Email:     user.Email,
+		Status:    serviceStatus,
 		CreatedAt: user.CreatedAt,
 	}
 	return response, nil
