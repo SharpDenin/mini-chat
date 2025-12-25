@@ -86,6 +86,50 @@ func (u *UserService) GetAllUsers(ctx context.Context, filter service_dto.Search
 		Total:    total,
 	}
 	for _, user := range users {
+		serviceStatus, err := u.getUserPresence(ctx, user.Id)
+		if err != nil {
+			return nil, middleware_profile.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("failed to get user presence: %v", user.Id), err)
+		}
+
+		if filter.Status != "" && filter.Status != serviceStatus {
+			continue
+		}
+
+		response.UserList = append(response.UserList, &service_dto.GetUserResponse{
+			Id:        user.Id,
+			Name:      user.Username,
+			Email:     user.Email,
+			Status:    serviceStatus,
+			CreatedAt: user.CreatedAt,
+		})
+	}
+
+	if filter.Status != "" {
+		response.Total = len(response.UserList)
+	}
+
+	return response, nil
+}
+
+func (u *UserService) GetAllUsersToCheckAuth(ctx context.Context, filter service_dto.SearchUserFilter) (*service_dto.GetUserViewListResponse, error) {
+	u.log.Debugf("GetAllUsers")
+	if filter.Limit > 50 {
+		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, "Limit should be between 0 and 50", nil)
+	}
+	if filter.Offset < 0 {
+		return nil, middleware_profile.NewCustomError(http.StatusBadRequest, "Offset cannot be negative", nil)
+	}
+	total, users, err := u.uRepo.GetAll(ctx, filter)
+	if err != nil {
+		return nil, u.handleError(err, 0, "GetAllUsers")
+	}
+	response := &service_dto.GetUserViewListResponse{
+		UserList: make([]*service_dto.GetUserResponse, 0, len(users)),
+		Limit:    filter.Limit,
+		Offset:   filter.Offset,
+		Total:    total,
+	}
+	for _, user := range users {
 		response.UserList = append(response.UserList, &service_dto.GetUserResponse{
 			Id:        user.Id,
 			Name:      user.Username,

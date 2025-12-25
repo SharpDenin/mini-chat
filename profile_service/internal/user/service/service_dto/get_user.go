@@ -17,7 +17,7 @@ type GetUserResponse struct {
 	Name      string
 	Email     string
 	Password  string
-	Status    UserStatus `json:"status"`
+	Status    UserStatus
 	CreatedAt time.Time
 }
 
@@ -31,6 +31,7 @@ type GetUserViewListResponse struct {
 type SearchUserFilter struct {
 	Username string
 	Email    string
+	Status   UserStatus
 	SortBy   string
 	Limit    int
 	Offset   int

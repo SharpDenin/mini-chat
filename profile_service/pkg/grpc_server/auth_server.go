@@ -83,7 +83,7 @@ func (s *AuthServer) Login(ctx context.Context, req *profile.LoginRequest) (*pro
 		Limit:    1,
 		Offset:   0,
 	}
-	userList, err := s.uService.GetAllUsers(ctx, filter)
+	userList, err := s.uService.GetAllUsersToCheckAuth(ctx, filter)
 	if err != nil || len(userList.UserList) == 0 {
 		s.log.WithError(err).Error("User not found")
 		return nil, status.Error(codes.NotFound, "User not found")

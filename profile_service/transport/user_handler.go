@@ -128,6 +128,7 @@ func (h *UserHandler) GetUserById(ctx *gin.Context) {
 // @Produce json
 // @Param name query string false "Фильтр по имени"
 // @Param email query string false "Фильтр по email"
+// @Param status query string false "Фильтр по статусу"
 // @Param limit query int true "Лимит записей"
 // @Param offset query int true "Смещение"
 // @Success 200 {object} api_dto.UserViewListResponse "Успешный запрос"
