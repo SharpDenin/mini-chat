@@ -184,7 +184,7 @@ func (p *PresenceService) MarkOffline(ctx context.Context, userId int64, opts ..
 			"error":  err,
 		}).Error("failed to mark online")
 
-		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to mark online", nil)
+		return middleware_chat.NewCustomError(http.StatusInternalServerError, "failed to mark offline", nil)
 	}
 
 	if p.notifier != nil && currentPresence != nil && currentPresence.Online {

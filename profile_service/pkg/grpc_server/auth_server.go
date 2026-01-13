@@ -161,17 +161,14 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *profile.TokenReques
 	}, nil
 }
 
-// markUserOnlineAsync - асинхронно отмечает пользователя онлайн
 func (s *AuthServer) markUserOnlineAsync(userId int64) {
 	bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	logEntry := s.log.WithFields(logrus.Fields{
+	s.log.WithFields(logrus.Fields{
 		"method":  "markUserOnlineAsync",
 		"user_id": userId,
-	})
-
-	logEntry.Debug("Attempting to mark user online")
+	}).Debug("Attempting to mark user online")
 
 	// Вызываем gRPC метод
 	err := s.presenceClient.MarkOnline(bgCtx, &chat.MarkOnlineRequest{
@@ -179,8 +176,15 @@ func (s *AuthServer) markUserOnlineAsync(userId int64) {
 		Source: nil,
 	})
 	if err != nil {
-		logEntry.WithError(err).Warn("Failed to mark user online (async)")
+		s.log.WithFields(logrus.Fields{
+			"method":  "markUserOnlineAsync",
+			"user_id": userId,
+			"error":   err.Error(),
+		}).Debug("Failed to mark user online")
 	} else {
-		logEntry.Debug("User marked online successfully (async)")
+		s.log.WithFields(logrus.Fields{
+			"method":  "markUserOnlineAsync",
+			"user_id": userId,
+		}).Debug("User marked online successfully")
 	}
 }
