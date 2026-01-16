@@ -205,7 +205,6 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels
 	onlineSet := r.onlineSetKey()
 
 	pipe := r.client.Pipeline()
-
 	statusCmd := pipe.HGet(ctx, userKey, "status")
 	lastSeenCmd := pipe.HGet(ctx, userKey, "lastSeen")
 	onlineScoreCmd := pipe.ZScore(ctx, onlineSet, strconv.FormatInt(userId, 10))
@@ -233,16 +232,8 @@ func (r *RedisRepo) GetUserPresence(ctx context.Context, userId int64) (*rModels
 		lastSeenTime := time.UnixMilli(int64(onlineScore))
 		presence.LastSeen = lastSeenTime
 
-		// Если пользователь в online set и не истек TTL
-		if time.Since(lastSeenTime) <= r.config.StatusTTL {
-			presence.Online = true
-			presence.Status = "online"
-		} else {
-			presence.Online = false
-			if presence.Status == "online" {
-				presence.Status = "offline"
-			}
-		}
+		presence.Online = true
+		presence.Status = "online"
 	}
 
 	if lastSeenStr, lastSeenErr := lastSeenCmd.Result(); lastSeenErr == nil && lastSeenStr != "" {
