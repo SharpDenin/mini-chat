@@ -1,6 +1,7 @@
 package service
 
 import (
+	"chat_service/internal/presence/config"
 	"chat_service/internal/presence/repository"
 	rDto "chat_service/internal/presence/repository/repo_dto"
 	sDto "chat_service/internal/presence/service/dto"
@@ -11,10 +12,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type Config struct {
-	IdleThreshold time.Duration
-}
-
 type presenceService struct {
 	repo          repository.PresenceRepo
 	idleThreshold time.Duration
@@ -22,7 +19,7 @@ type presenceService struct {
 
 func NewPresenceService(
 	repo repository.PresenceRepo,
-	cfg Config,
+	cfg *config.RedisConfig,
 ) PresenceService {
 	return &presenceService{
 		repo:          repo,

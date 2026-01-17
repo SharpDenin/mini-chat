@@ -4,20 +4,11 @@ import (
 	"time"
 )
 
-type UserStatus string
-
-const (
-	StatusOnline  UserStatus = "online"
-	StatusOffline UserStatus = "offline"
-	StatusUnknown UserStatus = "unknown"
-)
-
 type GetUserResponse struct {
 	Id        int64
 	Name      string
 	Email     string
 	Password  string
-	Status    UserStatus
 	CreatedAt time.Time
 }
 
@@ -31,7 +22,6 @@ type GetUserViewListResponse struct {
 type SearchUserFilter struct {
 	Username string
 	Email    string
-	Status   UserStatus
 	SortBy   string
 	Limit    int
 	Offset   int

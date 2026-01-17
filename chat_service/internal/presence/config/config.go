@@ -10,23 +10,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RedisRepositoryConfig struct {
-	Addr              string
-	Password          string
-	DB                string
-	StatusTTL         time.Duration
-	HeartbeatInterval time.Duration
-	Namespace         string
+type RedisConfig struct {
+	RedisPort     string
+	RedisDb       int
+	IdleThreshold time.Duration
 }
 
-type RedisServiceConfig struct {
-	MaxConnectionsPerUser string
-	RateLimitPerUser      time.Duration
-	CleanupInterval       time.Duration
-	IdleThreshold         time.Duration
-}
-
-func PRCfgLoad() (*RedisRepositoryConfig, error) {
+func RedisCfgLoad() (*RedisConfig, error) {
 	if err := godotenv.Load(".env"); err != nil {
 		logrus.Error("Failed to load .env file: ", err)
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
@@ -37,33 +27,15 @@ func PRCfgLoad() (*RedisRepositoryConfig, error) {
 		return time.Duration(secs) * time.Second
 	}
 
-	config := &RedisRepositoryConfig{
-		Addr:              os.Getenv("REDIS_ADDR"),
-		Password:          os.Getenv("REDIS_PASSWORD"),
-		DB:                os.Getenv("REDIS_DB"),
-		StatusTTL:         toDuration("REDIS_STATUS_TTL"),
-		HeartbeatInterval: toDuration("REDIS_HEARTBEAT_INTERVAL"),
-		Namespace:         os.Getenv("REDIS_NAMESPACE"),
-	}
-	return config, nil
-}
-
-func PRSrvLoad() (*RedisServiceConfig, error) {
-	if err := godotenv.Load(".env"); err != nil {
-		logrus.Error("Failed to load .env file: ", err)
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
+	toInt := func(key string) int {
+		num, _ := strconv.Atoi(os.Getenv(key))
+		return num
 	}
 
-	toDuration := func(key string) time.Duration {
-		secs, _ := strconv.Atoi(os.Getenv(key))
-		return time.Duration(secs) * time.Second
-	}
-
-	config := &RedisServiceConfig{
-		MaxConnectionsPerUser: os.Getenv("MAX_CONNECTIONS_PER_USER"),
-		RateLimitPerUser:      toDuration("RATE_LIMIT_PER_USER"),
-		CleanupInterval:       toDuration("CLEANUP_INTERVAL"),
-		IdleThreshold:         toDuration("IDLE_THRESHOLD"),
+	config := &RedisConfig{
+		RedisPort:     os.Getenv("REDIS_PORT"),
+		RedisDb:       toInt("REDIS_DB"),
+		IdleThreshold: toDuration("IDLE_THRESHOLD"),
 	}
 	return config, nil
 }
