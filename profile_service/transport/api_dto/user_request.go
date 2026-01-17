@@ -3,6 +3,7 @@ package api_dto
 type UserFilterRequest struct {
 	Name   string `form:"name" json:"name" validate:"omitempty,min=2,max=50"`
 	Email  string `form:"email" json:"email" validate:"omitempty,email"`
+	Status string `form:"status" json:"status" validate:"omitempty"`
 	Limit  int    `form:"limit,default=10" json:"limit"`
 	Offset int    `form:"offset,default=0" json:"offset"`
 }

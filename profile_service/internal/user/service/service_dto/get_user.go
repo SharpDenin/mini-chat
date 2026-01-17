@@ -1,6 +1,8 @@
 package service_dto
 
-import "time"
+import (
+	"time"
+)
 
 type GetUserResponse struct {
 	Id        int64

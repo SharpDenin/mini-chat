@@ -11,6 +11,7 @@ func ConvertToServiceUser(u *sDto.GetUserResponse) *hDto.UserViewResponse {
 		Id:        u.Id,
 		Name:      u.Name,
 		Email:     u.Email,
+		Status:    string(u.Status),
 		CreatedAt: u.CreatedAt,
 	}
 }
@@ -28,6 +29,7 @@ func ConvertToServiceList(u *sDto.GetUserViewListResponse) *hDto.UserViewListRes
 			Id:        user.Id,
 			Name:      user.Name,
 			Email:     user.Email,
+			Status:    string(user.Status),
 			CreatedAt: user.CreatedAt,
 		})
 	}

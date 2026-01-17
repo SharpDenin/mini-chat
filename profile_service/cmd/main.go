@@ -13,6 +13,7 @@ import (
 	"profile_service/internal/user/repository/profile_repo"
 	"profile_service/internal/user/service"
 	"profile_service/middleware_profile"
+	"profile_service/pkg/grpc_client"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
 	"profile_service/transport"
@@ -64,9 +65,20 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Инициализация gRPC-клиента (PresenceClient)
+	presenceClient, err := grpc_client.NewPresenceClient("localhost:50056")
+	if err != nil {
+		log.Fatalf("failed to create presence client: %v", err)
+	}
+	defer func() {
+		if err := presenceClient.Close(); err != nil {
+			log.Printf("failed to close presence client: %v", err)
+		}
+	}()
+
 	// Инициализация user-репозитория и user-сервиса
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
-	userService := service.NewUserService(userRepo, log)
+	userService := service.NewUserService(presenceClient, userRepo, log)
 
 	// Инициализация gRPC-серверов
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)

@@ -4,7 +4,7 @@ import (
 	_ "chat_service/docs"
 	pConfig "chat_service/internal/presence/config"
 	pRepo "chat_service/internal/presence/repository"
-	pService "chat_service/internal/presence/service"
+	"chat_service/internal/presence/service"
 	rConfig "chat_service/internal/room/config"
 	rRepo "chat_service/internal/room/repository"
 	"chat_service/internal/room/repository/db"
@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -51,14 +52,8 @@ func main() {
 		log.Fatal("Ошибка получения конфигурации (room) %w", err)
 	}
 
-	// Загрузка конфигурации presence-репозитория
-	prCfg, err := pConfig.PRCfgLoad()
-	if err != nil {
-		log.Fatal("Ошибка получения конфигурации (presence repo) %w", err)
-	}
-
-	// Загрузка конфигурации presence-сервиса
-	psCfg, err := pConfig.PRSrvLoad()
+	// Загрузка конфигурации presence-модуля
+	redisCfg, err := pConfig.RedisCfgLoad()
 	if err != nil {
 		log.Fatal("Ошибка получения конфигурации (presence service) %w", err)
 	}
@@ -94,31 +89,23 @@ func main() {
 	roomRepo := rRepo.NewRoomRepo(database.DB, log)
 	roomMemberRepo := rRepo.NewRoomMemberRepo(database.DB, log)
 
-	// Инициализация presence-репозитория
-	presenceRepo, err := pRepo.NewRedisRepo(prCfg)
-
 	// Инициализация room/roomMember-сервисов
 	roomService := rService.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
 	roomMemberService := rService.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr: redisCfg.RedisPort,
+		DB:   redisCfg.RedisDb,
+	})
+
+	// Инициализация presence-репозитория
+	presenceRepo := pRepo.NewPresenceRepo(rdb, redisCfg.IdleThreshold)
+
 	// Инициализация presence-сервиса
-	presenceService := pService.NewPresenceService(presenceRepo, log, psCfg, nil, nil)
-
-	// Запуск cleanup-горутины
-	go func() {
-		ticker := time.NewTicker(psCfg.CleanupInterval)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			ctx := context.Background()
-			if err := presenceService.CleanupStaleData(ctx); err != nil {
-				log.Errorf("failed to cleanup stale presence: %v", err)
-			}
-		}
-	}()
+	presenceService := service.NewPresenceService(presenceRepo, redisCfg)
 
 	// Инициализация gRPC-сервера
-	presenceServer := grpc_server.NewPresenceServer(log, presenceService)
+	presenceServer := grpc_server.NewGRPCServer(presenceService)
 
 	// Запуск gRPC-сервера
 	log.Info("Starting gRPC server...")
@@ -128,7 +115,7 @@ func main() {
 		log.Fatalf("failed to listen on presence port 50056: %v", err)
 	}
 	presenceGrpcServer := grpc.NewServer()
-	chat.RegisterPresenceServiceServer(presenceGrpcServer, presenceServer)
+	chat.RegisterPresenceServer(presenceGrpcServer, presenceServer)
 	go func() {
 		log.Info("gRPC presence service starting on :50056")
 		if err := presenceGrpcServer.Serve(presenceListener); err != nil {
