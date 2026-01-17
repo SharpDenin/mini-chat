@@ -12,7 +12,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,367 +20,263 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PresenceService_MarkOnline_FullMethodName        = "/chat.PresenceService/MarkOnline"
-	PresenceService_MarkOffline_FullMethodName       = "/chat.PresenceService/MarkOffline"
-	PresenceService_UpdateLastSeen_FullMethodName    = "/chat.PresenceService/UpdateLastSeen"
-	PresenceService_GetPresence_FullMethodName       = "/chat.PresenceService/GetPresence"
-	PresenceService_GetBulkPresence_FullMethodName   = "/chat.PresenceService/GetBulkPresence"
-	PresenceService_GetOnlineUsers_FullMethodName    = "/chat.PresenceService/GetOnlineUsers"
-	PresenceService_GetRecentlyOnline_FullMethodName = "/chat.PresenceService/GetRecentlyOnline"
-	PresenceService_HealthCheck_FullMethodName       = "/chat.PresenceService/HealthCheck"
+	Presence_OnConnect_FullMethodName        = "/chat.Presence/OnConnect"
+	Presence_OnDisconnect_FullMethodName     = "/chat.Presence/OnDisconnect"
+	Presence_OnHeartbeat_FullMethodName      = "/chat.Presence/OnHeartbeat"
+	Presence_GetPresence_FullMethodName      = "/chat.Presence/GetPresence"
+	Presence_GetOnlineFriends_FullMethodName = "/chat.Presence/GetOnlineFriends"
 )
 
-// PresenceServiceClient is the client API for PresenceService service.
+// PresenceClient is the client API for Presence service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PresenceServiceClient interface {
-	MarkOnline(ctx context.Context, in *MarkOnlineRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	MarkOffline(ctx context.Context, in *MarkOfflineRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	UpdateLastSeen(ctx context.Context, in *UpdateLastSeenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+type PresenceClient interface {
+	// Подключение пользователя (WS/Open session)
+	OnConnect(ctx context.Context, in *OnConnectRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	// Отключение пользователя
+	OnDisconnect(ctx context.Context, in *OnDisconnectRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	// Heartbeat / продление активности
+	OnHeartbeat(ctx context.Context, in *OnHeartbeatRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	// Получение presence пользователя
 	GetPresence(ctx context.Context, in *GetPresenceRequest, opts ...grpc.CallOption) (*GetPresenceResponse, error)
-	GetBulkPresence(ctx context.Context, in *GetBulkPresenceRequest, opts ...grpc.CallOption) (*GetBulkPresenceResponse, error)
-	GetOnlineUsers(ctx context.Context, in *GetOnlineUsersRequest, opts ...grpc.CallOption) (*GetOnlineUsersResponse, error)
-	GetRecentlyOnline(ctx context.Context, in *GetRecentlyOnlineRequest, opts ...grpc.CallOption) (*GetRecentlyOnlineResponse, error)
-	HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*HealthCheckResponse, error)
+	// Получение списка онлайн друзей
+	GetOnlineFriends(ctx context.Context, in *GetOnlineFriendsRequest, opts ...grpc.CallOption) (*GetOnlineFriendsResponse, error)
 }
 
-type presenceServiceClient struct {
+type presenceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPresenceServiceClient(cc grpc.ClientConnInterface) PresenceServiceClient {
-	return &presenceServiceClient{cc}
+func NewPresenceClient(cc grpc.ClientConnInterface) PresenceClient {
+	return &presenceClient{cc}
 }
 
-func (c *presenceServiceClient) MarkOnline(ctx context.Context, in *MarkOnlineRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *presenceClient) OnConnect(ctx context.Context, in *OnConnectRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, PresenceService_MarkOnline_FullMethodName, in, out, cOpts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Presence_OnConnect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *presenceServiceClient) MarkOffline(ctx context.Context, in *MarkOfflineRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *presenceClient) OnDisconnect(ctx context.Context, in *OnDisconnectRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, PresenceService_MarkOffline_FullMethodName, in, out, cOpts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Presence_OnDisconnect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *presenceServiceClient) UpdateLastSeen(ctx context.Context, in *UpdateLastSeenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *presenceClient) OnHeartbeat(ctx context.Context, in *OnHeartbeatRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, PresenceService_UpdateLastSeen_FullMethodName, in, out, cOpts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Presence_OnHeartbeat_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *presenceServiceClient) GetPresence(ctx context.Context, in *GetPresenceRequest, opts ...grpc.CallOption) (*GetPresenceResponse, error) {
+func (c *presenceClient) GetPresence(ctx context.Context, in *GetPresenceRequest, opts ...grpc.CallOption) (*GetPresenceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPresenceResponse)
-	err := c.cc.Invoke(ctx, PresenceService_GetPresence_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Presence_GetPresence_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *presenceServiceClient) GetBulkPresence(ctx context.Context, in *GetBulkPresenceRequest, opts ...grpc.CallOption) (*GetBulkPresenceResponse, error) {
+func (c *presenceClient) GetOnlineFriends(ctx context.Context, in *GetOnlineFriendsRequest, opts ...grpc.CallOption) (*GetOnlineFriendsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetBulkPresenceResponse)
-	err := c.cc.Invoke(ctx, PresenceService_GetBulkPresence_FullMethodName, in, out, cOpts...)
+	out := new(GetOnlineFriendsResponse)
+	err := c.cc.Invoke(ctx, Presence_GetOnlineFriends_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *presenceServiceClient) GetOnlineUsers(ctx context.Context, in *GetOnlineUsersRequest, opts ...grpc.CallOption) (*GetOnlineUsersResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetOnlineUsersResponse)
-	err := c.cc.Invoke(ctx, PresenceService_GetOnlineUsers_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *presenceServiceClient) GetRecentlyOnline(ctx context.Context, in *GetRecentlyOnlineRequest, opts ...grpc.CallOption) (*GetRecentlyOnlineResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetRecentlyOnlineResponse)
-	err := c.cc.Invoke(ctx, PresenceService_GetRecentlyOnline_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *presenceServiceClient) HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HealthCheckResponse)
-	err := c.cc.Invoke(ctx, PresenceService_HealthCheck_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// PresenceServiceServer is the server API for PresenceService service.
-// All implementations must embed UnimplementedPresenceServiceServer
+// PresenceServer is the server API for Presence service.
+// All implementations must embed UnimplementedPresenceServer
 // for forward compatibility.
-type PresenceServiceServer interface {
-	MarkOnline(context.Context, *MarkOnlineRequest) (*emptypb.Empty, error)
-	MarkOffline(context.Context, *MarkOfflineRequest) (*emptypb.Empty, error)
-	UpdateLastSeen(context.Context, *UpdateLastSeenRequest) (*emptypb.Empty, error)
+type PresenceServer interface {
+	// Подключение пользователя (WS/Open session)
+	OnConnect(context.Context, *OnConnectRequest) (*EmptyResponse, error)
+	// Отключение пользователя
+	OnDisconnect(context.Context, *OnDisconnectRequest) (*EmptyResponse, error)
+	// Heartbeat / продление активности
+	OnHeartbeat(context.Context, *OnHeartbeatRequest) (*EmptyResponse, error)
+	// Получение presence пользователя
 	GetPresence(context.Context, *GetPresenceRequest) (*GetPresenceResponse, error)
-	GetBulkPresence(context.Context, *GetBulkPresenceRequest) (*GetBulkPresenceResponse, error)
-	GetOnlineUsers(context.Context, *GetOnlineUsersRequest) (*GetOnlineUsersResponse, error)
-	GetRecentlyOnline(context.Context, *GetRecentlyOnlineRequest) (*GetRecentlyOnlineResponse, error)
-	HealthCheck(context.Context, *emptypb.Empty) (*HealthCheckResponse, error)
-	mustEmbedUnimplementedPresenceServiceServer()
+	// Получение списка онлайн друзей
+	GetOnlineFriends(context.Context, *GetOnlineFriendsRequest) (*GetOnlineFriendsResponse, error)
+	mustEmbedUnimplementedPresenceServer()
 }
 
-// UnimplementedPresenceServiceServer must be embedded to have
+// UnimplementedPresenceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedPresenceServiceServer struct{}
+type UnimplementedPresenceServer struct{}
 
-func (UnimplementedPresenceServiceServer) MarkOnline(context.Context, *MarkOnlineRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method MarkOnline not implemented")
+func (UnimplementedPresenceServer) OnConnect(context.Context, *OnConnectRequest) (*EmptyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OnConnect not implemented")
 }
-func (UnimplementedPresenceServiceServer) MarkOffline(context.Context, *MarkOfflineRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method MarkOffline not implemented")
+func (UnimplementedPresenceServer) OnDisconnect(context.Context, *OnDisconnectRequest) (*EmptyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OnDisconnect not implemented")
 }
-func (UnimplementedPresenceServiceServer) UpdateLastSeen(context.Context, *UpdateLastSeenRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateLastSeen not implemented")
+func (UnimplementedPresenceServer) OnHeartbeat(context.Context, *OnHeartbeatRequest) (*EmptyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OnHeartbeat not implemented")
 }
-func (UnimplementedPresenceServiceServer) GetPresence(context.Context, *GetPresenceRequest) (*GetPresenceResponse, error) {
+func (UnimplementedPresenceServer) GetPresence(context.Context, *GetPresenceRequest) (*GetPresenceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPresence not implemented")
 }
-func (UnimplementedPresenceServiceServer) GetBulkPresence(context.Context, *GetBulkPresenceRequest) (*GetBulkPresenceResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetBulkPresence not implemented")
+func (UnimplementedPresenceServer) GetOnlineFriends(context.Context, *GetOnlineFriendsRequest) (*GetOnlineFriendsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOnlineFriends not implemented")
 }
-func (UnimplementedPresenceServiceServer) GetOnlineUsers(context.Context, *GetOnlineUsersRequest) (*GetOnlineUsersResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetOnlineUsers not implemented")
-}
-func (UnimplementedPresenceServiceServer) GetRecentlyOnline(context.Context, *GetRecentlyOnlineRequest) (*GetRecentlyOnlineResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetRecentlyOnline not implemented")
-}
-func (UnimplementedPresenceServiceServer) HealthCheck(context.Context, *emptypb.Empty) (*HealthCheckResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method HealthCheck not implemented")
-}
-func (UnimplementedPresenceServiceServer) mustEmbedUnimplementedPresenceServiceServer() {}
-func (UnimplementedPresenceServiceServer) testEmbeddedByValue()                         {}
+func (UnimplementedPresenceServer) mustEmbedUnimplementedPresenceServer() {}
+func (UnimplementedPresenceServer) testEmbeddedByValue()                  {}
 
-// UnsafePresenceServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PresenceServiceServer will
+// UnsafePresenceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PresenceServer will
 // result in compilation errors.
-type UnsafePresenceServiceServer interface {
-	mustEmbedUnimplementedPresenceServiceServer()
+type UnsafePresenceServer interface {
+	mustEmbedUnimplementedPresenceServer()
 }
 
-func RegisterPresenceServiceServer(s grpc.ServiceRegistrar, srv PresenceServiceServer) {
-	// If the following call panics, it indicates UnimplementedPresenceServiceServer was
+func RegisterPresenceServer(s grpc.ServiceRegistrar, srv PresenceServer) {
+	// If the following call panics, it indicates UnimplementedPresenceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&PresenceService_ServiceDesc, srv)
+	s.RegisterService(&Presence_ServiceDesc, srv)
 }
 
-func _PresenceService_MarkOnline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MarkOnlineRequest)
+func _Presence_OnConnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OnConnectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PresenceServiceServer).MarkOnline(ctx, in)
+		return srv.(PresenceServer).OnConnect(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PresenceService_MarkOnline_FullMethodName,
+		FullMethod: Presence_OnConnect_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).MarkOnline(ctx, req.(*MarkOnlineRequest))
+		return srv.(PresenceServer).OnConnect(ctx, req.(*OnConnectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PresenceService_MarkOffline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MarkOfflineRequest)
+func _Presence_OnDisconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OnDisconnectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PresenceServiceServer).MarkOffline(ctx, in)
+		return srv.(PresenceServer).OnDisconnect(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PresenceService_MarkOffline_FullMethodName,
+		FullMethod: Presence_OnDisconnect_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).MarkOffline(ctx, req.(*MarkOfflineRequest))
+		return srv.(PresenceServer).OnDisconnect(ctx, req.(*OnDisconnectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PresenceService_UpdateLastSeen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateLastSeenRequest)
+func _Presence_OnHeartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OnHeartbeatRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PresenceServiceServer).UpdateLastSeen(ctx, in)
+		return srv.(PresenceServer).OnHeartbeat(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PresenceService_UpdateLastSeen_FullMethodName,
+		FullMethod: Presence_OnHeartbeat_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).UpdateLastSeen(ctx, req.(*UpdateLastSeenRequest))
+		return srv.(PresenceServer).OnHeartbeat(ctx, req.(*OnHeartbeatRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PresenceService_GetPresence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Presence_GetPresence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPresenceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PresenceServiceServer).GetPresence(ctx, in)
+		return srv.(PresenceServer).GetPresence(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PresenceService_GetPresence_FullMethodName,
+		FullMethod: Presence_GetPresence_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).GetPresence(ctx, req.(*GetPresenceRequest))
+		return srv.(PresenceServer).GetPresence(ctx, req.(*GetPresenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PresenceService_GetBulkPresence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetBulkPresenceRequest)
+func _Presence_GetOnlineFriends_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOnlineFriendsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PresenceServiceServer).GetBulkPresence(ctx, in)
+		return srv.(PresenceServer).GetOnlineFriends(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PresenceService_GetBulkPresence_FullMethodName,
+		FullMethod: Presence_GetOnlineFriends_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).GetBulkPresence(ctx, req.(*GetBulkPresenceRequest))
+		return srv.(PresenceServer).GetOnlineFriends(ctx, req.(*GetOnlineFriendsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PresenceService_GetOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOnlineUsersRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PresenceServiceServer).GetOnlineUsers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PresenceService_GetOnlineUsers_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).GetOnlineUsers(ctx, req.(*GetOnlineUsersRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PresenceService_GetRecentlyOnline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRecentlyOnlineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PresenceServiceServer).GetRecentlyOnline(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PresenceService_GetRecentlyOnline_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).GetRecentlyOnline(ctx, req.(*GetRecentlyOnlineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PresenceService_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PresenceServiceServer).HealthCheck(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PresenceService_HealthCheck_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PresenceServiceServer).HealthCheck(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// PresenceService_ServiceDesc is the grpc.ServiceDesc for PresenceService service.
+// Presence_ServiceDesc is the grpc.ServiceDesc for Presence service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var PresenceService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "chat.PresenceService",
-	HandlerType: (*PresenceServiceServer)(nil),
+var Presence_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "chat.Presence",
+	HandlerType: (*PresenceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "MarkOnline",
-			Handler:    _PresenceService_MarkOnline_Handler,
+			MethodName: "OnConnect",
+			Handler:    _Presence_OnConnect_Handler,
 		},
 		{
-			MethodName: "MarkOffline",
-			Handler:    _PresenceService_MarkOffline_Handler,
+			MethodName: "OnDisconnect",
+			Handler:    _Presence_OnDisconnect_Handler,
 		},
 		{
-			MethodName: "UpdateLastSeen",
-			Handler:    _PresenceService_UpdateLastSeen_Handler,
+			MethodName: "OnHeartbeat",
+			Handler:    _Presence_OnHeartbeat_Handler,
 		},
 		{
 			MethodName: "GetPresence",
-			Handler:    _PresenceService_GetPresence_Handler,
+			Handler:    _Presence_GetPresence_Handler,
 		},
 		{
-			MethodName: "GetBulkPresence",
-			Handler:    _PresenceService_GetBulkPresence_Handler,
-		},
-		{
-			MethodName: "GetOnlineUsers",
-			Handler:    _PresenceService_GetOnlineUsers_Handler,
-		},
-		{
-			MethodName: "GetRecentlyOnline",
-			Handler:    _PresenceService_GetRecentlyOnline_Handler,
-		},
-		{
-			MethodName: "HealthCheck",
-			Handler:    _PresenceService_HealthCheck_Handler,
+			MethodName: "GetOnlineFriends",
+			Handler:    _Presence_GetOnlineFriends_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

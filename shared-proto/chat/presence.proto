@@ -1,102 +1,63 @@
 syntax = "proto3";
 
 package chat;
-
 option go_package = "./gRPC";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
 
-service PresenceService {
-  rpc MarkOnline(MarkOnlineRequest) returns (google.protobuf.Empty);
-  rpc MarkOffline(MarkOfflineRequest) returns (google.protobuf.Empty);
-  rpc UpdateLastSeen(UpdateLastSeenRequest) returns (google.protobuf.Empty);
+service Presence {
+  // Подключение пользователя (WS/Open session)
+  rpc OnConnect(OnConnectRequest) returns (EmptyResponse);
 
+  // Отключение пользователя
+  rpc OnDisconnect(OnDisconnectRequest) returns (EmptyResponse);
+
+  // Heartbeat / продление активности
+  rpc OnHeartbeat(OnHeartbeatRequest) returns (EmptyResponse);
+
+  // Получение presence пользователя
   rpc GetPresence(GetPresenceRequest) returns (GetPresenceResponse);
-  rpc GetBulkPresence(GetBulkPresenceRequest) returns (GetBulkPresenceResponse);
-  rpc GetOnlineUsers(GetOnlineUsersRequest) returns (GetOnlineUsersResponse);
-  rpc GetRecentlyOnline(GetRecentlyOnlineRequest) returns (GetRecentlyOnlineResponse);
 
-  rpc HealthCheck(google.protobuf.Empty) returns (HealthCheckResponse);
+  // Получение списка онлайн друзей
+  rpc GetOnlineFriends(GetOnlineFriendsRequest) returns (GetOnlineFriendsResponse);
 }
 
-// Requests
-message MarkOnlineRequest{
+// ---------------- Requests ----------------
+
+message OnConnectRequest {
   int64 user_id = 1;
-  optional string source = 2;
+  int64 conn_id = 2;
+  string device = 3;
 }
 
-message MarkOfflineRequest{
+message OnDisconnectRequest {
   int64 user_id = 1;
-  optional string source = 2;
+  int64 conn_id = 2;
 }
 
-message UpdateLastSeenRequest{
+message OnHeartbeatRequest {
+  int64 conn_id = 1;
+}
+
+message GetPresenceRequest {
   int64 user_id = 1;
 }
 
-message GetPresenceRequest{
+message GetOnlineFriendsRequest {
   int64 user_id = 1;
+  repeated int64 friends_ids = 2;
 }
 
-message GetBulkPresenceRequest{
- repeated int64 user_Ids = 1;
- optional uint32 limit = 2;
-}
+// ---------------- Responses ----------------
 
-message GetOnlineUsersRequest{
-  repeated int64 user_ids = 1;
-}
+message EmptyResponse {}
 
-message GetRecentlyOnlineRequest{
-  google.protobuf.Timestamp since = 1;
-  optional uint32 limit = 2;
-}
-
-// Responses
-message GetPresenceResponse{
-  Presence presence = 1;
-}
-
-message GetBulkPresenceResponse{
-  map<int64, Presence> presences = 1;
-  map<int64, string> errors = 2;
-}
-
-message GetOnlineUsersResponse{
-  repeated int64 online_user_ids = 1;
-}
-
-message GetRecentlyOnlineResponse{
-  repeated RecentlyOnlineUser users = 1;
-}
-
-
-message HealthCheckResponse{
-  bool healthy = 1;
-  string status = 2;
-  int64 timestamp_unix = 3;
-}
-
-// Models
-message Presence {
+message GetPresenceResponse {
   int64 user_id = 1;
-  UserStatus status = 2;
+  string status = 2; // "online", "idle", "offline"
   google.protobuf.Timestamp last_seen = 3;
-  optional string device_type = 4;
-  optional bool is_idle = 5;
 }
 
-message RecentlyOnlineUser {
-  int64 user_id = 1;
-  google.protobuf.Timestamp last_seen = 2;
-  UserStatus last_status = 3;
-}
-
-enum UserStatus {
-  UNKNOWN = 0;
-  ONLINE = 1;
-  OFFLINE = 2;
-  IDLE = 3;
-  AWAY = 4;
+message GetOnlineFriendsResponse {
+  repeated int64 online_friends = 1;
 }

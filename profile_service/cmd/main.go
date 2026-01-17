@@ -81,7 +81,7 @@ func main() {
 	userService := service.NewUserService(presenceClient, userRepo, log)
 
 	// Инициализация gRPC-серверов
-	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt, presenceClient)
+	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
 	directoryServer := grpc_server.NewDirectoryServer(log, userService)
 
 	// Запуск gRPC серверов

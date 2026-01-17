@@ -3,26 +3,13 @@ package service
 import (
 	sDto "chat_service/internal/presence/service/dto"
 	"context"
-	"time"
 )
 
-type PresenceServiceInterface interface {
-	MarkOnline(ctx context.Context, userId int64, opts ...sDto.MarkOptionRequest) error
-	MarkOffline(ctx context.Context, userId int64, opts ...sDto.MarkOptionRequest) error
-	UpdateLastSeen(ctx context.Context, userId int64) error
+type PresenceService interface {
+	OnConnect(ctx context.Context, userId, connId int64, device string) error
+	OnDisconnect(ctx context.Context, userId, connId int64) error
+	OnHeartbeat(ctx context.Context, connId int64) error
 
-	GetPresence(ctx context.Context, userId int64) (*sDto.PresenceResponse, error)
-	GetBulkPresence(ctx context.Context, userIds []int64) (*sDto.BulkPresenceResponse, error)
-	GetOnlineUsers(ctx context.Context, userIds []int64) ([]int64, error)
-	GetRecentlyOnline(ctx context.Context, since time.Time) ([]int64, error)
-
-	AddConnection(ctx context.Context, userId int64, connId int64, deviceType string) error
-	RemoveConnection(ctx context.Context, userId int64, connId int64) error
-	GetUserConnections(ctx context.Context, userId int64) ([]*sDto.ConnectionInfoResponse, error)
-	UpdateConnectionActivity(ctx context.Context, userId int64, connId int64) error
-	GetConnectionStats(ctx context.Context, userId int64) (*sDto.ConnectionStatsResponse, error)
-
-	CleanupStaleData(ctx context.Context) error
-
-	SubscribeStatusChanges(ctx context.Context) (<-chan sDto.StatusChangeResponse, error)
+	GetPresence(ctx context.Context, userId int64) *sDto.Presence
+	GetOnlineFriends(ctx context.Context, userId int64, friends []int64) []int64
 }

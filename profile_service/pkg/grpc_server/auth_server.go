@@ -8,8 +8,6 @@ import (
 	"profile_service/internal/user/service"
 	"profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
-	"profile_service/pkg/grpc_client"
-	"profile_service/pkg/grpc_generated/chat"
 	"profile_service/pkg/grpc_generated/profile"
 	"strconv"
 	"time"
@@ -24,12 +22,11 @@ import (
 type AuthServer struct {
 	log *logrus.Logger
 	profile.UnimplementedAuthServiceServer
-	uService       service.UserServiceInterface
-	jwtSecret      string
-	presenceClient *grpc_client.PresenceClient
+	uService  service.UserServiceInterface
+	jwtSecret string
 }
 
-func NewAuthServer(log *logrus.Logger, uService service.UserServiceInterface, jwtSecret string, presenceClient *grpc_client.PresenceClient) *AuthServer {
+func NewAuthServer(log *logrus.Logger, uService service.UserServiceInterface, jwtSecret string) *AuthServer {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -37,10 +34,9 @@ func NewAuthServer(log *logrus.Logger, uService service.UserServiceInterface, jw
 		log.SetLevel(logrus.DebugLevel)
 	}
 	return &AuthServer{
-		log:            log,
-		uService:       uService,
-		jwtSecret:      jwtSecret,
-		presenceClient: presenceClient,
+		log:       log,
+		uService:  uService,
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -108,12 +104,6 @@ func (s *AuthServer) Login(ctx context.Context, req *profile.LoginRequest) (*pro
 		return nil, status.Error(codes.Internal, "Failed to generate token")
 	}
 
-	if s.presenceClient != nil {
-		go s.markUserOnlineAsync(user.Id)
-	} else {
-		s.log.WithField("user_id", user.Id).Warn("Presence client is nil, skipping online status")
-	}
-
 	return &profile.LoginResponse{
 		Token:  tokenString,
 		UserId: strconv.FormatInt(user.Id, 10),
@@ -159,32 +149,4 @@ func (s *AuthServer) ValidateToken(ctx context.Context, req *profile.TokenReques
 		Valid:  true,
 		UserId: userID,
 	}, nil
-}
-
-func (s *AuthServer) markUserOnlineAsync(userId int64) {
-	bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	s.log.WithFields(logrus.Fields{
-		"method":  "markUserOnlineAsync",
-		"user_id": userId,
-	}).Debug("Attempting to mark user online")
-
-	// Вызываем gRPC метод
-	err := s.presenceClient.MarkOnline(bgCtx, &chat.MarkOnlineRequest{
-		UserId: userId,
-		Source: nil,
-	})
-	if err != nil {
-		s.log.WithFields(logrus.Fields{
-			"method":  "markUserOnlineAsync",
-			"user_id": userId,
-			"error":   err.Error(),
-		}).Debug("Failed to mark user online")
-	} else {
-		s.log.WithFields(logrus.Fields{
-			"method":  "markUserOnlineAsync",
-			"user_id": userId,
-		}).Debug("User marked online successfully")
-	}
 }

@@ -13,7 +13,6 @@ import (
 
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -24,84 +23,29 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type UserStatus int32
-
-const (
-	UserStatus_UNKNOWN UserStatus = 0
-	UserStatus_ONLINE  UserStatus = 1
-	UserStatus_OFFLINE UserStatus = 2
-	UserStatus_IDLE    UserStatus = 3
-	UserStatus_AWAY    UserStatus = 4
-)
-
-// Enum value maps for UserStatus.
-var (
-	UserStatus_name = map[int32]string{
-		0: "UNKNOWN",
-		1: "ONLINE",
-		2: "OFFLINE",
-		3: "IDLE",
-		4: "AWAY",
-	}
-	UserStatus_value = map[string]int32{
-		"UNKNOWN": 0,
-		"ONLINE":  1,
-		"OFFLINE": 2,
-		"IDLE":    3,
-		"AWAY":    4,
-	}
-)
-
-func (x UserStatus) Enum() *UserStatus {
-	p := new(UserStatus)
-	*p = x
-	return p
-}
-
-func (x UserStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (UserStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_chat_presence_proto_enumTypes[0].Descriptor()
-}
-
-func (UserStatus) Type() protoreflect.EnumType {
-	return &file_chat_presence_proto_enumTypes[0]
-}
-
-func (x UserStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use UserStatus.Descriptor instead.
-func (UserStatus) EnumDescriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{0}
-}
-
-// Requests
-type MarkOnlineRequest struct {
+type OnConnectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Source        *string                `protobuf:"bytes,2,opt,name=source,proto3,oneof" json:"source,omitempty"`
+	ConnId        int64                  `protobuf:"varint,2,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
+	Device        string                 `protobuf:"bytes,3,opt,name=device,proto3" json:"device,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *MarkOnlineRequest) Reset() {
-	*x = MarkOnlineRequest{}
+func (x *OnConnectRequest) Reset() {
+	*x = OnConnectRequest{}
 	mi := &file_chat_presence_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *MarkOnlineRequest) String() string {
+func (x *OnConnectRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MarkOnlineRequest) ProtoMessage() {}
+func (*OnConnectRequest) ProtoMessage() {}
 
-func (x *MarkOnlineRequest) ProtoReflect() protoreflect.Message {
+func (x *OnConnectRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_presence_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -113,47 +57,54 @@ func (x *MarkOnlineRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MarkOnlineRequest.ProtoReflect.Descriptor instead.
-func (*MarkOnlineRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use OnConnectRequest.ProtoReflect.Descriptor instead.
+func (*OnConnectRequest) Descriptor() ([]byte, []int) {
 	return file_chat_presence_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *MarkOnlineRequest) GetUserId() int64 {
+func (x *OnConnectRequest) GetUserId() int64 {
 	if x != nil {
 		return x.UserId
 	}
 	return 0
 }
 
-func (x *MarkOnlineRequest) GetSource() string {
-	if x != nil && x.Source != nil {
-		return *x.Source
+func (x *OnConnectRequest) GetConnId() int64 {
+	if x != nil {
+		return x.ConnId
+	}
+	return 0
+}
+
+func (x *OnConnectRequest) GetDevice() string {
+	if x != nil {
+		return x.Device
 	}
 	return ""
 }
 
-type MarkOfflineRequest struct {
+type OnDisconnectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Source        *string                `protobuf:"bytes,2,opt,name=source,proto3,oneof" json:"source,omitempty"`
+	ConnId        int64                  `protobuf:"varint,2,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *MarkOfflineRequest) Reset() {
-	*x = MarkOfflineRequest{}
+func (x *OnDisconnectRequest) Reset() {
+	*x = OnDisconnectRequest{}
 	mi := &file_chat_presence_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *MarkOfflineRequest) String() string {
+func (x *OnDisconnectRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MarkOfflineRequest) ProtoMessage() {}
+func (*OnDisconnectRequest) ProtoMessage() {}
 
-func (x *MarkOfflineRequest) ProtoReflect() protoreflect.Message {
+func (x *OnDisconnectRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_presence_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -165,46 +116,46 @@ func (x *MarkOfflineRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MarkOfflineRequest.ProtoReflect.Descriptor instead.
-func (*MarkOfflineRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use OnDisconnectRequest.ProtoReflect.Descriptor instead.
+func (*OnDisconnectRequest) Descriptor() ([]byte, []int) {
 	return file_chat_presence_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *MarkOfflineRequest) GetUserId() int64 {
+func (x *OnDisconnectRequest) GetUserId() int64 {
 	if x != nil {
 		return x.UserId
 	}
 	return 0
 }
 
-func (x *MarkOfflineRequest) GetSource() string {
-	if x != nil && x.Source != nil {
-		return *x.Source
+func (x *OnDisconnectRequest) GetConnId() int64 {
+	if x != nil {
+		return x.ConnId
 	}
-	return ""
+	return 0
 }
 
-type UpdateLastSeenRequest struct {
+type OnHeartbeatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ConnId        int64                  `protobuf:"varint,1,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UpdateLastSeenRequest) Reset() {
-	*x = UpdateLastSeenRequest{}
+func (x *OnHeartbeatRequest) Reset() {
+	*x = OnHeartbeatRequest{}
 	mi := &file_chat_presence_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UpdateLastSeenRequest) String() string {
+func (x *OnHeartbeatRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UpdateLastSeenRequest) ProtoMessage() {}
+func (*OnHeartbeatRequest) ProtoMessage() {}
 
-func (x *UpdateLastSeenRequest) ProtoReflect() protoreflect.Message {
+func (x *OnHeartbeatRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_presence_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -216,14 +167,14 @@ func (x *UpdateLastSeenRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateLastSeenRequest.ProtoReflect.Descriptor instead.
-func (*UpdateLastSeenRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use OnHeartbeatRequest.ProtoReflect.Descriptor instead.
+func (*OnHeartbeatRequest) Descriptor() ([]byte, []int) {
 	return file_chat_presence_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *UpdateLastSeenRequest) GetUserId() int64 {
+func (x *OnHeartbeatRequest) GetConnId() int64 {
 	if x != nil {
-		return x.UserId
+		return x.ConnId
 	}
 	return 0
 }
@@ -272,28 +223,28 @@ func (x *GetPresenceRequest) GetUserId() int64 {
 	return 0
 }
 
-type GetBulkPresenceRequest struct {
+type GetOnlineFriendsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	User_Ids      []int64                `protobuf:"varint,1,rep,packed,name=user_Ids,json=userIds,proto3" json:"user_Ids,omitempty"`
-	Limit         *uint32                `protobuf:"varint,2,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	FriendsIds    []int64                `protobuf:"varint,2,rep,packed,name=friends_ids,json=friendsIds,proto3" json:"friends_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetBulkPresenceRequest) Reset() {
-	*x = GetBulkPresenceRequest{}
+func (x *GetOnlineFriendsRequest) Reset() {
+	*x = GetOnlineFriendsRequest{}
 	mi := &file_chat_presence_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetBulkPresenceRequest) String() string {
+func (x *GetOnlineFriendsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetBulkPresenceRequest) ProtoMessage() {}
+func (*GetOnlineFriendsRequest) ProtoMessage() {}
 
-func (x *GetBulkPresenceRequest) ProtoReflect() protoreflect.Message {
+func (x *GetOnlineFriendsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_presence_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -305,46 +256,45 @@ func (x *GetBulkPresenceRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetBulkPresenceRequest.ProtoReflect.Descriptor instead.
-func (*GetBulkPresenceRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetOnlineFriendsRequest.ProtoReflect.Descriptor instead.
+func (*GetOnlineFriendsRequest) Descriptor() ([]byte, []int) {
 	return file_chat_presence_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetBulkPresenceRequest) GetUser_Ids() []int64 {
+func (x *GetOnlineFriendsRequest) GetUserId() int64 {
 	if x != nil {
-		return x.User_Ids
-	}
-	return nil
-}
-
-func (x *GetBulkPresenceRequest) GetLimit() uint32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+		return x.UserId
 	}
 	return 0
 }
 
-type GetOnlineUsersRequest struct {
+func (x *GetOnlineFriendsRequest) GetFriendsIds() []int64 {
+	if x != nil {
+		return x.FriendsIds
+	}
+	return nil
+}
+
+type EmptyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserIds       []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetOnlineUsersRequest) Reset() {
-	*x = GetOnlineUsersRequest{}
+func (x *EmptyResponse) Reset() {
+	*x = EmptyResponse{}
 	mi := &file_chat_presence_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetOnlineUsersRequest) String() string {
+func (x *EmptyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetOnlineUsersRequest) ProtoMessage() {}
+func (*EmptyResponse) ProtoMessage() {}
 
-func (x *GetOnlineUsersRequest) ProtoReflect() protoreflect.Message {
+func (x *EmptyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_presence_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -356,81 +306,23 @@ func (x *GetOnlineUsersRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetOnlineUsersRequest.ProtoReflect.Descriptor instead.
-func (*GetOnlineUsersRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use EmptyResponse.ProtoReflect.Descriptor instead.
+func (*EmptyResponse) Descriptor() ([]byte, []int) {
 	return file_chat_presence_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetOnlineUsersRequest) GetUserIds() []int64 {
-	if x != nil {
-		return x.UserIds
-	}
-	return nil
-}
-
-type GetRecentlyOnlineRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Since         *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=since,proto3" json:"since,omitempty"`
-	Limit         *uint32                `protobuf:"varint,2,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRecentlyOnlineRequest) Reset() {
-	*x = GetRecentlyOnlineRequest{}
-	mi := &file_chat_presence_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRecentlyOnlineRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRecentlyOnlineRequest) ProtoMessage() {}
-
-func (x *GetRecentlyOnlineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRecentlyOnlineRequest.ProtoReflect.Descriptor instead.
-func (*GetRecentlyOnlineRequest) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *GetRecentlyOnlineRequest) GetSince() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Since
-	}
-	return nil
-}
-
-func (x *GetRecentlyOnlineRequest) GetLimit() uint32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
-	}
-	return 0
-}
-
-// Responses
 type GetPresenceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Presence      *Presence              `protobuf:"bytes,1,opt,name=presence,proto3" json:"presence,omitempty"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"` // "online", "idle", "offline"
+	LastSeen      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetPresenceResponse) Reset() {
 	*x = GetPresenceResponse{}
-	mi := &file_chat_presence_proto_msgTypes[7]
+	mi := &file_chat_presence_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +334,7 @@ func (x *GetPresenceResponse) String() string {
 func (*GetPresenceResponse) ProtoMessage() {}
 
 func (x *GetPresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[7]
+	mi := &file_chat_presence_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,433 +347,107 @@ func (x *GetPresenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPresenceResponse.ProtoReflect.Descriptor instead.
 func (*GetPresenceResponse) Descriptor() ([]byte, []int) {
+	return file_chat_presence_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetPresenceResponse) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *GetPresenceResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *GetPresenceResponse) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
+type GetOnlineFriendsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OnlineFriends []int64                `protobuf:"varint,1,rep,packed,name=online_friends,json=onlineFriends,proto3" json:"online_friends,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOnlineFriendsResponse) Reset() {
+	*x = GetOnlineFriendsResponse{}
+	mi := &file_chat_presence_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOnlineFriendsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOnlineFriendsResponse) ProtoMessage() {}
+
+func (x *GetOnlineFriendsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_chat_presence_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOnlineFriendsResponse.ProtoReflect.Descriptor instead.
+func (*GetOnlineFriendsResponse) Descriptor() ([]byte, []int) {
 	return file_chat_presence_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *GetPresenceResponse) GetPresence() *Presence {
+func (x *GetOnlineFriendsResponse) GetOnlineFriends() []int64 {
 	if x != nil {
-		return x.Presence
+		return x.OnlineFriends
 	}
 	return nil
-}
-
-type GetBulkPresenceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Presences     map[int64]*Presence    `protobuf:"bytes,1,rep,name=presences,proto3" json:"presences,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Errors        map[int64]string       `protobuf:"bytes,2,rep,name=errors,proto3" json:"errors,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetBulkPresenceResponse) Reset() {
-	*x = GetBulkPresenceResponse{}
-	mi := &file_chat_presence_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetBulkPresenceResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBulkPresenceResponse) ProtoMessage() {}
-
-func (x *GetBulkPresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBulkPresenceResponse.ProtoReflect.Descriptor instead.
-func (*GetBulkPresenceResponse) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetBulkPresenceResponse) GetPresences() map[int64]*Presence {
-	if x != nil {
-		return x.Presences
-	}
-	return nil
-}
-
-func (x *GetBulkPresenceResponse) GetErrors() map[int64]string {
-	if x != nil {
-		return x.Errors
-	}
-	return nil
-}
-
-type GetOnlineUsersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OnlineUserIds []int64                `protobuf:"varint,1,rep,packed,name=online_user_ids,json=onlineUserIds,proto3" json:"online_user_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetOnlineUsersResponse) Reset() {
-	*x = GetOnlineUsersResponse{}
-	mi := &file_chat_presence_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetOnlineUsersResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetOnlineUsersResponse) ProtoMessage() {}
-
-func (x *GetOnlineUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetOnlineUsersResponse.ProtoReflect.Descriptor instead.
-func (*GetOnlineUsersResponse) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *GetOnlineUsersResponse) GetOnlineUserIds() []int64 {
-	if x != nil {
-		return x.OnlineUserIds
-	}
-	return nil
-}
-
-type GetRecentlyOnlineResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []*RecentlyOnlineUser  `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRecentlyOnlineResponse) Reset() {
-	*x = GetRecentlyOnlineResponse{}
-	mi := &file_chat_presence_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRecentlyOnlineResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRecentlyOnlineResponse) ProtoMessage() {}
-
-func (x *GetRecentlyOnlineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRecentlyOnlineResponse.ProtoReflect.Descriptor instead.
-func (*GetRecentlyOnlineResponse) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *GetRecentlyOnlineResponse) GetUsers() []*RecentlyOnlineUser {
-	if x != nil {
-		return x.Users
-	}
-	return nil
-}
-
-type HealthCheckResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Healthy       bool                   `protobuf:"varint,1,opt,name=healthy,proto3" json:"healthy,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	TimestampUnix int64                  `protobuf:"varint,3,opt,name=timestamp_unix,json=timestampUnix,proto3" json:"timestamp_unix,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *HealthCheckResponse) Reset() {
-	*x = HealthCheckResponse{}
-	mi := &file_chat_presence_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HealthCheckResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HealthCheckResponse) ProtoMessage() {}
-
-func (x *HealthCheckResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HealthCheckResponse.ProtoReflect.Descriptor instead.
-func (*HealthCheckResponse) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *HealthCheckResponse) GetHealthy() bool {
-	if x != nil {
-		return x.Healthy
-	}
-	return false
-}
-
-func (x *HealthCheckResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *HealthCheckResponse) GetTimestampUnix() int64 {
-	if x != nil {
-		return x.TimestampUnix
-	}
-	return 0
-}
-
-// Models
-// Модели
-type Presence struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId   int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Status   UserStatus             `protobuf:"varint,2,opt,name=status,proto3,enum=chat.UserStatus" json:"status,omitempty"`
-	LastSeen *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
-	DeviceType    *string                `protobuf:"bytes,4,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
-	IsIdle        *bool                  `protobuf:"varint,5,opt,name=is_idle,json=isIdle,proto3,oneof" json:"is_idle,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Presence) Reset() {
-	*x = Presence{}
-	mi := &file_chat_presence_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Presence) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Presence) ProtoMessage() {}
-
-func (x *Presence) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Presence.ProtoReflect.Descriptor instead.
-func (*Presence) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *Presence) GetUserId() int64 {
-	if x != nil {
-		return x.UserId
-	}
-	return 0
-}
-
-func (x *Presence) GetStatus() UserStatus {
-	if x != nil {
-		return x.Status
-	}
-	return UserStatus_UNKNOWN
-}
-
-func (x *Presence) GetLastSeen() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastSeen
-	}
-	return nil
-}
-
-func (x *Presence) GetDeviceType() string {
-	if x != nil && x.DeviceType != nil {
-		return *x.DeviceType
-	}
-	return ""
-}
-
-func (x *Presence) GetIsIdle() bool {
-	if x != nil && x.IsIdle != nil {
-		return *x.IsIdle
-	}
-	return false
-}
-
-type RecentlyOnlineUser struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	LastSeen      *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
-	LastStatus    UserStatus             `protobuf:"varint,3,opt,name=last_status,json=lastStatus,proto3,enum=chat.UserStatus" json:"last_status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RecentlyOnlineUser) Reset() {
-	*x = RecentlyOnlineUser{}
-	mi := &file_chat_presence_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RecentlyOnlineUser) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RecentlyOnlineUser) ProtoMessage() {}
-
-func (x *RecentlyOnlineUser) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_presence_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RecentlyOnlineUser.ProtoReflect.Descriptor instead.
-func (*RecentlyOnlineUser) Descriptor() ([]byte, []int) {
-	return file_chat_presence_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *RecentlyOnlineUser) GetUserId() int64 {
-	if x != nil {
-		return x.UserId
-	}
-	return 0
-}
-
-func (x *RecentlyOnlineUser) GetLastSeen() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastSeen
-	}
-	return nil
-}
-
-func (x *RecentlyOnlineUser) GetLastStatus() UserStatus {
-	if x != nil {
-		return x.LastStatus
-	}
-	return UserStatus_UNKNOWN
 }
 
 var File_chat_presence_proto protoreflect.FileDescriptor
 
 const file_chat_presence_proto_rawDesc = "" +
 	"\n" +
-	"\x13chat/presence.proto\x12\x04chat\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"T\n" +
-	"\x11MarkOnlineRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
-	"\x06source\x18\x02 \x01(\tH\x00R\x06source\x88\x01\x01B\t\n" +
-	"\a_source\"U\n" +
-	"\x12MarkOfflineRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
-	"\x06source\x18\x02 \x01(\tH\x00R\x06source\x88\x01\x01B\t\n" +
-	"\a_source\"0\n" +
-	"\x15UpdateLastSeenRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\"-\n" +
+	"\x13chat/presence.proto\x12\x04chat\x1a\x1fgoogle/protobuf/timestamp.proto\"\\\n" +
+	"\x10OnConnectRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x17\n" +
+	"\aconn_id\x18\x02 \x01(\x03R\x06connId\x12\x16\n" +
+	"\x06device\x18\x03 \x01(\tR\x06device\"G\n" +
+	"\x13OnDisconnectRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x17\n" +
+	"\aconn_id\x18\x02 \x01(\x03R\x06connId\"-\n" +
+	"\x12OnHeartbeatRequest\x12\x17\n" +
+	"\aconn_id\x18\x01 \x01(\x03R\x06connId\"-\n" +
 	"\x12GetPresenceRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\"X\n" +
-	"\x16GetBulkPresenceRequest\x12\x19\n" +
-	"\buser_Ids\x18\x01 \x03(\x03R\auserIds\x12\x19\n" +
-	"\x05limit\x18\x02 \x01(\rH\x00R\x05limit\x88\x01\x01B\b\n" +
-	"\x06_limit\"2\n" +
-	"\x15GetOnlineUsersRequest\x12\x19\n" +
-	"\buser_ids\x18\x01 \x03(\x03R\auserIds\"q\n" +
-	"\x18GetRecentlyOnlineRequest\x120\n" +
-	"\x05since\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\x12\x19\n" +
-	"\x05limit\x18\x02 \x01(\rH\x00R\x05limit\x88\x01\x01B\b\n" +
-	"\x06_limit\"A\n" +
-	"\x13GetPresenceResponse\x12*\n" +
-	"\bpresence\x18\x01 \x01(\v2\x0e.chat.PresenceR\bpresence\"\xb1\x02\n" +
-	"\x17GetBulkPresenceResponse\x12J\n" +
-	"\tpresences\x18\x01 \x03(\v2,.chat.GetBulkPresenceResponse.PresencesEntryR\tpresences\x12A\n" +
-	"\x06errors\x18\x02 \x03(\v2).chat.GetBulkPresenceResponse.ErrorsEntryR\x06errors\x1aL\n" +
-	"\x0ePresencesEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\x03R\x03key\x12$\n" +
-	"\x05value\x18\x02 \x01(\v2\x0e.chat.PresenceR\x05value:\x028\x01\x1a9\n" +
-	"\vErrorsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\x03R\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"@\n" +
-	"\x16GetOnlineUsersResponse\x12&\n" +
-	"\x0fonline_user_ids\x18\x01 \x03(\x03R\ronlineUserIds\"K\n" +
-	"\x19GetRecentlyOnlineResponse\x12.\n" +
-	"\x05users\x18\x01 \x03(\v2\x18.chat.RecentlyOnlineUserR\x05users\"n\n" +
-	"\x13HealthCheckResponse\x12\x18\n" +
-	"\ahealthy\x18\x01 \x01(\bR\ahealthy\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12%\n" +
-	"\x0etimestamp_unix\x18\x03 \x01(\x03R\rtimestampUnix\"\xe6\x01\n" +
-	"\bPresence\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12(\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x10.chat.UserStatusR\x06status\x127\n" +
-	"\tlast_seen\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12$\n" +
-	"\vdevice_type\x18\x04 \x01(\tH\x00R\n" +
-	"deviceType\x88\x01\x01\x12\x1c\n" +
-	"\ais_idle\x18\x05 \x01(\bH\x01R\x06isIdle\x88\x01\x01B\x0e\n" +
-	"\f_device_typeB\n" +
-	"\n" +
-	"\b_is_idle\"\x99\x01\n" +
-	"\x12RecentlyOnlineUser\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x127\n" +
-	"\tlast_seen\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x121\n" +
-	"\vlast_status\x18\x03 \x01(\x0e2\x10.chat.UserStatusR\n" +
-	"lastStatus*F\n" +
-	"\n" +
-	"UserStatus\x12\v\n" +
-	"\aUNKNOWN\x10\x00\x12\n" +
-	"\n" +
-	"\x06ONLINE\x10\x01\x12\v\n" +
-	"\aOFFLINE\x10\x02\x12\b\n" +
-	"\x04IDLE\x10\x03\x12\b\n" +
-	"\x04AWAY\x10\x042\xd1\x04\n" +
-	"\x0fPresenceService\x12=\n" +
-	"\n" +
-	"MarkOnline\x12\x17.chat.MarkOnlineRequest\x1a\x16.google.protobuf.Empty\x12?\n" +
-	"\vMarkOffline\x12\x18.chat.MarkOfflineRequest\x1a\x16.google.protobuf.Empty\x12E\n" +
-	"\x0eUpdateLastSeen\x12\x1b.chat.UpdateLastSeenRequest\x1a\x16.google.protobuf.Empty\x12B\n" +
-	"\vGetPresence\x12\x18.chat.GetPresenceRequest\x1a\x19.chat.GetPresenceResponse\x12N\n" +
-	"\x0fGetBulkPresence\x12\x1c.chat.GetBulkPresenceRequest\x1a\x1d.chat.GetBulkPresenceResponse\x12K\n" +
-	"\x0eGetOnlineUsers\x12\x1b.chat.GetOnlineUsersRequest\x1a\x1c.chat.GetOnlineUsersResponse\x12T\n" +
-	"\x11GetRecentlyOnline\x12\x1e.chat.GetRecentlyOnlineRequest\x1a\x1f.chat.GetRecentlyOnlineResponse\x12@\n" +
-	"\vHealthCheck\x12\x16.google.protobuf.Empty\x1a\x19.chat.HealthCheckResponseB\bZ\x06./gRPCb\x06proto3"
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"S\n" +
+	"\x17GetOnlineFriendsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1f\n" +
+	"\vfriends_ids\x18\x02 \x03(\x03R\n" +
+	"friendsIds\"\x0f\n" +
+	"\rEmptyResponse\"\x7f\n" +
+	"\x13GetPresenceResponse\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x127\n" +
+	"\tlast_seen\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\"A\n" +
+	"\x18GetOnlineFriendsResponse\x12%\n" +
+	"\x0eonline_friends\x18\x01 \x03(\x03R\ronlineFriends2\xd9\x02\n" +
+	"\bPresence\x128\n" +
+	"\tOnConnect\x12\x16.chat.OnConnectRequest\x1a\x13.chat.EmptyResponse\x12>\n" +
+	"\fOnDisconnect\x12\x19.chat.OnDisconnectRequest\x1a\x13.chat.EmptyResponse\x12<\n" +
+	"\vOnHeartbeat\x12\x18.chat.OnHeartbeatRequest\x1a\x13.chat.EmptyResponse\x12B\n" +
+	"\vGetPresence\x12\x18.chat.GetPresenceRequest\x1a\x19.chat.GetPresenceResponse\x12Q\n" +
+	"\x10GetOnlineFriends\x12\x1d.chat.GetOnlineFriendsRequest\x1a\x1e.chat.GetOnlineFriendsResponseB\bZ\x06./gRPCb\x06proto3"
 
 var (
 	file_chat_presence_proto_rawDescOnce sync.Once
@@ -895,61 +461,35 @@ func file_chat_presence_proto_rawDescGZIP() []byte {
 	return file_chat_presence_proto_rawDescData
 }
 
-var file_chat_presence_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_chat_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_chat_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_chat_presence_proto_goTypes = []any{
-	(UserStatus)(0),                   // 0: chat.UserStatus
-	(*MarkOnlineRequest)(nil),         // 1: chat.MarkOnlineRequest
-	(*MarkOfflineRequest)(nil),        // 2: chat.MarkOfflineRequest
-	(*UpdateLastSeenRequest)(nil),     // 3: chat.UpdateLastSeenRequest
-	(*GetPresenceRequest)(nil),        // 4: chat.GetPresenceRequest
-	(*GetBulkPresenceRequest)(nil),    // 5: chat.GetBulkPresenceRequest
-	(*GetOnlineUsersRequest)(nil),     // 6: chat.GetOnlineUsersRequest
-	(*GetRecentlyOnlineRequest)(nil),  // 7: chat.GetRecentlyOnlineRequest
-	(*GetPresenceResponse)(nil),       // 8: chat.GetPresenceResponse
-	(*GetBulkPresenceResponse)(nil),   // 9: chat.GetBulkPresenceResponse
-	(*GetOnlineUsersResponse)(nil),    // 10: chat.GetOnlineUsersResponse
-	(*GetRecentlyOnlineResponse)(nil), // 11: chat.GetRecentlyOnlineResponse
-	(*HealthCheckResponse)(nil),       // 12: chat.HealthCheckResponse
-	(*Presence)(nil),                  // 13: chat.Presence
-	(*RecentlyOnlineUser)(nil),        // 14: chat.RecentlyOnlineUser
-	nil,                               // 15: chat.GetBulkPresenceResponse.PresencesEntry
-	nil,                               // 16: chat.GetBulkPresenceResponse.ErrorsEntry
-	(*timestamppb.Timestamp)(nil),     // 17: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),             // 18: google.protobuf.Empty
+	(*OnConnectRequest)(nil),         // 0: chat.OnConnectRequest
+	(*OnDisconnectRequest)(nil),      // 1: chat.OnDisconnectRequest
+	(*OnHeartbeatRequest)(nil),       // 2: chat.OnHeartbeatRequest
+	(*GetPresenceRequest)(nil),       // 3: chat.GetPresenceRequest
+	(*GetOnlineFriendsRequest)(nil),  // 4: chat.GetOnlineFriendsRequest
+	(*EmptyResponse)(nil),            // 5: chat.EmptyResponse
+	(*GetPresenceResponse)(nil),      // 6: chat.GetPresenceResponse
+	(*GetOnlineFriendsResponse)(nil), // 7: chat.GetOnlineFriendsResponse
+	(*timestamppb.Timestamp)(nil),    // 8: google.protobuf.Timestamp
 }
 var file_chat_presence_proto_depIdxs = []int32{
-	17, // 0: chat.GetRecentlyOnlineRequest.since:type_name -> google.protobuf.Timestamp
-	13, // 1: chat.GetPresenceResponse.presence:type_name -> chat.Presence
-	15, // 2: chat.GetBulkPresenceResponse.presences:type_name -> chat.GetBulkPresenceResponse.PresencesEntry
-	16, // 3: chat.GetBulkPresenceResponse.errors:type_name -> chat.GetBulkPresenceResponse.ErrorsEntry
-	14, // 4: chat.GetRecentlyOnlineResponse.users:type_name -> chat.RecentlyOnlineUser
-	0,  // 5: chat.Presence.status:type_name -> chat.UserStatus
-	17, // 6: chat.Presence.last_seen:type_name -> google.protobuf.Timestamp
-	17, // 7: chat.RecentlyOnlineUser.last_seen:type_name -> google.protobuf.Timestamp
-	0,  // 8: chat.RecentlyOnlineUser.last_status:type_name -> chat.UserStatus
-	13, // 9: chat.GetBulkPresenceResponse.PresencesEntry.value:type_name -> chat.Presence
-	1,  // 10: chat.PresenceService.MarkOnline:input_type -> chat.MarkOnlineRequest
-	2,  // 11: chat.PresenceService.MarkOffline:input_type -> chat.MarkOfflineRequest
-	3,  // 12: chat.PresenceService.UpdateLastSeen:input_type -> chat.UpdateLastSeenRequest
-	4,  // 13: chat.PresenceService.GetPresence:input_type -> chat.GetPresenceRequest
-	5,  // 14: chat.PresenceService.GetBulkPresence:input_type -> chat.GetBulkPresenceRequest
-	6,  // 15: chat.PresenceService.GetOnlineUsers:input_type -> chat.GetOnlineUsersRequest
-	7,  // 16: chat.PresenceService.GetRecentlyOnline:input_type -> chat.GetRecentlyOnlineRequest
-	18, // 17: chat.PresenceService.HealthCheck:input_type -> google.protobuf.Empty
-	18, // 18: chat.PresenceService.MarkOnline:output_type -> google.protobuf.Empty
-	18, // 19: chat.PresenceService.MarkOffline:output_type -> google.protobuf.Empty
-	18, // 20: chat.PresenceService.UpdateLastSeen:output_type -> google.protobuf.Empty
-	8,  // 21: chat.PresenceService.GetPresence:output_type -> chat.GetPresenceResponse
-	9,  // 22: chat.PresenceService.GetBulkPresence:output_type -> chat.GetBulkPresenceResponse
-	10, // 23: chat.PresenceService.GetOnlineUsers:output_type -> chat.GetOnlineUsersResponse
-	11, // 24: chat.PresenceService.GetRecentlyOnline:output_type -> chat.GetRecentlyOnlineResponse
-	12, // 25: chat.PresenceService.HealthCheck:output_type -> chat.HealthCheckResponse
-	18, // [18:26] is the sub-list for method output_type
-	10, // [10:18] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	8, // 0: chat.GetPresenceResponse.last_seen:type_name -> google.protobuf.Timestamp
+	0, // 1: chat.Presence.OnConnect:input_type -> chat.OnConnectRequest
+	1, // 2: chat.Presence.OnDisconnect:input_type -> chat.OnDisconnectRequest
+	2, // 3: chat.Presence.OnHeartbeat:input_type -> chat.OnHeartbeatRequest
+	3, // 4: chat.Presence.GetPresence:input_type -> chat.GetPresenceRequest
+	4, // 5: chat.Presence.GetOnlineFriends:input_type -> chat.GetOnlineFriendsRequest
+	5, // 6: chat.Presence.OnConnect:output_type -> chat.EmptyResponse
+	5, // 7: chat.Presence.OnDisconnect:output_type -> chat.EmptyResponse
+	5, // 8: chat.Presence.OnHeartbeat:output_type -> chat.EmptyResponse
+	6, // 9: chat.Presence.GetPresence:output_type -> chat.GetPresenceResponse
+	7, // 10: chat.Presence.GetOnlineFriends:output_type -> chat.GetOnlineFriendsResponse
+	6, // [6:11] is the sub-list for method output_type
+	1, // [1:6] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_chat_presence_proto_init() }
@@ -957,24 +497,18 @@ func file_chat_presence_proto_init() {
 	if File_chat_presence_proto != nil {
 		return
 	}
-	file_chat_presence_proto_msgTypes[0].OneofWrappers = []any{}
-	file_chat_presence_proto_msgTypes[1].OneofWrappers = []any{}
-	file_chat_presence_proto_msgTypes[4].OneofWrappers = []any{}
-	file_chat_presence_proto_msgTypes[6].OneofWrappers = []any{}
-	file_chat_presence_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chat_presence_proto_rawDesc), len(file_chat_presence_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   16,
+			NumEnums:      0,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_chat_presence_proto_goTypes,
 		DependencyIndexes: file_chat_presence_proto_depIdxs,
-		EnumInfos:         file_chat_presence_proto_enumTypes,
 		MessageInfos:      file_chat_presence_proto_msgTypes,
 	}.Build()
 	File_chat_presence_proto = out.File
