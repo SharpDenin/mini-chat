@@ -1,4 +1,4 @@
-package transport
+package http
 
 import (
 	"chat_service/internal/room/service"

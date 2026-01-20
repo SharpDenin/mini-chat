@@ -1,9 +1,9 @@
 package user_mapper
 
 import (
+	hDto "profile_service/http/api_dto"
 	sDto "profile_service/internal/user/service/service_dto"
 	"profile_service/pkg/grpc_generated/profile"
-	hDto "profile_service/transport/api_dto"
 )
 
 func ConvertToServiceUser(u *sDto.GetUserResponse) *hDto.UserViewResponse {

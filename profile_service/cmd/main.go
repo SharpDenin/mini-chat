@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	_ "profile_service/docs"
+	"profile_service/http"
 	"profile_service/internal/user/config"
 	"profile_service/internal/user/repository/db"
 	"profile_service/internal/user/repository/profile_repo"
@@ -16,7 +17,6 @@ import (
 	"profile_service/pkg/grpc_client"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
-	"profile_service/transport"
 	"syscall"
 	"time"
 
@@ -120,7 +120,7 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	// Запуск HTTP-сервера
-	userHandler := transport.NewUserHandler(userService, authServer, log)
+	userHandler := http.NewUserHandler(userService, authServer, log)
 
 	// Подключение auth-middleware
 	authMiddleware := middleware_profile.NewAuthMiddleware(authServer, log)
