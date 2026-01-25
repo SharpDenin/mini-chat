@@ -9,20 +9,29 @@ import (
 )
 
 type Connection struct {
-	ws       *websocket.Conn
-	userId   int64
-	connId   int64
-	send     chan []byte
+	ws   *websocket.Conn
+	send chan []byte
+
+	userId int64
+	connId int64
+
+	ctx      context.Context
+	router   *Router
 	presence service.PresenceService
 	hub      *Hub
 }
 
-func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceService, hub *Hub) *Connection {
+// TODO: Точно ли нужно передавать ctx, router?
+func NewConnection(ws *websocket.Conn, userId int64, ctx context.Context, router *Router, presence service.PresenceService, hub *Hub) *Connection {
 	return &Connection{
-		ws:       ws,
-		userId:   userId,
-		connId:   time.Now().UnixNano(),
-		send:     make(chan []byte, 256),
+		ws:   ws,
+		send: make(chan []byte, 256),
+
+		userId: userId,
+		connId: time.Now().UnixNano(),
+
+		ctx:      ctx,
+		router:   router,
 		presence: presence,
 		hub:      hub,
 	}

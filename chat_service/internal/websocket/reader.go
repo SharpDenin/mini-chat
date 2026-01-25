@@ -2,14 +2,16 @@ package websocket
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
 func (c *Connection) readLoop() {
 	defer c.close()
 
-	c.ws.SetReadLimit(512)
+	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
+
 	c.ws.SetPongHandler(func(string) error {
 		_ = c.presence.OnHeartbeat(context.Background(), c.connId)
 		c.ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -17,12 +19,16 @@ func (c *Connection) readLoop() {
 	})
 
 	for {
-		_, msg, err := c.ws.ReadMessage()
+		_, data, err := c.ws.ReadMessage()
 		if err != nil {
 			return
 		}
 
-		// TODO: decode message & route
-		_ = msg
+		var msg WSMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
+			continue // плохой клиент
+		}
+
+		c.Route(c.ws, c, msg)
 	}
 }

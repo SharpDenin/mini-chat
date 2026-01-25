@@ -29,6 +29,7 @@ func NewWSHandler(hub *Hub, presence service.PresenceService) http.HandlerFunc {
 			return
 		}
 
+		// TODO: Что передавать в connection?
 		conn := NewConnection(ws, userId, presence, hub)
 		hub.Register(conn)
 		conn.Start()

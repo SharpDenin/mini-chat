@@ -19,10 +19,16 @@ func (c *Connection) writeLoop() {
 			if !ok {
 				return
 			}
-			_ = c.ws.WriteMessage(websocket.TextMessage, msg)
+			c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.ws.WriteMessage(websocket.TextMessage, msg); err != nil {
+				return
+			}
 
 		case <-ticker.C:
-			_ = c.ws.WriteMessage(websocket.PingMessage, nil)
+			c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
 		}
 	}
 }
