@@ -3,6 +3,7 @@ package websocket
 import (
 	"chat_service/internal/helpers"
 	"chat_service/internal/presence/service"
+	"context"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -16,7 +17,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewWSHandler(hub *Hub, presence service.PresenceService) http.HandlerFunc {
+func NewWSHandler(ctx context.Context, router *Router, hub *Hub, presence service.PresenceService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.GetUserIdFromContext(r.Context())
 		if err != nil {
@@ -29,8 +30,7 @@ func NewWSHandler(hub *Hub, presence service.PresenceService) http.HandlerFunc {
 			return
 		}
 
-		// TODO: Что передавать в connection?
-		conn := NewConnection(ws, userId, presence, hub)
+		conn := NewConnection(ws, userId, ctx, router, presence, hub)
 		hub.Register(conn)
 		conn.Start()
 	}

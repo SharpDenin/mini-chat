@@ -21,7 +21,6 @@ type Connection struct {
 	hub      *Hub
 }
 
-// TODO: Точно ли нужно передавать ctx, router?
 func NewConnection(ws *websocket.Conn, userId int64, ctx context.Context, router *Router, presence service.PresenceService, hub *Hub) *Connection {
 	return &Connection{
 		ws:   ws,
