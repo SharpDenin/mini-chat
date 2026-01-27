@@ -30,7 +30,7 @@ func NewWSHandler(ctx context.Context, router *Router, hub *Hub, presence servic
 			return
 		}
 
-		conn := NewConnection(ws, userId, ctx, router, presence, hub)
+		conn := NewConnection(ws, userId, presence, ctx, router, hub)
 		hub.Register(conn)
 		conn.Start()
 	}

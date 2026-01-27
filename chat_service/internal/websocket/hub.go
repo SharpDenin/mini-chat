@@ -1,6 +1,11 @@
 package websocket
 
-import "time"
+import (
+	"chat_service/internal/presence/service"
+	"encoding/json"
+	"log"
+	"time"
+)
 
 const (
 	writeWait      = 10 * time.Second
@@ -10,16 +15,20 @@ const (
 )
 
 type Hub struct {
-	register   chan *Connection
-	unregister chan *Connection
-	conns      map[int64]map[int64]*Connection
+	register    chan *Connection
+	unregister  chan *Connection
+	connections map[*Connection]struct{}
+
+	presenceSub service.PresenceSubscriber
 }
 
-func NewHub() *Hub {
+func NewHub(presenceSub service.PresenceSubscriber) *Hub {
 	return &Hub{
-		register:   make(chan *Connection),
-		unregister: make(chan *Connection),
-		conns:      make(map[int64]map[int64]*Connection),
+		register:    make(chan *Connection),
+		unregister:  make(chan *Connection),
+		connections: make(map[*Connection]struct{}),
+
+		presenceSub: presenceSub,
 	}
 }
 
@@ -27,18 +36,13 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case c := <-h.register:
-			if h.conns[c.userId] == nil {
-				h.conns[c.userId] = make(map[int64]*Connection)
-			}
-			h.conns[c.userId][c.connId] = c
+			h.connections[c] = struct{}{}
 
 		case c := <-h.unregister:
-			if userConns, ok := h.conns[c.userId]; ok {
-				delete(userConns, c.connId)
-				if len(userConns) == 0 {
-					delete(h.conns, c.userId)
-				}
-			}
+			delete(h.connections, c)
+
+		case evt := <-h.presenceSub:
+			h.broadcastPresence(evt)
 		}
 	}
 }
@@ -49,4 +53,29 @@ func (h *Hub) Register(c *Connection) {
 
 func (h *Hub) Unregister(c *Connection) {
 	h.unregister <- c
+}
+
+func (h *Hub) broadcastPresence(evt service.PresenceEvent) {
+	payload, err := json.Marshal(map[string]any{
+		"user_id": evt.UserId,
+		"event":   evt.Type,
+	})
+	if err != nil {
+		log.Printf("failed to marshal presence payload: %v", err)
+		return
+	}
+
+	msg, err := json.Marshal(WSMessage{
+		Type:    MessagePresence,
+		Payload: payload,
+	})
+	if err != nil {
+		log.Printf("failed to marshal presence message: %v", err)
+		return
+	}
+
+	for c := range h.connections {
+		c.send <- msg
+	}
+
 }

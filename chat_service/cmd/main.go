@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "chat_service/docs"
+	transport "chat_service/http"
 	pConfig "chat_service/internal/presence/config"
 	pRepo "chat_service/internal/presence/repository"
 	"chat_service/internal/presence/service"
@@ -9,11 +10,11 @@ import (
 	rRepo "chat_service/internal/room/repository"
 	"chat_service/internal/room/repository/db"
 	rService "chat_service/internal/room/service"
+	"chat_service/internal/websocket"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"chat_service/pkg/grpc_generated/chat"
 	"chat_service/pkg/grpc_server"
-	"chat_service/transport"
 	"context"
 	"errors"
 	"net"
@@ -102,10 +103,15 @@ func main() {
 	presenceRepo := pRepo.NewPresenceRepo(rdb, redisCfg.IdleThreshold)
 
 	// Инициализация presence-сервиса
-	presenceService := service.NewPresenceService(presenceRepo, redisCfg)
+	bus := service.NewPresenceEventBus()
+	presenceService := service.NewPresenceService(presenceRepo, bus, redisCfg)
 
 	// Инициализация gRPC-сервера
 	presenceServer := grpc_server.NewGRPCServer(presenceService)
+
+	// Подписка Hub к Presence
+	hub := websocket.NewHub(bus.Subscribe())
+	go hub.Run()
 
 	// Запуск gRPC-сервера
 	log.Info("Starting gRPC server...")

@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 	_ "profile_service/docs"
-	"profile_service/http"
+	transport "profile_service/http"
 	"profile_service/internal/user/config"
 	"profile_service/internal/user/repository/db"
 	"profile_service/internal/user/repository/profile_repo"
@@ -120,7 +120,7 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	// Запуск HTTP-сервера
-	userHandler := http.NewUserHandler(userService, authServer, log)
+	userHandler := transport.NewUserHandler(userService, authServer, log)
 
 	// Подключение auth-middleware
 	authMiddleware := middleware_profile.NewAuthMiddleware(authServer, log)

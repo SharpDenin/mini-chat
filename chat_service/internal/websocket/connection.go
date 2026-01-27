@@ -21,7 +21,8 @@ type Connection struct {
 	hub      *Hub
 }
 
-func NewConnection(ws *websocket.Conn, userId int64, ctx context.Context, router *Router, presence service.PresenceService, hub *Hub) *Connection {
+func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceService,
+	ctx context.Context, router *Router, hub *Hub) *Connection {
 	return &Connection{
 		ws:   ws,
 		send: make(chan []byte, 256),
@@ -29,9 +30,9 @@ func NewConnection(ws *websocket.Conn, userId int64, ctx context.Context, router
 		userId: userId,
 		connId: time.Now().UnixNano(),
 
+		presence: presence,
 		ctx:      ctx,
 		router:   router,
-		presence: presence,
 		hub:      hub,
 	}
 }

@@ -29,6 +29,6 @@ func (c *Connection) readLoop() {
 			continue // плохой клиент
 		}
 
-		c.Route(c.ws, c, msg)
+		c.router.Route(c.ctx, c, msg)
 	}
 }
