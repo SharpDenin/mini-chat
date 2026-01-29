@@ -15,7 +15,7 @@ func (c *Connection) writeLoop() {
 
 	for {
 		select {
-		case msg, ok := <-c.send:
+		case msg, ok := <-c.Send:
 			if !ok {
 				return
 			}

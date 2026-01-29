@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"chat_service/internal/websocket/dto"
 	"context"
 	"encoding/json"
 	"time"
@@ -13,7 +14,7 @@ func (c *Connection) readLoop() {
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
 
 	c.ws.SetPongHandler(func(string) error {
-		_ = c.presence.OnHeartbeat(context.Background(), c.connId)
+		_ = c.Presence.OnHeartbeat(context.Background(), c.connId)
 		c.ws.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
@@ -24,7 +25,7 @@ func (c *Connection) readLoop() {
 			return
 		}
 
-		var msg WSMessage
+		var msg dto.WSMessage
 		if err := json.Unmarshal(data, &msg); err != nil {
 			continue // плохой клиент
 		}

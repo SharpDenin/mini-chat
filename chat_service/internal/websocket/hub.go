@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"chat_service/internal/presence/service"
+	"chat_service/internal/websocket/dto"
 	"encoding/json"
 	"log"
 	"time"
@@ -65,8 +66,8 @@ func (h *Hub) broadcastPresence(evt service.PresenceEvent) {
 		return
 	}
 
-	msg, err := json.Marshal(WSMessage{
-		Type:    MessagePresence,
+	msg, err := json.Marshal(dto.WSMessage{
+		Type:    dto.MessagePresence,
 		Payload: payload,
 	})
 	if err != nil {
@@ -75,7 +76,8 @@ func (h *Hub) broadcastPresence(evt service.PresenceEvent) {
 	}
 
 	for c := range h.connections {
-		c.send <- msg
+		if _, ok := c.Subscribed[evt.UserId]; ok {
+			c.Send <- msg
+		}
 	}
-
 }

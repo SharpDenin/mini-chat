@@ -1,4 +1,4 @@
-package websocket
+package dto
 
 import "encoding/json"
 

@@ -10,35 +10,39 @@ import (
 
 type Connection struct {
 	ws   *websocket.Conn
-	send chan []byte
+	Send chan []byte
 
-	userId int64
+	UserId int64
 	connId int64
 
 	ctx      context.Context
 	router   *Router
-	presence service.PresenceService
+	Presence service.PresenceService
 	hub      *Hub
+
+	Subscribed map[int64]struct{}
 }
 
 func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceService,
 	ctx context.Context, router *Router, hub *Hub) *Connection {
 	return &Connection{
 		ws:   ws,
-		send: make(chan []byte, 256),
+		Send: make(chan []byte, 256),
 
-		userId: userId,
+		UserId: userId,
 		connId: time.Now().UnixNano(),
 
-		presence: presence,
+		Presence: presence,
 		ctx:      ctx,
 		router:   router,
 		hub:      hub,
+
+		Subscribed: make(map[int64]struct{}),
 	}
 }
 
 func (c *Connection) Start() {
-	_ = c.presence.OnConnect(context.Background(), c.userId, c.connId, "web")
+	_ = c.Presence.OnConnect(context.Background(), c.UserId, c.connId, "web")
 
 	go c.readLoop()
 	go c.writeLoop()
@@ -46,6 +50,6 @@ func (c *Connection) Start() {
 
 func (c *Connection) close() {
 	c.hub.Unregister(c)
-	_ = c.presence.OnDisconnect(context.Background(), c.userId, c.connId)
+	_ = c.Presence.OnDisconnect(context.Background(), c.UserId, c.connId)
 	_ = c.ws.Close()
 }
