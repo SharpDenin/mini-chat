@@ -18,7 +18,7 @@ type Connection struct {
 	ctx      context.Context
 	router   *Router
 	Presence service.PresenceService
-	hub      *Hub
+	Hub      *Hub
 
 	Subscribed map[int64]struct{}
 }
@@ -35,7 +35,7 @@ func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceSe
 		Presence: presence,
 		ctx:      ctx,
 		router:   router,
-		hub:      hub,
+		Hub:      hub,
 
 		Subscribed: make(map[int64]struct{}),
 	}
@@ -49,7 +49,7 @@ func (c *Connection) Start() {
 }
 
 func (c *Connection) close() {
-	c.hub.Unregister(c)
+	c.Hub.Unregister(c)
 	_ = c.Presence.OnDisconnect(context.Background(), c.UserId, c.connId)
 	_ = c.ws.Close()
 }
