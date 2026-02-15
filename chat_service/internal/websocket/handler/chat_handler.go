@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"chat_service/internal/pubsub"
 	"chat_service/internal/websocket"
 	"chat_service/internal/websocket/dto"
+	"chat_service/internal/websocket/helper"
 	"context"
 	"encoding/json"
 )
@@ -26,17 +28,23 @@ func ChatHandler(ctx context.Context, c *websocket.Connection, msg dto.WSMessage
 }
 
 func handleDirect(c *websocket.Connection, payload dto.ChatPayload) {
-	pl, _ := json.Marshal(map[string]any{
+	data, _ := json.Marshal(map[string]any{
+		"to_user_id":   payload.ToUserId,
 		"from_user_id": c.UserId,
 		"text":         payload.Text,
 	})
 
-	resp, _ := json.Marshal(dto.WSMessage{
-		Type:    dto.MessageChat,
-		Payload: pl,
-	})
+	c.Hub.SendToUser(payload.ToUserId, helper.BuildChatWS(data))
 
-	c.Hub.SendToUser(payload.ToUserId, resp)
+	event := pubsub.RedisEvent{
+		Type:       "direct",
+		InstanceId: c.Hub.InstanceId,
+		Data:       data,
+	}
+
+	raw, _ := json.Marshal(event)
+
+	_ = c.Hub.Pubsub.Publish(c.Ctx, "chat.direct", raw)
 }
 
 func handleRoom(c *websocket.Connection, payload dto.ChatPayload) {
@@ -50,16 +58,21 @@ func handleRoom(c *websocket.Connection, payload dto.ChatPayload) {
 		return
 	}
 
-	pl, _ := json.Marshal(map[string]any{
+	data, _ := json.Marshal(map[string]any{
 		"room_id":      payload.RoomId,
 		"from_user_id": c.UserId,
 		"text":         payload.Text,
 	})
 
-	resp, _ := json.Marshal(dto.WSMessage{
-		Type:    dto.MessageChat,
-		Payload: pl,
-	})
+	c.Hub.BroadcastToRoom(payload.RoomId, helper.BuildChatWS(data))
 
-	c.Hub.BroadcastToRoom(payload.RoomId, resp)
+	event := pubsub.RedisEvent{
+		Type:       "room",
+		InstanceId: c.Hub.InstanceId,
+		Data:       data,
+	}
+
+	raw, _ := json.Marshal(event)
+
+	_ = c.Hub.Pubsub.Publish(c.Ctx, "chat.room", raw)
 }

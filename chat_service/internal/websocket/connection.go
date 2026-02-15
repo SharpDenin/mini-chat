@@ -15,7 +15,7 @@ type Connection struct {
 	UserId int64
 	connId int64
 
-	ctx      context.Context
+	Ctx      context.Context
 	router   *Router
 	Presence service.PresenceService
 	Hub      *Hub
@@ -33,7 +33,7 @@ func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceSe
 		connId: time.Now().UnixNano(),
 
 		Presence: presence,
-		ctx:      ctx,
+		Ctx:      ctx,
 		router:   router,
 		Hub:      hub,
 
@@ -49,7 +49,7 @@ func (c *Connection) Start() {
 }
 
 func (c *Connection) close() {
-	c.Hub.Unregister(c)
+	c.Hub.UnregisterConnection(c)
 	_ = c.Presence.OnDisconnect(context.Background(), c.UserId, c.connId)
 	_ = c.ws.Close()
 }

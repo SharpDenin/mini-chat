@@ -32,7 +32,7 @@ func NewWSHandler(ctx context.Context, router *websocket2.Router, hub *websocket
 		}
 
 		conn := websocket2.NewConnection(ws, userId, presence, ctx, router, hub)
-		hub.Register(conn)
+		hub.RegisterConnection(conn)
 		conn.Start()
 	}
 }

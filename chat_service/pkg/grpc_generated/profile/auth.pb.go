@@ -393,10 +393,10 @@ var file_proto_auth_proto_goTypes = []any{
 	(*TokenResponse)(nil),    // 5: auth.TokenResponse
 }
 var file_proto_auth_proto_depIdxs = []int32{
-	0, // 0: auth.AuthService.Register:input_type -> auth.RegisterRequest
+	0, // 0: auth.AuthService.RegisterConnection:input_type -> auth.RegisterRequest
 	2, // 1: auth.AuthService.Login:input_type -> auth.LoginRequest
 	4, // 2: auth.AuthService.ValidateToken:input_type -> auth.TokenRequest
-	1, // 3: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	1, // 3: auth.AuthService.RegisterConnection:output_type -> auth.RegisterResponse
 	3, // 4: auth.AuthService.Login:output_type -> auth.LoginResponse
 	5, // 5: auth.AuthService.ValidateToken:output_type -> auth.TokenResponse
 	3, // [3:6] is the sub-list for method output_type
