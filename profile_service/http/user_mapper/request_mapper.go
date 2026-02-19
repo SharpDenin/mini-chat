@@ -1,9 +1,9 @@
 package user_mapper
 
 import (
+	hDto "profile_service/http/api_dto"
 	"profile_service/internal/user/service/service_dto"
 	"profile_service/pkg/grpc_generated/profile"
-	hDto "profile_service/transport/api_dto"
 )
 
 func ConvertToServiceFilter(f *hDto.UserFilterRequest) *service_dto.SearchUserFilter {

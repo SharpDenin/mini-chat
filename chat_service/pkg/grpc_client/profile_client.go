@@ -11,8 +11,9 @@ import (
 )
 
 type ProfileClient struct {
-	authClient profile.AuthServiceClient
-	authConn   *grpc.ClientConn
+	authClient  profile.AuthServiceClient
+	authzClient profile.AuthorizationServiceClient
+	authConn    *grpc.ClientConn
 
 	userDirClient profile.UserDirectoryClient
 	userDirConn   *grpc.ClientConn
@@ -24,6 +25,7 @@ func NewProfileClient(authAddress, userDirAddress string) (*ProfileClient, error
 		return nil, fmt.Errorf("failed to dial auth service: %w", err)
 	}
 	authClient := profile.NewAuthServiceClient(authConn)
+	authzClient := profile.NewAuthorizationServiceClient(authConn)
 
 	userDirConn, err := grpc.Dial(userDirAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -37,6 +39,7 @@ func NewProfileClient(authAddress, userDirAddress string) (*ProfileClient, error
 
 	return &ProfileClient{
 		authClient:    authClient,
+		authzClient:   authzClient,
 		authConn:      authConn,
 		userDirClient: userDirClient,
 		userDirConn:   userDirConn,
@@ -71,4 +74,17 @@ func (c *ProfileClient) UserExists(ctx context.Context, req *profile.UserExistsR
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	return c.userDirClient.UserExists(ctx, req)
+}
+
+func (c *ProfileClient) CanSendDirect(ctx context.Context, from, to int64) (*profile.CanSendDirectResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	return c.authzClient.CanSendDirect(
+		ctx,
+		&profile.CanSendDirectRequest{
+			FromUserId: from,
+			ToUserId:   to,
+		},
+	)
 }

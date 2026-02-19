@@ -14,25 +14,54 @@ import (
 
 type presenceService struct {
 	repo          repository.PresenceRepo
+	bus           *PresenceEventBus
 	idleThreshold time.Duration
 }
 
 func NewPresenceService(
 	repo repository.PresenceRepo,
+	bus *PresenceEventBus,
 	cfg *config.RedisConfig,
 ) PresenceService {
 	return &presenceService{
 		repo:          repo,
+		bus:           bus,
 		idleThreshold: cfg.IdleThreshold,
 	}
 }
 
 func (s *presenceService) OnConnect(ctx context.Context, userId, connId int64, device string) error {
-	return s.repo.AddConnection(ctx, userId, connId, device)
+	err := s.repo.AddConnection(ctx, userId, connId, device)
+	if err != nil {
+		return err
+	}
+
+	conns, _ := s.repo.GetUserConnections(ctx, userId)
+	if len(conns) == 1 {
+		s.bus.Publish(PresenceEvent{
+			Type:   EventUserOnline,
+			UserId: userId,
+		})
+	}
+
+	return nil
 }
 
 func (s *presenceService) OnDisconnect(ctx context.Context, userId, connId int64) error {
-	return s.repo.RemoveConnection(ctx, userId, connId)
+	err := s.repo.RemoveConnection(ctx, userId, connId)
+	if err != nil {
+		return err
+	}
+
+	conns, _ := s.repo.GetUserConnections(ctx, userId)
+	if len(conns) == 0 {
+		s.bus.Publish(PresenceEvent{
+			Type:   EventUserOffline,
+			UserId: userId,
+		})
+	}
+
+	return nil
 }
 
 func (s *presenceService) OnHeartbeat(ctx context.Context, connId int64) error {
