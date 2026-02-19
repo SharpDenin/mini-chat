@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"chat_service/internal/authz"
 	"chat_service/internal/helpers"
 	"chat_service/internal/presence/service"
-	websocket2 "chat_service/internal/websocket"
+	webS "chat_service/internal/websocket"
 	"context"
 	"net/http"
 
@@ -18,7 +19,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewWSHandler(ctx context.Context, router *websocket2.Router, hub *websocket2.Hub, presence service.PresenceService) http.HandlerFunc {
+func NewWSHandler(ctx context.Context, router *webS.Router, hub *webS.Hub, presence service.PresenceService, authz authz.AuthServiceInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.GetUserIdFromContext(r.Context())
 		if err != nil {
@@ -31,7 +32,7 @@ func NewWSHandler(ctx context.Context, router *websocket2.Router, hub *websocket
 			return
 		}
 
-		conn := websocket2.NewConnection(ws, userId, presence, ctx, router, hub)
+		conn := webS.NewConnection(ws, userId, presence, ctx, router, hub, authz)
 		hub.RegisterConnection(conn)
 		conn.Start()
 	}

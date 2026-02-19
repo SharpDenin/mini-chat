@@ -79,10 +79,12 @@ func main() {
 	// Инициализация user-репозитория и user-сервиса
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
 	userService := service.NewUserService(presenceClient, userRepo, log)
+	relationChecker := service.NewRelationChecker(userService)
 
 	// Инициализация gRPC-серверов
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
 	directoryServer := grpc_server.NewDirectoryServer(log, userService)
+	authzServer := grpc_server.NewAuthorizationServer(relationChecker)
 
 	// Запуск gRPC серверов
 	log.Info("Starting gRPC servers...")
@@ -94,6 +96,7 @@ func main() {
 	}
 	authGrpcServer := grpc.NewServer()
 	profile.RegisterAuthServiceServer(authGrpcServer, authServer)
+	profile.RegisterAuthorizationServiceServer(authGrpcServer, authzServer)
 	go func() {
 		log.Info("gRPC auth server starting on :50053")
 		if err := authGrpcServer.Serve(authListener); err != nil {

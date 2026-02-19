@@ -7,6 +7,8 @@ import (
 	"chat_service/internal/websocket/helper"
 	"context"
 	"encoding/json"
+
+	"github.com/sirupsen/logrus"
 )
 
 func ChatHandler(ctx context.Context, c *websocket.Connection, msg dto.WSMessage) {
@@ -28,6 +30,16 @@ func ChatHandler(ctx context.Context, c *websocket.Connection, msg dto.WSMessage
 }
 
 func handleDirect(c *websocket.Connection, payload dto.ChatPayload) {
+	allowed, err := c.Authz.CanSendDirect(c.Ctx, c.UserId, payload.ToUserId)
+	if err != nil {
+		logrus.Debug("authz_error")
+		return
+	}
+
+	if !allowed {
+		logrus.Debug("not_allowed")
+		return
+	}
 	data, _ := json.Marshal(map[string]any{
 		"to_user_id":   payload.ToUserId,
 		"from_user_id": c.UserId,

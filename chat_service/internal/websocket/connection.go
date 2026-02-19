@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"chat_service/internal/authz"
 	"chat_service/internal/presence/service"
 	"context"
 	"time"
@@ -20,11 +21,13 @@ type Connection struct {
 	Presence service.PresenceService
 	Hub      *Hub
 
+	Authz authz.AuthServiceInterface
+
 	Subscribed map[int64]struct{}
 }
 
 func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceService,
-	ctx context.Context, router *Router, hub *Hub) *Connection {
+	ctx context.Context, router *Router, hub *Hub, authz authz.AuthServiceInterface) *Connection {
 	return &Connection{
 		ws:   ws,
 		Send: make(chan []byte, 256),
@@ -36,6 +39,8 @@ func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceSe
 		Ctx:      ctx,
 		router:   router,
 		Hub:      hub,
+
+		Authz: authz,
 
 		Subscribed: make(map[int64]struct{}),
 	}

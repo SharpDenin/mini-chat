@@ -3,14 +3,17 @@ package main
 import (
 	_ "chat_service/docs"
 	transport "chat_service/http"
+	"chat_service/internal/authz"
 	pConfig "chat_service/internal/presence/config"
 	pRepo "chat_service/internal/presence/repository"
 	"chat_service/internal/presence/service"
+	"chat_service/internal/pubsub"
 	rConfig "chat_service/internal/room/config"
 	rRepo "chat_service/internal/room/repository"
 	"chat_service/internal/room/repository/db"
 	rService "chat_service/internal/room/service"
 	"chat_service/internal/websocket"
+	"chat_service/internal/websocket/handler"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
 	"chat_service/pkg/grpc_generated/chat"
@@ -45,7 +48,8 @@ func main() {
 	// Инициализация логгера и контекста
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
-	ctx := context.Background()
+	ctx, cancelMain := context.WithCancel(context.Background())
+	defer cancelMain()
 
 	// Загрузка конфигурации room/roomMember-сервиса
 	rCfg, err := rConfig.Load()
@@ -94,10 +98,13 @@ func main() {
 	roomService := rService.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
 	roomMemberService := rService.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
 
+	authzService := authz.NewGrpcAuthz(profileClient)
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr: redisCfg.RedisPort,
 		DB:   redisCfg.RedisDb,
 	})
+	defer rdb.Close()
 
 	// Инициализация presence-репозитория
 	presenceRepo := pRepo.NewPresenceRepo(rdb, redisCfg.IdleThreshold)
@@ -106,12 +113,15 @@ func main() {
 	bus := service.NewPresenceEventBus()
 	presenceService := service.NewPresenceService(presenceRepo, bus, redisCfg)
 
+	pb := pubsub.NewRedisPubSub(rdb)
+
 	// Инициализация gRPC-сервера
 	presenceServer := grpc_server.NewGRPCServer(presenceService)
 
 	// Подписка Hub к Presence
-	hub := websocket.NewHub(bus.Subscribe())
-	go hub.Run()
+	instance, _ := os.Hostname()
+	hub := websocket.NewHub(bus.Subscribe(), pb, instance)
+	go hub.Run(ctx)
 
 	// Запуск gRPC-сервера
 	log.Info("Starting gRPC server...")
@@ -137,6 +147,13 @@ func main() {
 	router.Use(
 		gin.Recovery(),
 		middleware_chat.ErrorMiddleware(log),
+	)
+
+	wsRouter := websocket.NewRouter()
+	wsHandler := handler.NewWSHandler(ctx, wsRouter, hub, presenceService, authzService)
+	router.GET("/ws",
+		middleware_chat.NewAuthMiddleware(profileClient, log),
+		gin.WrapF(wsHandler),
 	)
 
 	// Регистрация методов API
@@ -200,6 +217,8 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Errorf("Server forced to shutdown: %v", err)
 	}
-
+	//cancelMain()
+	//presenceGrpcServer.GracefulStop()
+	//_ = rdb.Close()
 	log.Info("Server exiting properly")
 }
