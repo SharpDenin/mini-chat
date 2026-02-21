@@ -9,6 +9,7 @@ type GetUserResponse struct {
 	Name      string
 	Email     string
 	Password  string
+	Status    string
 	CreatedAt time.Time
 }
 

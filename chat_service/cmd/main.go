@@ -150,11 +150,8 @@ func main() {
 	)
 
 	wsRouter := websocket.NewRouter()
-	wsHandler := handler.NewWSHandler(ctx, wsRouter, hub, presenceService, authzService)
-	router.GET("/ws",
-		middleware_chat.NewAuthMiddleware(profileClient, log),
-		gin.WrapF(wsHandler),
-	)
+	wsHandler := handler.NewWSHandler(ctx, wsRouter, hub, presenceService, authzService, profileClient)
+	router.GET("/ws", gin.WrapF(wsHandler))
 
 	// Регистрация методов API
 	api := router.Group("/api/v1")

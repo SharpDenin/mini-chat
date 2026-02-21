@@ -1,10 +1,10 @@
 package http
 
 import (
+	"chat_service/http/api_dto"
+	"chat_service/http/room_mapper"
 	"chat_service/internal/room/service"
 	"chat_service/middleware_chat"
-	"chat_service/transport/api_dto"
-	"chat_service/transport/room_mapper"
 	"net/http"
 	"os"
 	"strconv"

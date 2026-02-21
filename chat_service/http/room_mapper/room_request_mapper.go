@@ -1,8 +1,8 @@
 package room_mapper
 
 import (
+	"chat_service/http/api_dto"
 	"chat_service/internal/room/service/dto"
-	"chat_service/transport/api_dto"
 )
 
 func SearchQueryToServiceFilter(r *api_dto.SearchRoomRequest) *dto.SearchFilter {

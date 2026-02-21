@@ -11,7 +11,7 @@ import (
 )
 
 type PresenceClient struct {
-	presenceClient chat.PresenceServiceClient
+	presenceClient chat.PresenceClient
 	presenceConn   *grpc.ClientConn
 }
 
@@ -20,7 +20,7 @@ func NewPresenceClient(presenceAddress string) (*PresenceClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fail to dial presence service: %v", err)
 	}
-	presenceClient := chat.NewPresenceServiceClient(presenceConn)
+	presenceClient := chat.NewPresenceClient(presenceConn)
 
 	return &PresenceClient{
 		presenceClient: presenceClient,
@@ -43,50 +43,32 @@ func (pc *PresenceClient) Close() error {
 	return nil
 }
 
-func (pc *PresenceClient) GetRecentlyOnline(ctx context.Context, req *chat.GetRecentlyOnlineRequest, opt ...grpc.CallOption) (*chat.GetRecentlyOnlineResponse, error) {
+func (pc *PresenceClient) OnConnect(ctx context.Context, req *chat.OnConnectRequest, opts ...grpc.CallOption) (*chat.EmptyResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return pc.presenceClient.GetRecentlyOnline(ctx, req, opt...)
+	return pc.presenceClient.OnConnect(ctx, req)
+}
+
+func (pc *PresenceClient) OnDisconnect(ctx context.Context, req *chat.OnDisconnectRequest, opts ...grpc.CallOption) (*chat.EmptyResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return pc.presenceClient.OnDisconnect(ctx, req)
+}
+
+func (pc *PresenceClient) OnHeartbeat(ctx context.Context, req *chat.OnHeartbeatRequest, opts ...grpc.CallOption) (*chat.EmptyResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return pc.presenceClient.OnHeartbeat(ctx, req)
 }
 
 func (pc *PresenceClient) GetPresence(ctx context.Context, req *chat.GetPresenceRequest) (*chat.GetPresenceResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return pc.presenceClient.GetPresence(ctx, req)
 }
 
-func (pc *PresenceClient) GetBulkPresence(ctx context.Context, req *chat.GetBulkPresenceRequest) (*chat.GetBulkPresenceResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+func (pc *PresenceClient) GetOnlineFriends(ctx context.Context, req *chat.GetOnlineFriendsRequest, opts ...grpc.CallOption) (*chat.GetOnlineFriendsResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return pc.presenceClient.GetBulkPresence(ctx, req)
-}
-
-func (pc *PresenceClient) MarkOnline(ctx context.Context, req *chat.MarkOnlineRequest, opts ...grpc.CallOption) error {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	_, err := pc.presenceClient.MarkOnline(ctx, req, opts...)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (pc *PresenceClient) MarkOffline(ctx context.Context, req *chat.MarkOfflineRequest, opts ...grpc.CallOption) error {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	_, err := pc.presenceClient.MarkOffline(ctx, req, opts...)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (pc *PresenceClient) UpdateLastSeen(ctx context.Context, req *chat.UpdateLastSeenRequest, opts ...grpc.CallOption) error {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	_, err := pc.presenceClient.UpdateLastSeen(ctx, req, opts...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return pc.presenceClient.GetOnlineFriends(ctx, req)
 }
