@@ -29,6 +29,10 @@ go.work.sum
 *.env
 **/.env
 
+.env.docker
+*.env.docker
+**/.env.docker
+
 # Editor/IDE
 .idea/
 # .vscode/

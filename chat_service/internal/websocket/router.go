@@ -23,6 +23,8 @@ func (r *Router) Register(t dto.MessageType, h HandlerFunc) {
 }
 
 func (r *Router) Route(ctx context.Context, c *Connection, msg dto.WSMessage) {
+	log.Printf("[ws] incoming type: %s", msg.Type)
+
 	h, ok := r.handlers[msg.Type]
 	if !ok {
 		log.Printf("[ws] unknown message type: %s", msg.Type)

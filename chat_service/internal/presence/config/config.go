@@ -11,7 +11,8 @@ import (
 )
 
 type RedisConfig struct {
-	RedisPort     string
+	Addr          string
+	Password      string
 	RedisDb       int
 	IdleThreshold time.Duration
 }
@@ -33,7 +34,8 @@ func RedisCfgLoad() (*RedisConfig, error) {
 	}
 
 	config := &RedisConfig{
-		RedisPort:     os.Getenv("REDIS_PORT"),
+		Addr:          os.Getenv("REDIS_ADDR"),
+		Password:      os.Getenv("REDIS_PASSWORD"),
 		RedisDb:       toInt("REDIS_DB"),
 		IdleThreshold: toDuration("IDLE_THRESHOLD"),
 	}

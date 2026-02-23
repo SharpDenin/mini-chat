@@ -61,7 +61,6 @@ func NewWSHandler(ctx context.Context, router *webS.Router, hub *webS.Hub,
 		}
 
 		conn := webS.NewConnection(ws, userId, presence, ctx, router, hub, authz)
-		hub.RegisterConnection(conn)
 		conn.Start()
 	}
 }

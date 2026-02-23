@@ -13,6 +13,7 @@ import (
 	"chat_service/internal/room/repository/db"
 	rService "chat_service/internal/room/service"
 	"chat_service/internal/websocket"
+	"chat_service/internal/websocket/dto"
 	"chat_service/internal/websocket/handler"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
@@ -101,8 +102,9 @@ func main() {
 	authzService := authz.NewGrpcAuthz(profileClient)
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: redisCfg.RedisPort,
-		DB:   redisCfg.RedisDb,
+		Addr:     redisCfg.Addr,
+		Password: redisCfg.Password,
+		DB:       redisCfg.RedisDb,
 	})
 	defer rdb.Close()
 
@@ -150,6 +152,8 @@ func main() {
 	)
 
 	wsRouter := websocket.NewRouter()
+	wsRouter.Register(dto.MessagePresence, handler.PresenceHandler)
+	wsRouter.Register(dto.MessageChat, handler.ChatHandler)
 	wsHandler := handler.NewWSHandler(ctx, wsRouter, hub, presenceService, authzService, profileClient)
 	router.GET("/ws", gin.WrapF(wsHandler))
 
