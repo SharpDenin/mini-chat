@@ -4,7 +4,6 @@ import (
 	"chat_service/internal/presence/service"
 	"chat_service/internal/pubsub"
 	"chat_service/internal/websocket/dto"
-	"chat_service/internal/websocket/helper"
 	"context"
 	"encoding/json"
 	"log"
@@ -200,7 +199,7 @@ func (h *Hub) handleRedisDirect(raw []byte) {
 		return
 	}
 
-	h.SendToUser(payload.ToUserId, helper.BuildChatWS(evt.Data))
+	// h.SendToUser(payload.ToUserId, helper.BuildChatWS(evt.Data))
 }
 
 func (h *Hub) handleRedisRoom(raw []byte) {
@@ -223,5 +222,5 @@ func (h *Hub) handleRedisRoom(raw []byte) {
 		return
 	}
 
-	h.BroadcastToRoom(payload.RoomId, helper.BuildChatWS(evt.Data))
+	// h.BroadcastToRoom(payload.RoomId, helper.BuildChatWS(evt.Data))
 }
