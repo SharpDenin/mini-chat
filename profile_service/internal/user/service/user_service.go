@@ -11,19 +11,17 @@ import (
 	"profile_service/internal/user/service/helpers"
 	"profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
-	"profile_service/pkg/grpc_client"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type UserService struct {
-	presenceClient *grpc_client.PresenceClient
-	uRepo          profile_repo.ProfileRepoInterface
-	log            *logrus.Logger
+	uRepo profile_repo.ProfileRepoInterface
+	log   *logrus.Logger
 }
 
-func NewUserService(presenceClient *grpc_client.PresenceClient, uRepo profile_repo.ProfileRepoInterface, log *logrus.Logger) UserServiceInterface {
+func NewUserService(uRepo profile_repo.ProfileRepoInterface, log *logrus.Logger) UserServiceInterface {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -31,9 +29,8 @@ func NewUserService(presenceClient *grpc_client.PresenceClient, uRepo profile_re
 		log.SetLevel(logrus.DebugLevel)
 	}
 	return &UserService{
-		presenceClient: presenceClient,
-		uRepo:          uRepo,
-		log:            log,
+		uRepo: uRepo,
+		log:   log,
 	}
 }
 
