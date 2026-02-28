@@ -4,7 +4,6 @@ import (
 	"chat_service/internal/presence/service"
 	"chat_service/internal/pubsub"
 	"chat_service/internal/websocket/dto"
-	"chat_service/internal/websocket/helper"
 	"context"
 	"encoding/json"
 	"log"
@@ -69,10 +68,10 @@ func (h *Hub) Run(ctx context.Context) {
 			return
 
 		case c := <-h.register:
-			h.RegisterConnection(c)
+			h.addConnection(c)
 
 		case c := <-h.unregister:
-			h.UnregisterConnection(c)
+			h.removeConnection(c)
 
 		case evt := <-h.presenceSub:
 			h.broadcastPresence(evt)
@@ -94,6 +93,31 @@ func (h *Hub) UnregisterConnection(c *Connection) {
 	h.unregister <- c
 }
 
+func (h *Hub) addConnection(c *Connection) {
+	h.connections[c] = struct{}{}
+
+	if h.users[c.UserId] == nil {
+		h.users[c.UserId] = make(map[*Connection]struct{})
+	}
+	h.users[c.UserId][c] = struct{}{}
+
+	log.Printf("[hub] user %d connected, total connections: %d",
+		c.UserId, len(h.users[c.UserId]))
+}
+
+func (h *Hub) removeConnection(c *Connection) {
+	delete(h.connections, c)
+
+	if conns, ok := h.users[c.UserId]; ok {
+		delete(conns, c)
+		if len(conns) == 0 {
+			delete(h.users, c.UserId)
+		}
+	}
+
+	log.Printf("[hub] user %d disconnected", c.UserId)
+}
+
 func (h *Hub) broadcastPresence(evt service.PresenceEvent) {
 	payload, err := json.Marshal(map[string]any{
 		"user_id": evt.UserId,
@@ -112,6 +136,9 @@ func (h *Hub) broadcastPresence(evt service.PresenceEvent) {
 		log.Printf("failed to marshal presence message: %v", err)
 		return
 	}
+
+	log.Printf("[presence] broadcasting %s for user %d to %d connections",
+		evt.Type, evt.UserId, len(h.connections))
 
 	for c := range h.connections {
 		if _, ok := c.Subscribed[evt.UserId]; ok {
@@ -172,7 +199,7 @@ func (h *Hub) handleRedisDirect(raw []byte) {
 		return
 	}
 
-	h.SendToUser(payload.ToUserId, helper.BuildChatWS(evt.Data))
+	// h.SendToUser(payload.ToUserId, helper.BuildChatWS(evt.Data))
 }
 
 func (h *Hub) handleRedisRoom(raw []byte) {
@@ -195,5 +222,5 @@ func (h *Hub) handleRedisRoom(raw []byte) {
 		return
 	}
 
-	h.BroadcastToRoom(payload.RoomId, helper.BuildChatWS(evt.Data))
+	// h.BroadcastToRoom(payload.RoomId, helper.BuildChatWS(evt.Data))
 }

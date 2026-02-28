@@ -13,6 +13,7 @@ import (
 	"chat_service/internal/room/repository/db"
 	rService "chat_service/internal/room/service"
 	"chat_service/internal/websocket"
+	"chat_service/internal/websocket/dto"
 	"chat_service/internal/websocket/handler"
 	"chat_service/middleware_chat"
 	"chat_service/pkg/grpc_client"
@@ -45,6 +46,7 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token
 func main() {
+
 	// Инициализация логгера и контекста
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
@@ -57,13 +59,7 @@ func main() {
 		log.Fatal("Ошибка получения конфигурации (room) %w", err)
 	}
 
-	// Загрузка конфигурации presence-модуля
-	redisCfg, err := pConfig.RedisCfgLoad()
-	if err != nil {
-		log.Fatal("Ошибка получения конфигурации (presence service) %w", err)
-	}
-
-	// Инициализация БД room/roomMember-сервиса
+	// Инициализация БД
 	database, err := db.NewDB(ctx, rCfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -74,7 +70,7 @@ func main() {
 		}
 	}()
 
-	// Миграция БД room/roomMember-сервиса
+	// Миграция БД
 	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
@@ -90,38 +86,37 @@ func main() {
 		}
 	}()
 
-	// Инициализация room/roomMember-репозиториев
+	// Инициализация репозиториев и сервисов
 	roomRepo := rRepo.NewRoomRepo(database.DB, log)
 	roomMemberRepo := rRepo.NewRoomMemberRepo(database.DB, log)
 
-	// Инициализация room/roomMember-сервисов
 	roomService := rService.NewRoomService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
 	roomMemberService := rService.NewRoomMemberService(profileClient, roomRepo, roomMemberRepo, database.DB, log)
-
 	authzService := authz.NewGrpcAuthz(profileClient)
 
+	// Загрузка конфигурации redis-модуля
+	redisCfg, err := pConfig.RedisCfgLoad()
+	if err != nil {
+		log.Fatal("Ошибка получения конфигурации (presence service) %w", err)
+	}
+
 	rdb := redis.NewClient(&redis.Options{
-		Addr: redisCfg.RedisPort,
-		DB:   redisCfg.RedisDb,
+		Addr:     redisCfg.Addr,
+		Password: redisCfg.Password,
+		DB:       redisCfg.RedisDb,
 	})
 	defer rdb.Close()
 
 	// Инициализация presence-репозитория
 	presenceRepo := pRepo.NewPresenceRepo(rdb, redisCfg.IdleThreshold)
 
-	// Инициализация presence-сервиса
+	// Инициализация сервисов с использованием redis
 	bus := service.NewPresenceEventBus()
 	presenceService := service.NewPresenceService(presenceRepo, bus, redisCfg)
-
 	pb := pubsub.NewRedisPubSub(rdb)
 
 	// Инициализация gRPC-сервера
 	presenceServer := grpc_server.NewGRPCServer(presenceService)
-
-	// Подписка Hub к Presence
-	instance, _ := os.Hostname()
-	hub := websocket.NewHub(bus.Subscribe(), pb, instance)
-	go hub.Run(ctx)
 
 	// Запуск gRPC-сервера
 	log.Info("Starting gRPC server...")
@@ -139,7 +134,11 @@ func main() {
 		}
 	}()
 
-	// Инициализация room/roomMember-хэндлера
+	// Ожидание запуска gRPC-серверов
+	log.Info("Waiting for gRPC servers to start...")
+	time.Sleep(5 * time.Second)
+
+	// Инициализация хэндлера
 	roomHandler := transport.NewRoomHandler(log, roomService, roomMemberService)
 
 	// Создание gin-роутера
@@ -149,7 +148,15 @@ func main() {
 		middleware_chat.ErrorMiddleware(log),
 	)
 
+	// Подписка Hub к Presence
+	instance, _ := os.Hostname()
+	hub := websocket.NewHub(bus.Subscribe(), pb, instance)
+	go hub.Run(ctx)
+
+	// Инициализация ws-роутера, регистрация хэндлеров и апгрейд соединения
 	wsRouter := websocket.NewRouter()
+	wsRouter.Register(dto.MessagePresence, handler.PresenceHandler)
+	wsRouter.Register(dto.MessageChat, handler.ChatHandler)
 	wsHandler := handler.NewWSHandler(ctx, wsRouter, hub, presenceService, authzService, profileClient)
 	router.GET("/ws", gin.WrapF(wsHandler))
 
@@ -214,8 +221,10 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Errorf("Server forced to shutdown: %v", err)
 	}
-	//cancelMain()
-	//presenceGrpcServer.GracefulStop()
-	//_ = rdb.Close()
+
+	cancelMain()
+	presenceGrpcServer.GracefulStop()
+	_ = rdb.Close()
+
 	log.Info("Server exiting properly")
 }

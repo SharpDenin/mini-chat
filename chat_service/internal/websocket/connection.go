@@ -4,6 +4,8 @@ import (
 	"chat_service/internal/authz"
 	"chat_service/internal/presence/service"
 	"context"
+	"log"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,6 +26,8 @@ type Connection struct {
 	Authz authz.AuthServiceInterface
 
 	Subscribed map[int64]struct{}
+
+	closeOnce sync.Once
 }
 
 func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceService,
@@ -47,6 +51,8 @@ func NewConnection(ws *websocket.Conn, userId int64, presence service.PresenceSe
 }
 
 func (c *Connection) Start() {
+	c.Hub.RegisterConnection(c)
+
 	_ = c.Presence.OnConnect(context.Background(), c.UserId, c.connId, "web")
 
 	go c.readLoop()
@@ -54,7 +60,13 @@ func (c *Connection) Start() {
 }
 
 func (c *Connection) close() {
-	c.Hub.UnregisterConnection(c)
-	_ = c.Presence.OnDisconnect(context.Background(), c.UserId, c.connId)
-	_ = c.ws.Close()
+	c.closeOnce.Do(func() {
+		log.Printf("[conn] closing connection for user %d", c.UserId)
+
+		c.Hub.UnregisterConnection(c)
+
+		_ = c.Presence.OnDisconnect(context.Background(), c.UserId, c.connId)
+
+		_ = c.ws.Close()
+	})
 }

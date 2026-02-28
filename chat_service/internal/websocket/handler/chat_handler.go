@@ -36,6 +36,7 @@ func handleDirect(c *websocket.Connection, payload dto.ChatPayload) {
 		return
 	}
 
+	//TODO: Send back "Not allowed msg"
 	if !allowed {
 		logrus.Debug("not_allowed")
 		return

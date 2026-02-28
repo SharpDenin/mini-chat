@@ -5,6 +5,7 @@ import (
 	"chat_service/internal/websocket/dto"
 	"context"
 	"encoding/json"
+	"log"
 )
 
 func PresenceHandler(ctx context.Context, c *websocket.Connection, msg dto.WSMessage) {
@@ -33,6 +34,8 @@ func handleSubscribe(c *websocket.Connection, userIDs []int64) {
 	for _, id := range userIDs {
 		c.Subscribed[id] = struct{}{}
 	}
+
+	log.Printf("[presence] user %d subscribed to %v", c.UserId, userIDs)
 }
 
 func handleUnsubscribe(c *websocket.Connection, userIDs []int64) {

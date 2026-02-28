@@ -24,13 +24,23 @@ services:
   profile-service:
     build: profile_service
     environment:
+      # ТОЧНО ТЕ ПЕРЕМЕННЫЕ, КОТОРЫЕ ИЩЕТ КОД
+      HOST: "profile-db"
+      USER: "postgres"
+      PASSWORD: "postgres"
+      SSLMODE: "disable"
+      PROFILE_DBNAME: "profile_db"
+      PROFILE_PORT: "5432"
+
+      # Другие переменные
+      JWT_SECRET: "8a9b7f3e4c2d1e5a6b7c8d9e0f1a2b3c4d5e6f7g"
+      GRPC_PORT: "50051"
       PROFILE_GRPC_AUTH_PORT: "50053"
       PROFILE_GRPC_DIRECTORY_PORT: "50054"
       PROFILE_HTTP_PORT: "8083"
-      PROFILE_DB_URL: "postgres://postgres:postgres@profile-db:5432/profile_db?sslmode=disable"
     ports:
       - "8080:8083"
-      - "50051:50053"
+      - "50051:50051"
       - "50052:50054"
     depends_on:
       profile-db:
@@ -67,10 +77,11 @@ services:
       - mongo-data:/data/db
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   chat-db:
     image: postgres:16.1
@@ -95,12 +106,23 @@ services:
   chat-service:
     build: ./chat_service
     environment:
-      PROFILE_SERVICE_AUTH_ADDR: "profile-service:50053"
+      # ТОЧНО ТЕ ПЕРЕМЕННЫЕ, КОТОРЫЕ ИЩЕТ КОД
+      HOST: "chat-db"
+      USER: "postgres"
+      PASSWORD: "postgres"
+      SSLMODE: "disable"
+      ROOM_DBNAME: "chat_db"
+      ROOM_DBPORT: "5432"
+
+      # Другие переменные
+      JWT_SECRET: "8a9b7f3e4c2d1e5a6b7c8d9e0f1a2b3c4d5e6f7g"
+      PROFILE_SERVICE_AUTH_ADDR: "profile-service:50051"
       PROFILE_SERVICE_DIRECTORY_ADDR: "profile-service:50054"
       CHAT_HTTP_PORT: "8084"
-      CHAT_DB_URL: "postgres://postgres:postgres@chat-db:5432/chat_db?sslmode=disable"
       REDIS_ADDR: "redis:6379"
       REDIS_DB: "0"
+      IDLE_THRESHOLD: "120"
+      GRPS_ADRESS: "0.0.0.0:50056"
     ports:
       - "8081:8084"
       - "50055:50056"
@@ -111,8 +133,6 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
-    links:
-      - profile-service
     networks:
       - haxer-net
     restart: unless-stopped

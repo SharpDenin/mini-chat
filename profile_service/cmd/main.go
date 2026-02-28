@@ -14,7 +14,6 @@ import (
 	"profile_service/internal/user/repository/profile_repo"
 	"profile_service/internal/user/service"
 	"profile_service/middleware_profile"
-	"profile_service/pkg/grpc_client"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
 	"syscall"
@@ -38,10 +37,12 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token
 func main() {
+
 	// Инициализация логгера и контекста
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
-	ctx := context.Background()
+	ctx, cancelMain := context.WithCancel(context.Background())
+	defer cancelMain()
 
 	// Загрузка конфигурации user-сервиса
 	cfg, err := config.Load()
@@ -65,20 +66,9 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Инициализация gRPC-клиента (PresenceClient)
-	presenceClient, err := grpc_client.NewPresenceClient("localhost:50056")
-	if err != nil {
-		log.Fatalf("failed to create presence client: %v", err)
-	}
-	defer func() {
-		if err := presenceClient.Close(); err != nil {
-			log.Printf("failed to close presence client: %v", err)
-		}
-	}()
-
-	// Инициализация user-репозитория и user-сервиса
+	// Инициализация user-репозитория и сервисов
 	userRepo := profile_repo.NewProfileRepo(database.DB, log)
-	userService := service.NewUserService(presenceClient, userRepo, log)
+	userService := service.NewUserService(userRepo, log)
 	relationChecker := service.NewRelationChecker(userService)
 
 	// Инициализация gRPC-серверов
@@ -122,7 +112,7 @@ func main() {
 	log.Info("Waiting for gRPC servers to start...")
 	time.Sleep(5 * time.Second)
 
-	// Запуск HTTP-сервера
+	// Инициализация хэндлера
 	userHandler := transport.NewUserHandler(userService, authServer, log)
 
 	// Подключение auth-middleware
@@ -193,6 +183,10 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Errorf("Server forced to shutdown: %v", err)
 	}
+
+	cancelMain()
+	dirGrpcServer.GracefulStop()
+	authGrpcServer.GracefulStop()
 
 	log.Info("Server exiting properly")
 }
