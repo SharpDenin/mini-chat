@@ -25,14 +25,16 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}
 	config := &Config{
-		Jwt:           os.Getenv("JWT_SECRET"),
-		Host:          os.Getenv("HOST"),
+		Jwt: os.Getenv("JWT_SECRET"),
+		//Host:          os.Getenv("HOST"),
+		Host:          os.Getenv("HOST_PROD"),
 		User:          os.Getenv("USER"),
 		Password:      os.Getenv("PASSWORD"),
 		Sslmode:       os.Getenv("SSLMODE"),
 		ProfileDbname: os.Getenv("PROFILE_DBNAME"),
-		ProfilePort:   os.Getenv("PROFILE_PORT"),
-		GRPCPort:      os.Getenv("GRPC_PORT"),
+		// ProfilePort:   os.Getenv("PROFILE_PORT"),
+		ProfilePort: os.Getenv("PROFILE_PORT_PROD"),
+		GRPCPort:    os.Getenv("GRPC_PORT"),
 	}
 	return config, nil
 }
