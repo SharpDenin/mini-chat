@@ -1,12 +1,15 @@
 package service
 
-import "context"
+import (
+	"context"
+	"profile_service/internal/user/service"
+)
 
 type RelationChecker struct {
-	userService UserServiceInterface
+	userService service.UserServiceInterface
 }
 
-func NewRelationChecker(userService UserServiceInterface) *RelationChecker {
+func NewRelationChecker(userService service.UserServiceInterface) *RelationChecker {
 	return &RelationChecker{
 		userService: userService,
 	}
