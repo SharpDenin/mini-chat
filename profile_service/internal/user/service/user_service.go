@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 	"profile_service/internal/user/models"
-	"profile_service/internal/user/repository/profile_repo"
+	"profile_service/internal/user/repository"
 	"profile_service/internal/user/service/helpers"
 	"profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
@@ -17,11 +17,11 @@ import (
 )
 
 type UserService struct {
-	uRepo profile_repo.ProfileRepoInterface
+	uRepo repository.ProfileRepoInterface
 	log   *logrus.Logger
 }
 
-func NewUserService(uRepo profile_repo.ProfileRepoInterface, log *logrus.Logger) UserServiceInterface {
+func NewUserService(uRepo repository.ProfileRepoInterface, log *logrus.Logger) UserServiceInterface {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
