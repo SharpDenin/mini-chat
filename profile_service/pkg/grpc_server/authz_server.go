@@ -2,7 +2,7 @@ package grpc_server
 
 import (
 	"context"
-	"profile_service/internal/user/service"
+	"profile_service/internal/relation/service/interfaces"
 	"profile_service/pkg/grpc_generated/profile"
 
 	"google.golang.org/grpc/codes"
@@ -11,10 +11,10 @@ import (
 
 type AuthorizationServer struct {
 	profile.UnimplementedAuthorizationServiceServer
-	relationChecker service.UserRelationChecker
+	relationChecker interfaces.UserRelationChecker
 }
 
-func NewAuthorizationServer(svc service.UserRelationChecker) *AuthorizationServer {
+func NewAuthorizationServer(svc interfaces.UserRelationChecker) *AuthorizationServer {
 	return &AuthorizationServer{
 		relationChecker: svc,
 	}

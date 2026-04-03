@@ -1,4 +1,4 @@
-package profile_repo
+package repository
 
 import (
 	"context"
@@ -21,7 +21,6 @@ func NewProfileRepo(db *gorm.DB, log *logrus.Logger) ProfileRepoInterface {
 		db:  db,
 		log: log,
 	}
-
 }
 
 func (u *ProfileRepo) Create(ctx context.Context, person *models.User) (*models.User, error) {

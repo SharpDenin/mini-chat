@@ -9,10 +9,11 @@ import (
 	"os/signal"
 	_ "profile_service/docs"
 	transport "profile_service/http"
-	"profile_service/internal/user/config"
-	"profile_service/internal/user/repository/db"
-	"profile_service/internal/user/repository/profile_repo"
-	"profile_service/internal/user/service"
+	"profile_service/internal/config"
+	"profile_service/internal/config/db"
+	relService "profile_service/internal/relation/service"
+	userRepo "profile_service/internal/user/repository"
+	userService "profile_service/internal/user/service"
 	"profile_service/middleware_profile"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
@@ -67,9 +68,9 @@ func main() {
 	}
 
 	// Инициализация user-репозитория и сервисов
-	userRepo := profile_repo.NewProfileRepo(database.DB, log)
-	userService := service.NewUserService(userRepo, log)
-	relationChecker := service.NewRelationChecker(userService)
+	userRepo := userRepo.NewProfileRepo(database.DB, log)
+	userService := userService.NewUserService(userRepo, log)
+	relationChecker := relService.NewRelationChecker(userService)
 
 	// Инициализация gRPC-серверов
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)

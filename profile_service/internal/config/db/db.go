@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"profile_service/internal/user/config"
+	"profile_service/internal/config"
 	"profile_service/internal/user/models"
 
 	"github.com/golang-migrate/migrate/v4"

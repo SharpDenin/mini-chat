@@ -1,4 +1,4 @@
-package profile_repo
+package repository
 
 import (
 	"context"
