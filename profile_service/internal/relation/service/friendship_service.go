@@ -20,17 +20,30 @@ type FriendshipService struct {
 }
 
 func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterface,
-	userService service.UserServiceInterface, log *logrus.Entry) interfaces.FriendshipServiceInterface {
+	userService service.UserServiceInterface, txManager repository.TransactionManager,
+	kafkaProducer kafka.ProducerInterface, log *logrus.Entry) interfaces.FriendshipServiceInterface {
 	return &FriendshipService{
 		friendshipRepo: friendshipRepo,
 		userService:    userService,
+		txManager:      txManager,
+		kafkaProducer:  kafkaProducer,
 		log:            log,
 	}
 }
 
-func (f FriendshipService) SendFriendRequest(ctx context.Context, senderId, receiverId int64, message string) error {
-	//TODO implement me
-	panic("implement me")
+func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, receiverId int64, message string) error {
+	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		// ... бизнес-логика ...
+
+		// Отправляем событие
+		event := kafka.NewFriendRequestSentEvent(senderId, receiverId, senderId /*request.Id */, message)
+
+		// Отправляем через Kafka producer
+		go f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+			string(senderId), event)
+
+		return nil
+	})
 }
 
 func (f FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, userId int64, accept bool) error {
