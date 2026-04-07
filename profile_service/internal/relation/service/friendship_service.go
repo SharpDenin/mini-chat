@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"github.com/sirupsen/logrus"
-	"profile_service/internal/relation/kafka"
+	"profile_service/internal/kafka"
 	"profile_service/internal/relation/repository"
 	"profile_service/internal/relation/service/interfaces"
 	"profile_service/internal/user/service"
