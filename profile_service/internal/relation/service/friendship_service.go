@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/sirupsen/logrus"
 	"profile_service/internal/kafka"
+	"profile_service/internal/relation/models"
 	"profile_service/internal/relation/repository"
 	"profile_service/internal/relation/service/interfaces"
 	"profile_service/internal/user/service"
@@ -33,10 +36,58 @@ func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterfac
 
 func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, receiverId int64, message string) error {
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
-		// ... бизнес-логика ...
+		// Проверяем блокировку
+		blocked, err := tx.IsBlocked(ctx, senderId, receiverId)
+		if err != nil {
+			return err
+		}
+		if blocked {
+			return errors.New("cannot send friend request: user is blocked")
+		}
+
+		// Проверяем дружбу
+		areFriends, err := tx.AreFriends(ctx, senderId, receiverId)
+		if err != nil {
+			return err
+		}
+		if areFriends {
+			return errors.New("users are already friends")
+		}
+
+		// Проверяем активный запрос
+		existingRequest, err := tx.GetActiveRequestBetweenUsers(ctx, senderId, receiverId)
+		if err == nil && existingRequest != nil {
+			return errors.New("friend request already exists")
+		}
+
+		// Создаем запрос
+		request := &models.FriendRequest{
+			SenderId:   senderId,
+			ReceiverId: receiverId,
+			Status:     "pending",
+			Message:    message,
+		}
+
+		if err := tx.CreateFriendRequest(ctx, request); err != nil {
+			return err
+		}
+
+		// Записываем в историю
+		history := &models.FriendshipHistory{
+			EventType: "request_sent",
+			UserId:    senderId,
+			TargetId:  receiverId,
+			NewStatus: stringPtr("pending"),
+			RequestId: &request.Id,
+			Metadata:  createMetadata("message", message),
+		}
+
+		if err := tx.CreateHistory(ctx, history); err != nil {
+			return err
+		}
 
 		// Отправляем событие
-		event := kafka.NewFriendRequestSentEvent(senderId, receiverId, senderId /*request.Id */, message)
+		event := kafka.NewFriendRequestSentEvent(senderId, receiverId, request.Id, message)
 
 		// Отправляем через Kafka producer
 		go f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
@@ -74,4 +125,14 @@ func (f FriendshipService) GetFriendList(ctx context.Context, userId int64) (*se
 func (f FriendshipService) CheckRequestState(ctx context.Context, userId, targetId int64) (string, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func createMetadata(key, value string) json.RawMessage {
+	metadata := map[string]string{key: value}
+	data, _ := json.Marshal(metadata)
+	return data
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
