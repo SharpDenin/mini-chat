@@ -16,6 +16,11 @@ const (
 	RequestStatusCancelled = "cancelled"
 )
 
+var (
+	ErrFriendshipNotFound = errors.New("friendship not found")
+	ErrBlockNotFound      = errors.New("block not found")
+)
+
 type FriendshipRepo struct {
 	db  *gorm.DB
 	log *logrus.Entry
@@ -48,7 +53,7 @@ func (f *FriendshipRepo) GetPendingRequest(ctx context.Context, requestId, recei
 			Error("Failed to get pending request")
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, ErrFriendshipNotFound
 		}
 
 		return nil, fmt.Errorf("get pending request error: %w", err)
@@ -69,7 +74,7 @@ func (f *FriendshipRepo) GetActiveRequestBetweenUsers(ctx context.Context, userI
 			Error("Failed to get active request")
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, ErrFriendshipNotFound
 		}
 
 		return nil, fmt.Errorf("get active request error: %w", err)
@@ -107,10 +112,6 @@ func (f *FriendshipRepo) CancelPendingRequestBetweenUsers(ctx context.Context, u
 	if result.Error != nil {
 		f.log.WithFields(logrus.Fields{"error": result.Error}).Error("Failed to cancel pending friend request")
 		return fmt.Errorf("cancel pending friend request error: %w", result.Error)
-	}
-
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("no pending request found between users")
 	}
 
 	return nil
@@ -201,7 +202,7 @@ func (f *FriendshipRepo) DeleteBlock(ctx context.Context, blockerId, blockedId i
 		return fmt.Errorf("delete block error: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("block not found")
+		return ErrBlockNotFound
 	}
 	return nil
 }
@@ -234,7 +235,7 @@ func (f *FriendshipRepo) GetBlock(ctx context.Context, blockerId, blockedId int6
 			Error("Failed to get block")
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, ErrBlockNotFound
 		}
 
 		return nil, fmt.Errorf("get block error: %w", err)

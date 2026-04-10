@@ -15,22 +15,22 @@ import (
 )
 
 type FriendshipService struct {
-	friendshipRepo repository.FriendshipRepositoryInterface
-	txManager      repository.TransactionManager
-	userService    service.UserServiceInterface
-	kafkaProducer  kafka.ProducerInterface
-	log            *logrus.Entry
+	friendshipRepo      repository.FriendshipRepositoryInterface
+	txManager           repository.TransactionManagerInterface
+	userService         service.UserServiceInterface
+	outboxKafkaProducer *kafka.OutboxProducer
+	log                 *logrus.Entry
 }
 
 func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterface,
-	userService service.UserServiceInterface, txManager repository.TransactionManager,
-	kafkaProducer kafka.ProducerInterface, log *logrus.Entry) interfaces.FriendshipServiceInterface {
+	userService service.UserServiceInterface, txManager repository.TransactionManagerInterface,
+	outboxKafkaProducer *kafka.OutboxProducer, log *logrus.Entry) interfaces.FriendshipServiceInterface {
 	return &FriendshipService{
-		friendshipRepo: friendshipRepo,
-		userService:    userService,
-		txManager:      txManager,
-		kafkaProducer:  kafkaProducer,
-		log:            log,
+		friendshipRepo:      friendshipRepo,
+		userService:         userService,
+		txManager:           txManager,
+		outboxKafkaProducer: outboxKafkaProducer,
+		log:                 log,
 	}
 }
 
@@ -40,7 +40,6 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, rec
 		"receiver_id": receiverId,
 	}).Info("Sending friend request")
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
-		// Проверяем блокировку
 		blocked, err := tx.IsBlocked(ctx, senderId, receiverId)
 		if err != nil {
 			f.log.WithError(err).Error("Failed to check block status")
@@ -51,7 +50,6 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, rec
 			return errors.New("cannot send friend request: user is blocked")
 		}
 
-		// Проверяем дружбу
 		areFriends, err := tx.AreFriends(ctx, senderId, receiverId)
 		if err != nil {
 			f.log.WithError(err).Error("Failed to check friendship status")
@@ -62,14 +60,16 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, rec
 			return errors.New("users are already friends")
 		}
 
-		// Проверяем активный запрос
 		existingRequest, err := tx.GetActiveRequestBetweenUsers(ctx, senderId, receiverId)
-		if err == nil && existingRequest != nil {
+		if err != nil && !errors.Is(err, repository.ErrFriendshipNotFound) {
+			f.log.WithError(err).Error("Failed to check existing request")
+			return fmt.Errorf("failed to check existing request: %w", err)
+		}
+		if existingRequest != nil {
 			f.log.Warn("Friend request already exists")
 			return errors.New("friend request already exists")
 		}
 
-		// Создаем запрос
 		request := &models.FriendRequest{
 			SenderId:   senderId,
 			ReceiverId: receiverId,
@@ -82,7 +82,6 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, rec
 			return fmt.Errorf("failed to create friend request: %w", err)
 		}
 
-		// Записываем в историю
 		history := &models.FriendshipHistory{
 			EventType: "request_sent",
 			UserId:    senderId,
@@ -96,10 +95,9 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, rec
 			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
 		}
 
-		// Отправляем событие
 		event := kafka.NewFriendRequestSentEvent(senderId, receiverId, request.Id, message)
 		go func() {
-			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", senderId), event); err != nil {
 				f.log.WithError(err).Error("Failed to send Kafka event")
 			}
@@ -132,6 +130,10 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, 
 			return fmt.Errorf("failed to get friend request: %w", err)
 		}
 
+		if request == nil {
+			return errors.New("friend request not found")
+		}
+
 		if accept {
 			if err := tx.UpdateFriendRequestStatus(ctx, requestId, repository.RequestStatusAccepted); err != nil {
 				f.log.WithError(err).Error("Failed to update request status")
@@ -162,7 +164,7 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, 
 			// Отправляем событие
 			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "accepted")
 			go func() {
-				if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+				if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 					fmt.Sprintf("%d", userId), event); err != nil {
 					f.log.WithError(err).Error("Failed to send Kafka event")
 				}
@@ -193,7 +195,7 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, 
 
 			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "rejected")
 			go func() {
-				if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+				if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 					fmt.Sprintf("%d", userId), event); err != nil {
 					f.log.WithError(err).Error("Failed to send Kafka event")
 				}
@@ -217,7 +219,10 @@ func (f *FriendshipService) BlockUser(ctx context.Context, blockerId, blockedId 
 
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
 		existingBlock, err := tx.GetBlock(ctx, blockerId, blockedId)
-		if err == nil && existingBlock != nil {
+		if err != nil && !errors.Is(err, repository.ErrBlockNotFound) {
+			return fmt.Errorf("failed to check existing block: %w", err)
+		}
+		if existingBlock != nil {
 			return errors.New("user already blocked")
 		}
 
@@ -253,7 +258,7 @@ func (f *FriendshipService) BlockUser(ctx context.Context, blockerId, blockedId 
 
 		event := kafka.NewBlockEvent(blockerId, blockedId, "block", reason)
 		go func() {
-			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", blockerId), event); err != nil {
 				f.log.WithError(err).Error("Failed to send Kafka event")
 			}
@@ -295,7 +300,7 @@ func (f *FriendshipService) UnblockUser(ctx context.Context, blockerId, blockedI
 
 		event := kafka.NewBlockEvent(blockerId, blockedId, "unblock", "")
 		go func() {
-			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", blockerId), event); err != nil {
 				f.log.WithError(err).Error("Failed to send Kafka event")
 			}
@@ -337,7 +342,7 @@ func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, userId, fr
 
 		event := kafka.NewFriendEvent(userId, friendId, "remove")
 		go func() {
-			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", userId), event); err != nil {
 				f.log.WithError(err).Error("Failed to send Kafka event")
 			}

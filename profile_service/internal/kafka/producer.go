@@ -13,6 +13,7 @@ import (
 
 type ProducerInterface interface {
 	SendEvent(ctx context.Context, topic, key string, value interface{}) error
+	Close() error
 }
 
 type AsyncKafkaProducer struct {

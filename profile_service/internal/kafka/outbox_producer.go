@@ -10,13 +10,13 @@ import (
 
 type OutboxProducer struct {
 	db        *gorm.DB
-	producer  AsyncKafkaProducer
+	producer  ProducerInterface
 	ticker    *time.Ticker
 	stopChan  chan struct{}
 	batchSize int
 }
 
-func NewOutboxProducer(db *gorm.DB, producer AsyncKafkaProducer, batchSize int) *OutboxProducer {
+func NewOutboxProducer(db *gorm.DB, producer ProducerInterface, batchSize int) *OutboxProducer {
 	p := &OutboxProducer{
 		db:        db,
 		producer:  producer,
@@ -44,8 +44,15 @@ func (p *OutboxProducer) SendEvent(ctx context.Context, topic, key string, value
 		return err
 	}
 
+	var eventType string
+	if event, ok := value.(interface{ GetEventType() string }); ok {
+		eventType = event.GetEventType()
+	} else {
+		eventType = "unknown"
+	}
+
 	msg := &models.OutboxMessage{
-		EventType:   value.(interface{ GetEventType() string }).GetEventType(),
+		EventType:   eventType,
 		AggregateId: key,
 		Payload:     payload,
 		Headers:     headers,
@@ -72,7 +79,7 @@ func (p *OutboxProducer) sendPendingMessages() {
 
 	err := p.db.
 		Where("status = ?", "pending").
-		Order("created_ad ASC").
+		Order("created_at ASC").
 		Limit(p.batchSize).
 		Find(&messages).Error
 

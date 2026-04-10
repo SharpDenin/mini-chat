@@ -13,6 +13,7 @@ import (
 type KafkaConfig struct {
 	Brokers      []string
 	Token        string
+	Topic        string
 	ClientId     string
 	BatchSize    int
 	BatchTimeout time.Duration
@@ -47,6 +48,7 @@ func KafkaCfgLoad() (*KafkaConfig, error) {
 	config := &KafkaConfig{
 		Brokers:      brokers,
 		Token:        os.Getenv("TOKEN"),
+		Topic:        os.Getenv("TOPIC"),
 		ClientId:     os.Getenv("CLIENT_ID"),
 		BatchSize:    toInt(os.Getenv("BATCH_SIZE")),
 		BatchTimeout: toDuration(os.Getenv("BATCH_TIMEOUT")),

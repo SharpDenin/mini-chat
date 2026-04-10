@@ -11,6 +11,8 @@ import (
 	transport "profile_service/http"
 	"profile_service/internal/config"
 	"profile_service/internal/config/db"
+	"profile_service/internal/kafka"
+	relRepo "profile_service/internal/relation/repository"
 	relService "profile_service/internal/relation/service"
 	userRepo "profile_service/internal/user/repository"
 	userService "profile_service/internal/user/service"
@@ -42,6 +44,9 @@ func main() {
 	// Инициализация логгера и контекста
 	gin.SetMode(gin.ReleaseMode)
 	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
+	log.SetLevel(logrus.InfoLevel)
+
 	ctx, cancelMain := context.WithCancel(context.Background())
 	defer cancelMain()
 
@@ -49,6 +54,12 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Ошибка получения конфигурации %w", err)
+	}
+
+	// Загрузка конфигурации kafka
+	kafkaCfg, err := config.KafkaCfgLoad()
+	if err != nil {
+		log.Fatal("Ошибка получения конфигурации Kafka: ", err)
 	}
 
 	// Инициализация БД user-сервиса
@@ -70,7 +81,31 @@ func main() {
 	// Инициализация user-репозитория и сервисов
 	userRepo := userRepo.NewProfileRepo(database.DB, log)
 	userService := userService.NewUserService(userRepo, log)
-	relationChecker := relService.NewRelationChecker(userService)
+
+	// Инициализация репозиториев для дружбы
+	friendshipRepo := relRepo.NewFriendshipRepository(database.DB, log.WithField("component", "friendship_repo"))
+	txManager := relRepo.NewTransactionManager(database.DB, log)
+
+	// Инициализация Kafka producer
+	kafkaProducer, err := kafka.NewKafkaProducer(kafkaCfg.Brokers, kafkaCfg.Topic)
+	if err != nil {
+		log.Fatalf("Failed to run kafkaProducer: %v", err)
+	}
+	defer kafkaProducer.Close()
+
+	// Инициализация Outbox producer
+	outboxProducer := kafka.NewOutboxProducer(database.DB, kafkaProducer, 100)
+	defer outboxProducer.Close()
+
+	// Инициализация сервисов дружбы
+	relationChecker := relService.NewRelationChecker(userService, friendshipRepo)
+	friendshipService := relService.NewFriendshipService(
+		friendshipRepo,
+		userService,
+		txManager,
+		outboxProducer,
+		log.WithField("component", "friendship_service"),
+	)
 
 	// Инициализация gRPC-серверов
 	authServer := grpc_server.NewAuthServer(log, userService, cfg.Jwt)
@@ -115,6 +150,12 @@ func main() {
 
 	// Инициализация хэндлера
 	userHandler := transport.NewUserHandler(userService, authServer, log)
+	friendshipHandler := transport.NewFriendshipHandler(
+		userService,
+		friendshipService,
+		relationChecker,
+		log,
+	)
 
 	// Подключение auth-middleware
 	authMiddleware := middleware_profile.NewAuthMiddleware(authServer, log)
@@ -141,6 +182,28 @@ func main() {
 			users.GET("/:id", userHandler.GetUserById)
 			users.PUT("/:id", userHandler.PutUser)
 			users.DELETE("/:id", userHandler.DeleteUser)
+		}
+		friendRequests := api.Group("/friends/requests")
+		friendRequests.Use(authMiddleware)
+		{
+			friendRequests.POST("", friendshipHandler.PostFriendRequest)
+			friendRequests.PUT("/:request_id", friendshipHandler.AnswerFriendRequest)
+			friendRequests.DELETE("/:request_id", friendshipHandler.CancelFriendRequest)
+			friendRequests.GET("/state", friendshipHandler.CheckRequestState)
+		}
+		friends := api.Group("/friends")
+		friends.Use(authMiddleware)
+		{
+			friends.GET("", friendshipHandler.GetFriendList)
+			friends.DELETE("/:friend_id", friendshipHandler.DeleteFriend)
+			friends.GET("/check", friendshipHandler.CheckAreFriends)
+		}
+		block := api.Group("/block")
+		block.Use(authMiddleware)
+		{
+			block.POST("", friendshipHandler.BlockUser)
+			block.DELETE("", friendshipHandler.UnblockUser)
+			block.GET("/:blocked_id", friendshipHandler.GetBlockInfo)
 		}
 	}
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
