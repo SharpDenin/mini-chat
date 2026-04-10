@@ -59,6 +59,26 @@ func NewBlockEvent(blockerId, blockedId int64, action, reason string) *models.Bl
 	}
 }
 
+func NewFriendEvent(userId, friendId int64, action string) *models.FriendEvent {
+	eventType := models.EventFriendAdded
+	if action == "remove" {
+		eventType = models.EventFriendRemoved
+	}
+
+	return &models.FriendEvent{
+		BaseEvent: models.BaseEvent{
+			EventId:   generateEventID(),
+			EventType: eventType,
+			UserId:    userId,
+			Timestamp: time.Now().UTC(),
+			Service:   "profile-service",
+			Version:   "1.0",
+		},
+		FriendId: friendId,
+		Action:   action,
+	}
+}
+
 func generateEventID() string {
 	return time.Now().Format("20060102150405") + "-" + randomString(8)
 }

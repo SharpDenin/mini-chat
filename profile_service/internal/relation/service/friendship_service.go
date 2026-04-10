@@ -19,8 +19,7 @@ type FriendshipService struct {
 	txManager      repository.TransactionManager
 	userService    service.UserServiceInterface
 	kafkaProducer  kafka.ProducerInterface
-	interfaces.UserRelationCheckerInterface
-	log *logrus.Entry
+	log            *logrus.Entry
 }
 
 func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterface,
@@ -209,29 +208,222 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, 
 	})
 }
 
-func (f FriendshipService) BlockUser(ctx context.Context, blockerId, blockedId int64, reason string) error {
-	//TODO implement me
-	panic("implement me")
+func (f *FriendshipService) BlockUser(ctx context.Context, blockerId, blockedId int64, reason string) error {
+	f.log.WithFields(logrus.Fields{
+		"blocker_id": blockerId,
+		"blocked_id": blockedId,
+		"reason":     reason,
+	}).Info("Blocking user")
+
+	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		existingBlock, err := tx.GetBlock(ctx, blockerId, blockedId)
+		if err == nil && existingBlock != nil {
+			return errors.New("user already blocked")
+		}
+
+		if err := tx.DeleteFriend(ctx, blockerId, blockedId); err != nil &&
+			!errors.Is(err, errors.New("friendship not found")) {
+			f.log.WithError(err).Warn("Failed to delete friend relationship")
+		}
+
+		if err := tx.CancelPendingRequestBetweenUsers(ctx, blockerId, blockedId); err != nil {
+			f.log.WithError(err).Warn("Failed to cancel pending requests")
+		}
+
+		block := &models.BlockedUser{
+			BlockerId: blockerId,
+			BlockedId: blockedId,
+			Reason:    reason,
+		}
+		if err := tx.CreateBlock(ctx, block); err != nil {
+			f.log.WithError(err).Error("Failed to create block")
+			return fmt.Errorf("failed to block user: %w", err)
+		}
+
+		history := &models.FriendshipHistory{
+			EventType: "blocked",
+			UserId:    blockerId,
+			TargetId:  blockedId,
+			NewStatus: stringPtr("blocked"),
+			Metadata:  createMetadata("reason", reason),
+		}
+		if err := tx.CreateHistory(ctx, history); err != nil {
+			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
+		}
+
+		event := kafka.NewBlockEvent(blockerId, blockedId, "block", reason)
+		go func() {
+			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+				fmt.Sprintf("%d", blockerId), event); err != nil {
+				f.log.WithError(err).Error("Failed to send Kafka event")
+			}
+		}()
+
+		f.log.WithFields(logrus.Fields{
+			"blocker_id": blockerId,
+			"blocked_id": blockedId,
+		}).Info("User blocked successfully")
+
+		return nil
+	})
 }
 
-func (f FriendshipService) UnblockUser(ctx context.Context, blockerId, blockedId int64) error {
-	//TODO implement me
-	panic("implement me")
+func (f *FriendshipService) UnblockUser(ctx context.Context, blockerId, blockedId int64) error {
+	f.log.WithFields(logrus.Fields{
+		"blocker_id": blockerId,
+		"blocked_id": blockedId,
+	}).Info("Unblocking user")
+
+	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		if err := tx.DeleteBlock(ctx, blockerId, blockedId); err != nil {
+			if errors.Is(err, errors.New("block not found")) {
+				return errors.New("user not blocked")
+			}
+			return fmt.Errorf("failed to unblock user: %w", err)
+		}
+
+		history := &models.FriendshipHistory{
+			EventType: "unblocked",
+			UserId:    blockerId,
+			TargetId:  blockedId,
+			OldStatus: stringPtr("blocked"),
+			NewStatus: stringPtr("unblocked"),
+		}
+		if err := tx.CreateHistory(ctx, history); err != nil {
+			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
+		}
+
+		event := kafka.NewBlockEvent(blockerId, blockedId, "unblock", "")
+		go func() {
+			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+				fmt.Sprintf("%d", blockerId), event); err != nil {
+				f.log.WithError(err).Error("Failed to send Kafka event")
+			}
+		}()
+
+		f.log.WithFields(logrus.Fields{
+			"blocker_id": blockerId,
+			"blocked_id": blockedId,
+		}).Info("User unblocked successfully")
+
+		return nil
+	})
 }
 
-func (f FriendshipService) DeleteFromFriendList(ctx context.Context, userId, friendId int64) error {
-	//TODO implement me
-	panic("implement me")
+func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, userId, friendId int64) error {
+	f.log.WithFields(logrus.Fields{
+		"user_id":   userId,
+		"friend_id": friendId,
+	}).Info("Removing from friend list")
+
+	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		if err := tx.DeleteFriend(ctx, userId, friendId); err != nil {
+			if errors.Is(err, errors.New("friendship not found")) {
+				return errors.New("users are not friends")
+			}
+			return fmt.Errorf("failed to delete friend: %w", err)
+		}
+
+		history := &models.FriendshipHistory{
+			EventType: "unfriended",
+			UserId:    userId,
+			TargetId:  friendId,
+			OldStatus: stringPtr("accepted"),
+			NewStatus: stringPtr("unfriended"),
+		}
+		if err := tx.CreateHistory(ctx, history); err != nil {
+			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
+		}
+
+		event := kafka.NewFriendEvent(userId, friendId, "remove")
+		go func() {
+			if err := f.kafkaProducer.SendEvent(context.Background(), "friendship-events",
+				fmt.Sprintf("%d", userId), event); err != nil {
+				f.log.WithError(err).Error("Failed to send Kafka event")
+			}
+		}()
+
+		f.log.WithFields(logrus.Fields{
+			"user_id":   userId,
+			"friend_id": friendId,
+		}).Info("Friend removed successfully")
+
+		return nil
+	})
 }
 
-func (f FriendshipService) GetFriendList(ctx context.Context, userId int64) (*service_dto.GetUserViewListResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *FriendshipService) GetFriendList(ctx context.Context, userId int64) (*service_dto.GetUserViewListResponse, error) {
+	f.log.WithField("user_id", userId).Info("Getting friend list")
+
+	friends, err := f.friendshipRepo.GetFriendList(ctx, userId)
+	if err != nil {
+		f.log.WithError(err).Error("Failed to get friend list")
+		return nil, fmt.Errorf("failed to get friend list: %w", err)
+	}
+
+	if len(friends) == 0 {
+		return &service_dto.GetUserViewListResponse{
+			UserList: []*service_dto.GetUserResponse{},
+		}, nil
+	}
+
+	friendIds := make([]int64, 0, len(friends))
+	for _, friend := range friends {
+		friendId := friend.FriendId
+		if friendId == userId {
+			friendId = friend.UserId
+		}
+		friendIds = append(friendIds, friendId)
+	}
+
+	users, err := f.userService.GetUserByIds(ctx, friendIds)
+	if err != nil {
+		f.log.WithError(err).Error("Failed to get user details")
+		return nil, fmt.Errorf("failed to get user details: %w", err)
+	}
+
+	userViews := make([]*service_dto.GetUserResponse, 0, len(users))
+	for _, user := range users {
+		userViews = append(userViews, &service_dto.GetUserResponse{
+			Id:    user.Id,
+			Name:  user.Name,
+			Email: user.Email,
+		})
+	}
+
+	f.log.WithFields(logrus.Fields{
+		"user_id":       userId,
+		"friends_count": len(userViews),
+	}).Info("Friend list retrieved successfully")
+
+	return &service_dto.GetUserViewListResponse{
+		UserList: userViews,
+	}, nil
 }
 
-func (f FriendshipService) CheckRequestState(ctx context.Context, userId, targetId int64) (string, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *FriendshipService) CheckRequestState(ctx context.Context, userId, targetId int64) (string, error) {
+	f.log.WithFields(logrus.Fields{
+		"user_id":   userId,
+		"target_id": targetId,
+	}).Info("Checking request state")
+
+	request, err := f.friendshipRepo.GetActiveRequestBetweenUsers(ctx, userId, targetId)
+	if err != nil {
+		if errors.Is(err, errors.New("friendship not found")) {
+			return "none", nil
+		}
+		f.log.WithError(err).Error("Failed to check request state")
+		return "", fmt.Errorf("failed to check request state: %w", err)
+	}
+
+	status := request.Status
+	f.log.WithFields(logrus.Fields{
+		"user_id":   userId,
+		"target_id": targetId,
+		"status":    status,
+	}).Info("Request state checked")
+
+	return status, nil
 }
 
 func createMetadata(key, value string) json.RawMessage {

@@ -12,4 +12,6 @@ type ProfileRepoInterface interface {
 	GetAll(ctx context.Context, filter service_dto.SearchUserFilter) (int, []*uModel.User, error)
 	Update(ctx context.Context, id int64, user *uModel.User) (*uModel.User, error)
 	Delete(ctx context.Context, id int64) error
+
+	GetByIds(ctx context.Context, ids []int64) ([]*uModel.User, error)
 }

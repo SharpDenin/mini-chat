@@ -71,3 +71,19 @@ type BlockEvent struct {
 	Action    string `json:"action"` // block/unblock
 	Reason    string `json:"reason,omitempty"`
 }
+
+func (e *FriendRequestSentEvent) GetEventType() string {
+	return string(e.EventType)
+}
+
+func (e *FriendRequestActionEvent) GetEventType() string {
+	return string(e.EventType)
+}
+
+func (e *FriendEvent) GetEventType() string {
+	return string(e.EventType)
+}
+
+func (e *BlockEvent) GetEventType() string {
+	return string(e.EventType)
+}

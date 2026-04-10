@@ -216,3 +216,70 @@ func (u *ProfileRepo) Delete(ctx context.Context, id int64) error {
 
 	return nil
 }
+
+func (u *ProfileRepo) GetByIds(ctx context.Context, ids []int64) ([]*models.User, error) {
+	if len(ids) == 0 {
+		u.log.Warn("GetByIds called with empty ids slice")
+		return []*models.User{}, nil
+	}
+
+	uniqueIds := make(map[int64]bool)
+	validIds := make([]int64, 0)
+
+	for _, id := range ids {
+		if id <= 0 {
+			u.log.WithFields(logrus.Fields{"id": id}).Warn("Invalid user id in GetByIds")
+			continue
+		}
+		if !uniqueIds[id] {
+			uniqueIds[id] = true
+			validIds = append(validIds, id)
+		}
+	}
+
+	if len(validIds) == 0 {
+		u.log.Warn("GetByIds called with no valid ids after validation")
+		return []*models.User{}, nil
+	}
+
+	var users []*models.User
+
+	err := u.db.WithContext(ctx).
+		Where("id IN ?", validIds).
+		Find(&users).Error
+
+	if err != nil {
+		u.log.WithFields(logrus.Fields{
+			"error": err,
+			"ids":   validIds,
+		}).Error("Failed to get users by ids")
+		return nil, fmt.Errorf("get users by ids error: %w", err)
+	}
+
+	if len(users) != len(validIds) {
+		foundIds := make(map[int64]bool)
+		for _, user := range users {
+			foundIds[user.Id] = true
+		}
+
+		missingIds := make([]int64, 0)
+		for _, id := range validIds {
+			if !foundIds[id] {
+				missingIds = append(missingIds, id)
+			}
+		}
+
+		u.log.WithFields(logrus.Fields{
+			"requested_ids": validIds,
+			"found_count":   len(users),
+			"missing_ids":   missingIds,
+		}).Warn("Not all users found in GetByIds")
+	}
+
+	u.log.WithFields(logrus.Fields{
+		"requested_count": len(validIds),
+		"found_count":     len(users),
+	}).Debug("GetByIds completed successfully")
+
+	return users, nil
+}

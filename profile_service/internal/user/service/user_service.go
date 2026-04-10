@@ -57,6 +57,50 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_d
 	return response, nil
 }
 
+func (u *UserService) GetUserByIds(ctx context.Context, userIds []int64) ([]*service_dto.GetUserResponse, error) {
+	u.log.Debugf("GetUserByIds %v", userIds)
+
+	if len(userIds) == 0 {
+		return []*service_dto.GetUserResponse{}, nil
+	}
+
+	for _, userId := range userIds {
+		if err := helpers.ValidateUserId(userId); err != nil {
+			return nil, middleware_profile.NewCustomError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Validation error %v", userId),
+				err,
+			)
+		}
+	}
+
+	users, _ := u.uRepo.GetByIds(ctx, userIds)
+
+	userMap := make(map[int64]*models.User)
+	for _, user := range users {
+		userMap[user.Id] = user
+	}
+
+	var userList []*service_dto.GetUserResponse
+	for _, userId := range userIds {
+		user, exists := userMap[userId]
+		if !exists {
+			u.log.Warnf("User with id %d not found", userId)
+			continue
+		}
+
+		response := &service_dto.GetUserResponse{
+			Id:        user.Id,
+			Name:      user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+		}
+		userList = append(userList, response)
+	}
+
+	return userList, nil
+}
+
 func (u *UserService) GetAllUsers(ctx context.Context, filter service_dto.SearchUserFilter) (*service_dto.GetUserViewListResponse, error) {
 	u.log.Debugf("GetAllUsers")
 	if filter.Limit > 50 {
