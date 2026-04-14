@@ -11,10 +11,10 @@ import (
 
 type AuthorizationServer struct {
 	profile.UnimplementedAuthorizationServiceServer
-	relationChecker interfaces.UserRelationChecker
+	relationChecker interfaces.UserRelationCheckerInterface
 }
 
-func NewAuthorizationServer(svc interfaces.UserRelationChecker) *AuthorizationServer {
+func NewAuthorizationServer(svc interfaces.UserRelationCheckerInterface) *AuthorizationServer {
 	return &AuthorizationServer{
 		relationChecker: svc,
 	}
@@ -25,7 +25,7 @@ func (s *AuthorizationServer) CanSendDirect(ctx context.Context, req *profile.Ca
 		return &profile.CanSendDirectResponse{Allowed: true}, nil
 	}
 
-	blocked, err := s.relationChecker.IsBlocked(ctx, req.FromUserId, req.ToUserId)
+	blocked, err := s.relationChecker.CheckUserIsBlocked(ctx, req.FromUserId, req.ToUserId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "block check failed")
 	}
@@ -36,7 +36,7 @@ func (s *AuthorizationServer) CanSendDirect(ctx context.Context, req *profile.Ca
 		}, nil
 	}
 
-	friends, err := s.relationChecker.AreFriends(ctx, req.FromUserId, req.ToUserId)
+	friends, err := s.relationChecker.CheckUsersAreFriends(ctx, req.FromUserId, req.ToUserId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "friends check failed")
 	}
