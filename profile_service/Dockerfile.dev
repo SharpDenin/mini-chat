@@ -1,0 +1,21 @@
+FROM golang:1.25rc2
+
+WORKDIR /app
+
+ENV GOTOOLCHAIN=auto
+
+RUN go install github.com/air-verse/air@latest
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+COPY profile_service/go.mod ./go.mod
+COPY profile_service/go.sum ./go.sum
+COPY shared-proto/go.mod ./shared-proto/go.mod
+COPY shared-proto/go.sum ./shared-proto/go.sum
+
+RUN go mod edit -replace shared-proto=./shared-proto
+RUN go mod download
+
+COPY profile_service/ ./
+COPY shared-proto/ ./shared-proto/
+
+CMD ["air", "-c", ".air.toml"]

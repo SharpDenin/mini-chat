@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.LoginRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.LoginRequest"
                         }
                     }
                 ],
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешный вход",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.LoginResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.LoginResponse"
                         }
                     },
                     "400": {
@@ -81,7 +81,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.CreateUserRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -132,7 +132,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.BlockUserRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.BlockUserRequest"
                         }
                     }
                 ],
@@ -140,7 +140,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Пользователь заблокирован",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SuccessResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
                         }
                     },
                     "400": {
@@ -187,7 +187,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UnblockUserRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UnblockUserRequest"
                         }
                     }
                 ],
@@ -195,7 +195,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Пользователь разблокирован",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SuccessResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
                         }
                     },
                     "400": {
@@ -250,7 +250,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Информация о блокировке",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.BlockInfoResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.BlockInfoResponse"
                         }
                     },
                     "400": {
@@ -298,7 +298,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Список друзей",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.FriendListResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.FriendListResponse"
                         }
                     },
                     "400": {
@@ -354,7 +354,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Результат проверки",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.AreFriendsResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.AreFriendsResponse"
                         }
                     },
                     "400": {
@@ -391,7 +391,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SendFriendRequestRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SendFriendRequestRequest"
                         }
                     }
                 ],
@@ -399,7 +399,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Запрос успешно отправлен",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SuccessResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
                         }
                     },
                     "400": {
@@ -454,7 +454,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Статус запроса",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.RequestStateResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.RequestStateResponse"
                         }
                     },
                     "400": {
@@ -504,7 +504,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.AnswerFriendRequestRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.AnswerFriendRequestRequest"
                         }
                     }
                 ],
@@ -512,7 +512,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Ответ успешно обработан",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SuccessResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
                         }
                     },
                     "400": {
@@ -565,7 +565,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Запрос успешно отменен",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SuccessResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
                         }
                     },
                     "400": {
@@ -620,7 +620,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Друг успешно удален",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.SuccessResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
                         }
                     },
                     "400": {
@@ -700,7 +700,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UserViewListResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UserViewListResponse"
                         }
                     },
                     "400": {
@@ -749,7 +749,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UserViewResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UserViewResponse"
                         }
                     },
                     "400": {
@@ -803,7 +803,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UpdateUserRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UpdateUserRequest"
                         }
                     }
                 ],
@@ -884,7 +884,16 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api_dto.AnswerFriendRequestRequest": {
+        "middleware_profile.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid request parameters"
+                }
+            }
+        },
+        "profile_service_http_api_dto.AnswerFriendRequestRequest": {
             "type": "object",
             "required": [
                 "accept"
@@ -895,7 +904,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.AreFriendsResponse": {
+        "profile_service_http_api_dto.AreFriendsResponse": {
             "type": "object",
             "properties": {
                 "are_friends": {
@@ -903,7 +912,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.BlockInfoResponse": {
+        "profile_service_http_api_dto.BlockInfoResponse": {
             "type": "object",
             "properties": {
                 "blocked_id": {
@@ -917,7 +926,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.BlockUserRequest": {
+        "profile_service_http_api_dto.BlockUserRequest": {
             "type": "object",
             "required": [
                 "blocked_id"
@@ -932,7 +941,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.CreateUserRequest": {
+        "profile_service_http_api_dto.CreateUserRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -953,13 +962,13 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.FriendListResponse": {
+        "profile_service_http_api_dto.FriendListResponse": {
             "type": "object",
             "properties": {
                 "friends": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.FriendView"
+                        "$ref": "#/definitions/profile_service_http_api_dto.FriendView"
                     }
                 },
                 "total": {
@@ -967,7 +976,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.FriendView": {
+        "profile_service_http_api_dto.FriendView": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -984,7 +993,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.LoginRequest": {
+        "profile_service_http_api_dto.LoginRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -999,7 +1008,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.LoginResponse": {
+        "profile_service_http_api_dto.LoginResponse": {
             "type": "object",
             "properties": {
                 "token": {
@@ -1010,7 +1019,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.RequestStateResponse": {
+        "profile_service_http_api_dto.RequestStateResponse": {
             "type": "object",
             "properties": {
                 "status": {
@@ -1019,7 +1028,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.SendFriendRequestRequest": {
+        "profile_service_http_api_dto.SendFriendRequestRequest": {
             "type": "object",
             "required": [
                 "receiver_id"
@@ -1034,7 +1043,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.SuccessResponse": {
+        "profile_service_http_api_dto.SuccessResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -1045,7 +1054,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.UnblockUserRequest": {
+        "profile_service_http_api_dto.UnblockUserRequest": {
             "type": "object",
             "required": [
                 "blocked_id"
@@ -1056,7 +1065,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.UpdateUserRequest": {
+        "profile_service_http_api_dto.UpdateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1069,7 +1078,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.UserViewListResponse": {
+        "profile_service_http_api_dto.UserViewListResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -1084,12 +1093,12 @@ const docTemplate = `{
                 "users": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.UserViewResponse"
+                        "$ref": "#/definitions/profile_service_http_api_dto.UserViewResponse"
                     }
                 }
             }
         },
-        "api_dto.UserViewResponse": {
+        "profile_service_http_api_dto.UserViewResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1106,15 +1115,6 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
-                }
-            }
-        },
-        "middleware_profile.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "Invalid request parameters"
                 }
             }
         }
@@ -1132,13 +1132,15 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8083",
+	Host:             "localhost:8080",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "ProfileService API",
 	Description:      "API для управления пользователями",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

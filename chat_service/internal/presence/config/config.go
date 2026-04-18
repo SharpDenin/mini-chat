@@ -1,13 +1,9 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 )
 
 type RedisConfig struct {
@@ -18,11 +14,6 @@ type RedisConfig struct {
 }
 
 func RedisCfgLoad() (*RedisConfig, error) {
-	if err := godotenv.Load(".env"); err != nil {
-		logrus.Error("Failed to load .env file: ", err)
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
-	}
-
 	toDuration := func(key string) time.Duration {
 		secs, _ := strconv.Atoi(os.Getenv(key))
 		return time.Duration(secs) * time.Second

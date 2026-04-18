@@ -1,0 +1,22 @@
+services:
+  profile-service:
+    build:
+      context: .
+      dockerfile: profile_service/Dockerfile.dev
+    volumes:
+      - ./profile_service:/app          # монтируем всю папку сервиса в /app
+      - ./shared-proto:/app/shared-proto
+    environment:
+      - GO_ENV=development
+    command: air -c .air.toml
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: chat_service/Dockerfile.dev
+    volumes:
+      - ./chat_service:/app
+      - ./shared-proto:/app/shared-proto
+    environment:
+      - GO_ENV=development
+    command: air -c .air.toml

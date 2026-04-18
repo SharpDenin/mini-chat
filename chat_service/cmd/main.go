@@ -39,7 +39,7 @@ import (
 // @title ChatService API
 // @version 1.0
 // @description API для управления пользователями
-// @host localhost:8084
+// @host localhost:8081
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -144,6 +144,13 @@ func main() {
 	// Создание gin-роутера
 	router := gin.Default()
 	router.Use(
+		middleware_chat.NewCORS(middleware_chat.CORSConfig{
+			AllowOrigins:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+		}),
 		gin.Recovery(),
 		middleware_chat.ErrorMiddleware(log),
 	)

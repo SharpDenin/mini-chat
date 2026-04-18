@@ -1,9 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"strings"
@@ -24,11 +21,6 @@ type KafkaConfig struct {
 }
 
 func KafkaCfgLoad() (*KafkaConfig, error) {
-	if err := godotenv.Load(".env"); err != nil {
-		logrus.Error("Failed to load .env file: ", err)
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
-	}
-
 	toDuration := func(key string) time.Duration {
 		secs, _ := strconv.Atoi(os.Getenv(key))
 		return time.Duration(secs) * time.Second

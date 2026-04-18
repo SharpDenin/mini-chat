@@ -61,7 +61,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Список комнат",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.GetRoomListResponse"
+                            "$ref": "#/definitions/chat_service_http_api_dto.GetRoomListResponse"
                         }
                     },
                     "400": {
@@ -102,7 +102,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.CreateRoomRequest"
+                            "$ref": "#/definitions/chat_service_http_api_dto.CreateRoomRequest"
                         }
                     }
                 ],
@@ -165,7 +165,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.GetRoomMemberListResponse"
+                            "$ref": "#/definitions/chat_service_http_api_dto.GetRoomMemberListResponse"
                         }
                     },
                     "400": {
@@ -403,7 +403,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Информация о комнате",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.GetRoomResponse"
+                            "$ref": "#/definitions/chat_service_http_api_dto.GetRoomResponse"
                         }
                     },
                     "400": {
@@ -463,7 +463,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UpdateRoomRequest"
+                            "$ref": "#/definitions/chat_service_http_api_dto.UpdateRoomRequest"
                         }
                     }
                 ],
@@ -544,7 +544,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api_dto.CreateRoomRequest": {
+        "chat_service_http_api_dto.CreateRoomRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -557,7 +557,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.GetRoomListResponse": {
+        "chat_service_http_api_dto.GetRoomListResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -569,12 +569,12 @@ const docTemplate = `{
                 "roomList": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.GetRoomResponse"
+                        "$ref": "#/definitions/chat_service_http_api_dto.GetRoomResponse"
                     }
                 }
             }
         },
-        "api_dto.GetRoomMemberListResponse": {
+        "chat_service_http_api_dto.GetRoomMemberListResponse": {
             "type": "object",
             "properties": {
                 "roomId": {
@@ -583,12 +583,12 @@ const docTemplate = `{
                 "roomMemberList": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.GetRoomMemberResponse"
+                        "$ref": "#/definitions/chat_service_http_api_dto.GetRoomMemberResponse"
                     }
                 }
             }
         },
-        "api_dto.GetRoomMemberResponse": {
+        "chat_service_http_api_dto.GetRoomMemberResponse": {
             "type": "object",
             "properties": {
                 "isAdmin": {
@@ -599,7 +599,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.GetRoomResponse": {
+        "chat_service_http_api_dto.GetRoomResponse": {
             "type": "object",
             "properties": {
                 "Id": {
@@ -610,7 +610,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_dto.UpdateRoomRequest": {
+        "chat_service_http_api_dto.UpdateRoomRequest": {
             "type": "object",
             "properties": {
                 "name": {
@@ -642,7 +642,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8084",
+	Host:             "localhost:8081",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "ChatService API",

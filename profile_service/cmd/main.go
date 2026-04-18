@@ -33,7 +33,7 @@ import (
 // @title ProfileService API
 // @version 1.0
 // @description API для управления пользователями
-// @host localhost:8083
+// @host localhost:8080
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -165,6 +165,13 @@ func main() {
 	router.Use(
 		gin.Recovery(),
 		middleware_profile.ErrorMiddleware(log),
+		middleware_profile.NewCORS(middleware_profile.CORSConfig{
+			AllowOrigins:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+		}),
 	)
 
 	// Регистрация методов API

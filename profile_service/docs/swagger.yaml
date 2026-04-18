@@ -1,18 +1,24 @@
 basePath: /api/v1
 definitions:
-  api_dto.AnswerFriendRequestRequest:
+  middleware_profile.ErrorResponse:
+    properties:
+      error:
+        example: Invalid request parameters
+        type: string
+    type: object
+  profile_service_http_api_dto.AnswerFriendRequestRequest:
     properties:
       accept:
         type: boolean
     required:
     - accept
     type: object
-  api_dto.AreFriendsResponse:
+  profile_service_http_api_dto.AreFriendsResponse:
     properties:
       are_friends:
         type: boolean
     type: object
-  api_dto.BlockInfoResponse:
+  profile_service_http_api_dto.BlockInfoResponse:
     properties:
       blocked_id:
         type: integer
@@ -21,7 +27,7 @@ definitions:
       is_blocked:
         type: boolean
     type: object
-  api_dto.BlockUserRequest:
+  profile_service_http_api_dto.BlockUserRequest:
     properties:
       blocked_id:
         type: integer
@@ -31,7 +37,7 @@ definitions:
     required:
     - blocked_id
     type: object
-  api_dto.CreateUserRequest:
+  profile_service_http_api_dto.CreateUserRequest:
     properties:
       email:
         type: string
@@ -46,16 +52,16 @@ definitions:
     - name
     - password
     type: object
-  api_dto.FriendListResponse:
+  profile_service_http_api_dto.FriendListResponse:
     properties:
       friends:
         items:
-          $ref: '#/definitions/api_dto.FriendView'
+          $ref: '#/definitions/profile_service_http_api_dto.FriendView'
         type: array
       total:
         type: integer
     type: object
-  api_dto.FriendView:
+  profile_service_http_api_dto.FriendView:
     properties:
       created_at:
         type: string
@@ -66,7 +72,7 @@ definitions:
       username:
         type: string
     type: object
-  api_dto.LoginRequest:
+  profile_service_http_api_dto.LoginRequest:
     properties:
       password:
         type: string
@@ -76,20 +82,20 @@ definitions:
     - password
     - username
     type: object
-  api_dto.LoginResponse:
+  profile_service_http_api_dto.LoginResponse:
     properties:
       token:
         type: string
       user_id:
         type: string
     type: object
-  api_dto.RequestStateResponse:
+  profile_service_http_api_dto.RequestStateResponse:
     properties:
       status:
         description: pending, accepted, rejected, none
         type: string
     type: object
-  api_dto.SendFriendRequestRequest:
+  profile_service_http_api_dto.SendFriendRequestRequest:
     properties:
       message:
         maxLength: 500
@@ -99,21 +105,21 @@ definitions:
     required:
     - receiver_id
     type: object
-  api_dto.SuccessResponse:
+  profile_service_http_api_dto.SuccessResponse:
     properties:
       message:
         type: string
       success:
         type: boolean
     type: object
-  api_dto.UnblockUserRequest:
+  profile_service_http_api_dto.UnblockUserRequest:
     properties:
       blocked_id:
         type: integer
     required:
     - blocked_id
     type: object
-  api_dto.UpdateUserRequest:
+  profile_service_http_api_dto.UpdateUserRequest:
     properties:
       email:
         type: string
@@ -122,7 +128,7 @@ definitions:
         minLength: 2
         type: string
     type: object
-  api_dto.UserViewListResponse:
+  profile_service_http_api_dto.UserViewListResponse:
     properties:
       limit:
         type: integer
@@ -132,10 +138,10 @@ definitions:
         type: integer
       users:
         items:
-          $ref: '#/definitions/api_dto.UserViewResponse'
+          $ref: '#/definitions/profile_service_http_api_dto.UserViewResponse'
         type: array
     type: object
-  api_dto.UserViewResponse:
+  profile_service_http_api_dto.UserViewResponse:
     properties:
       created_at:
         type: string
@@ -148,13 +154,7 @@ definitions:
       username:
         type: string
     type: object
-  middleware_profile.ErrorResponse:
-    properties:
-      error:
-        example: Invalid request parameters
-        type: string
-    type: object
-host: localhost:8083
+host: localhost:8080
 info:
   contact: {}
   description: API для управления пользователями
@@ -172,14 +172,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.LoginRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Успешный вход
           schema:
-            $ref: '#/definitions/api_dto.LoginResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.LoginResponse'
         "400":
           description: Неверные данные
           schema:
@@ -202,7 +202,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.CreateUserRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.CreateUserRequest'
       produces:
       - application/json
       responses:
@@ -232,14 +232,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.UnblockUserRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.UnblockUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Пользователь разблокирован
           schema:
-            $ref: '#/definitions/api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
         "400":
           description: Неверные данные
           schema:
@@ -267,14 +267,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.BlockUserRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.BlockUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Пользователь заблокирован
           schema:
-            $ref: '#/definitions/api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
         "400":
           description: Неверные данные
           schema:
@@ -309,7 +309,7 @@ paths:
         "200":
           description: Информация о блокировке
           schema:
-            $ref: '#/definitions/api_dto.BlockInfoResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.BlockInfoResponse'
         "400":
           description: Неверные данные
           schema:
@@ -339,7 +339,7 @@ paths:
         "200":
           description: Список друзей
           schema:
-            $ref: '#/definitions/api_dto.FriendListResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.FriendListResponse'
         "400":
           description: Неверные данные
           schema:
@@ -370,7 +370,7 @@ paths:
         "200":
           description: Друг успешно удален
           schema:
-            $ref: '#/definitions/api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
         "400":
           description: Неверные данные
           schema:
@@ -410,7 +410,7 @@ paths:
         "200":
           description: Результат проверки
           schema:
-            $ref: '#/definitions/api_dto.AreFriendsResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.AreFriendsResponse'
         "400":
           description: Неверные данные
           schema:
@@ -431,14 +431,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.SendFriendRequestRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.SendFriendRequestRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Запрос успешно отправлен
           schema:
-            $ref: '#/definitions/api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
         "400":
           description: Неверные данные
           schema:
@@ -473,7 +473,7 @@ paths:
         "200":
           description: Запрос успешно отменен
           schema:
-            $ref: '#/definitions/api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
         "400":
           description: Неверные данные
           schema:
@@ -506,14 +506,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.AnswerFriendRequestRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.AnswerFriendRequestRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Ответ успешно обработан
           schema:
-            $ref: '#/definitions/api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
         "400":
           description: Неверные данные
           schema:
@@ -548,7 +548,7 @@ paths:
         "200":
           description: Статус запроса
           schema:
-            $ref: '#/definitions/api_dto.RequestStateResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.RequestStateResponse'
         "400":
           description: Неверные данные
           schema:
@@ -596,7 +596,7 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.UserViewListResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.UserViewListResponse'
         "400":
           description: Неверные параметры фильтрации
           schema:
@@ -659,7 +659,7 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.UserViewResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.UserViewResponse'
         "400":
           description: Неверный ID пользователя
           schema:
@@ -692,7 +692,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.UpdateUserRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.UpdateUserRequest'
       produces:
       - application/json
       responses:
