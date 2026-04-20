@@ -25,7 +25,7 @@ func (s *AuthorizationServer) CanSendDirect(ctx context.Context, req *profile.Ca
 		return &profile.CanSendDirectResponse{Allowed: true}, nil
 	}
 
-	blocked, err := s.relationChecker.CheckUserIsBlocked(ctx, req.FromUserId, req.ToUserId)
+	blocked, err := s.relationChecker.CheckUserIsBlocked(ctx, req.ToUserId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "block check failed")
 	}

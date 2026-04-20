@@ -52,6 +52,12 @@ services:
     depends_on:
       profile-db:
         condition: service_healthy
+      kafka-1:
+        condition: service_started
+      kafka-2:
+        condition: service_started
+      kafka-3:
+        condition: service_started
     networks:
       - haxer-net
     restart: unless-stopped
@@ -128,6 +134,7 @@ services:
     container_name: kafka-1
     networks:
       - haxer-net
+    restart: unless-stopped
     ports:
       - "9094:9094"
     environment:
@@ -146,6 +153,7 @@ services:
     container_name: kafka-2
     networks:
       - haxer-net
+    restart: unless-stopped
     ports:
       - "9095:9094"
     environment:
@@ -164,6 +172,7 @@ services:
     container_name: kafka-3
     networks:
       - haxer-net
+    restart: unless-stopped
     ports:
       - "9096:9094"
     environment:
@@ -182,6 +191,7 @@ services:
     container_name: kafka-ui
     ports:
       - "8085:8080"
+    restart: unless-stopped
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092

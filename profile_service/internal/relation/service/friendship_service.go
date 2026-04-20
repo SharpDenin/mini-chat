@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"net/http"
 	"profile_service/internal/kafka"
 	"profile_service/internal/relation/models"
 	"profile_service/internal/relation/repository"
+	"profile_service/internal/relation/service/helpers"
 	"profile_service/internal/relation/service/interfaces"
 	"profile_service/internal/user/service"
 	"profile_service/internal/user/service/service_dto"
+	"profile_service/middleware_profile"
+
+	"github.com/sirupsen/logrus"
 )
 
 type FriendshipService struct {
@@ -34,7 +38,17 @@ func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterfac
 	}
 }
 
-func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, receiverId int64, message string) error {
+func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId int64, message string) error {
+	senderId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	_, err = f.userService.GetUserById(ctx, receiverId)
+	if err != nil {
+		return helpers.ErrUserNotFound
+	}
+
 	f.log.WithFields(logrus.Fields{
 		"sender_id":   senderId,
 		"receiver_id": receiverId,
@@ -114,7 +128,12 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, senderId, rec
 	})
 }
 
-func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, userId int64, accept bool) error {
+func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId int64, accept bool) error {
+	userId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
 	f.log.WithFields(logrus.Fields{
 		"request_id": requestId,
 		"user_id":    userId,
@@ -161,7 +180,6 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, 
 				f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
 			}
 
-			// Отправляем событие
 			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "accepted")
 			go func() {
 				if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
@@ -210,7 +228,17 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId, 
 	})
 }
 
-func (f *FriendshipService) BlockUser(ctx context.Context, blockerId, blockedId int64, reason string) error {
+func (f *FriendshipService) BlockUser(ctx context.Context, blockedId int64, reason string) error {
+	blockerId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	_, err = f.userService.GetUserById(ctx, blockedId)
+	if err != nil {
+		return helpers.ErrUserNotFound
+	}
+
 	f.log.WithFields(logrus.Fields{
 		"blocker_id": blockerId,
 		"blocked_id": blockedId,
@@ -273,7 +301,17 @@ func (f *FriendshipService) BlockUser(ctx context.Context, blockerId, blockedId 
 	})
 }
 
-func (f *FriendshipService) UnblockUser(ctx context.Context, blockerId, blockedId int64) error {
+func (f *FriendshipService) UnblockUser(ctx context.Context, blockedId int64) error {
+	blockerId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	_, err = f.userService.GetUserById(ctx, blockedId)
+	if err != nil {
+		return helpers.ErrUserNotFound
+	}
+
 	f.log.WithFields(logrus.Fields{
 		"blocker_id": blockerId,
 		"blocked_id": blockedId,
@@ -315,7 +353,17 @@ func (f *FriendshipService) UnblockUser(ctx context.Context, blockerId, blockedI
 	})
 }
 
-func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, userId, friendId int64) error {
+func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, friendId int64) error {
+	userId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	_, err = f.userService.GetUserById(ctx, friendId)
+	if err != nil {
+		return helpers.ErrUserNotFound
+	}
+
 	f.log.WithFields(logrus.Fields{
 		"user_id":   userId,
 		"friend_id": friendId,
@@ -357,7 +405,12 @@ func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, userId, fr
 	})
 }
 
-func (f *FriendshipService) GetFriendList(ctx context.Context, userId int64) (*service_dto.GetUserViewListResponse, error) {
+func (f *FriendshipService) GetFriendList(ctx context.Context) (*service_dto.GetUserViewListResponse, error) {
+	userId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return nil, middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
 	f.log.WithField("user_id", userId).Info("Getting friend list")
 
 	friends, err := f.friendshipRepo.GetFriendList(ctx, userId)
@@ -406,7 +459,17 @@ func (f *FriendshipService) GetFriendList(ctx context.Context, userId int64) (*s
 	}, nil
 }
 
-func (f *FriendshipService) CheckRequestState(ctx context.Context, userId, targetId int64) (string, error) {
+func (f *FriendshipService) CheckRequestState(ctx context.Context, targetId int64) (string, error) {
+	userId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return "", middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	_, err = f.userService.GetUserById(ctx, targetId)
+	if err != nil {
+		return "", helpers.ErrUserNotFound
+	}
+
 	f.log.WithFields(logrus.Fields{
 		"user_id":   userId,
 		"target_id": targetId,

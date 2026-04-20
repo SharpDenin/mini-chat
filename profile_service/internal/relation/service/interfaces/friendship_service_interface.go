@@ -6,11 +6,11 @@ import (
 )
 
 type FriendshipServiceInterface interface {
-	SendFriendRequest(ctx context.Context, senderId, receiverId int64, message string) error
-	AnswerFriendRequest(ctx context.Context, requestId, userId int64, accept bool) error
-	BlockUser(ctx context.Context, blockerId, blockedId int64, reason string) error
-	UnblockUser(ctx context.Context, blockerId, blockedId int64) error
-	DeleteFromFriendList(ctx context.Context, userId, friendId int64) error
-	GetFriendList(ctx context.Context, userId int64) (*service_dto.GetUserViewListResponse, error)
-	CheckRequestState(ctx context.Context, userId, targetId int64) (string, error)
+	SendFriendRequest(ctx context.Context, receiverId int64, message string) error
+	AnswerFriendRequest(ctx context.Context, requestId int64, accept bool) error
+	BlockUser(ctx context.Context, blockedId int64, reason string) error
+	UnblockUser(ctx context.Context, blockedId int64) error
+	DeleteFromFriendList(ctx context.Context, friendId int64) error
+	GetFriendList(ctx context.Context) (*service_dto.GetUserViewListResponse, error)
+	CheckRequestState(ctx context.Context, targetId int64) (string, error)
 }

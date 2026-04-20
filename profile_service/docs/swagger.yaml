@@ -328,11 +328,6 @@ paths:
       consumes:
       - application/json
       description: Возвращает список друзей пользователя
-      parameters:
-      - description: Id пользователя (если не указан, возвращает для текущего)
-        in: query
-        name: user_id
-        type: integer
       produces:
       - application/json
       responses:

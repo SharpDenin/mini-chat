@@ -286,14 +286,6 @@ const docTemplate = `{
                     "Friends"
                 ],
                 "summary": "Получить список друзей",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Id пользователя (если не указан, возвращает для текущего)",
-                        "name": "user_id",
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Список друзей",
