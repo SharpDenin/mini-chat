@@ -7,10 +7,8 @@ CREATE TABLE IF NOT EXISTS friend_requests (
                                                receiver_id BIGINT NOT NULL,
                                                status VARCHAR(20) NOT NULL DEFAULT 'pending',
     message TEXT,
-    expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE
                              );
 
 -- Индексы для friend_requests
@@ -22,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_friend_requests_deleted_at ON friend_requests(del
 -- Уникальный индекс для активных запросов
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_pending_request
     ON friend_requests(sender_id, receiver_id)
-    WHERE status = 'pending' AND deleted_at IS NULL;
+    WHERE status = 'pending';
 
 -- Таблица друзей
 CREATE TABLE IF NOT EXISTS friends (
