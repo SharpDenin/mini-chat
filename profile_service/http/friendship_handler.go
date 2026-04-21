@@ -48,23 +48,30 @@ func NewFriendshipHandler(userService userService.UserServiceInterface, friendsh
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param request body api_dto.SendFriendRequestRequest true "Данные запроса"
-// @Success 200 {object} api_dto.SuccessResponse "Запрос успешно отправлен"
+// @Param receiver_id path int true "Id получателя"
+// @Param request body api_dto.SendFriendRequestRequest false "Сообщение (опционально)"
+// @Success 200 {object} api_dto.SendFriendRequestResponse "Запрос успешно отправлен"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
 // @Failure 403 {object} middleware_profile.ErrorResponse "Пользователь заблокирован"
 // @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден"
 // @Failure 409 {object} middleware_profile.ErrorResponse "Конфликт (уже друзья или есть запрос)"
-// @Router /friends/requests [post]
+// @Router /friends/requests/{receiver_id} [post]
 func (h *FriendshipHandler) PostFriendRequest(ctx *gin.Context) {
+	receiverId, err := parseAndValidateID(ctx, "receiver_id", true)
+	if err != nil {
+		middleware_profile.HandleError(ctx, err, h.log)
+		return
+	}
+
 	var req api_dto.SendFriendRequestRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindJSON(&req); err != nil && err.Error() != "EOF" {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid friend request")
 		middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusBadRequest, "Invalid request body", err), h.log)
 		return
 	}
 
-	err := h.friendshipService.SendFriendRequest(ctx, req.ReceiverId, req.Message)
+	requestId, err := h.friendshipService.SendFriendRequest(ctx, receiverId, req.Message)
 	if err != nil {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
@@ -81,9 +88,10 @@ func (h *FriendshipHandler) PostFriendRequest(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, api_dto.SuccessResponse{
-		Success: true,
-		Message: "Friend request sent successfully",
+	ctx.JSON(http.StatusOK, api_dto.SendFriendRequestResponse{
+		Success:   true,
+		Message:   "Friend request sent successfully",
+		RequestId: requestId,
 	})
 }
 
@@ -223,17 +231,30 @@ func (h *FriendshipHandler) CheckRequestState(ctx *gin.Context) {
 
 // GetFriendList
 // @Summary Получить список друзей
-// @Description Возвращает список друзей пользователя
+// @Description Возвращает список друзей пользователя с пагинацией
 // @Tags Friends
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param limit query int false "Limit" default(20)
+// @Param offset query int false "Offset" default(0)
 // @Success 200 {object} api_dto.FriendListResponse "Список друзей"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
 // @Router /friends [get]
 func (h *FriendshipHandler) GetFriendList(ctx *gin.Context) {
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
 
-	friends, err := h.friendshipService.GetFriendList(ctx)
+	resp, err := h.friendshipService.GetFriendList(ctx, limit, offset)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{
 			"error": err,
@@ -243,7 +264,20 @@ func (h *FriendshipHandler) GetFriendList(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, friends)
+	friends := make([]api_dto.FriendView, len(resp.Friends))
+	for i, f := range resp.Friends {
+		friends[i] = api_dto.FriendView{
+			Id:        f.Id,
+			Username:  f.Username,
+			Email:     f.Email,
+			CreatedAt: f.CreatedAt,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, api_dto.FriendListResponse{
+		Friends: friends,
+		Total:   resp.Total,
+	})
 }
 
 // DeleteFriend
@@ -294,15 +328,22 @@ func (h *FriendshipHandler) DeleteFriend(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param request body api_dto.BlockUserRequest true "Данные для блокировки"
+// @Param blocked_id path int true "Id пользователя для блокировки"
+// @Param request body api_dto.BlockUserRequest false "Причина блокировки (опционально)"
 // @Success 200 {object} api_dto.SuccessResponse "Пользователь заблокирован"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
 // @Failure 403 {object} middleware_profile.ErrorResponse "Попытка заблокировать себя"
 // @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден"
 // @Failure 409 {object} middleware_profile.ErrorResponse "Пользователь уже заблокирован"
-// @Router /block [post]
+// @Router /block/{blocked_id} [post]
 func (h *FriendshipHandler) BlockUser(ctx *gin.Context) {
+	blockedId, err := parseAndValidateID(ctx, "blocked_id", true)
+	if err != nil {
+		middleware_profile.HandleError(ctx, err, h.log)
+		return
+	}
+
 	var req api_dto.BlockUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid block request")
@@ -310,7 +351,7 @@ func (h *FriendshipHandler) BlockUser(ctx *gin.Context) {
 		return
 	}
 
-	err := h.friendshipService.BlockUser(ctx, req.BlockedId, req.Reason)
+	err = h.friendshipService.BlockUser(ctx, blockedId, req.Reason)
 	if err != nil {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
@@ -338,22 +379,21 @@ func (h *FriendshipHandler) BlockUser(ctx *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param request body api_dto.UnblockUserRequest true "Данные для разблокировки"
+// @Param blocked_id path int true "Id пользователя для разблокировки"
 // @Success 200 {object} api_dto.SuccessResponse "Пользователь разблокирован"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
 // @Failure 403 {object} middleware_profile.ErrorResponse "Попытка разблокировать себя"
 // @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден или блокировка отсутствует"
-// @Router /block [delete]
+// @Router /block/{blocked_id} [delete]
 func (h *FriendshipHandler) UnblockUser(ctx *gin.Context) {
-	var req api_dto.UnblockUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.log.WithFields(logrus.Fields{"error": err, "path": ctx.Request.URL.Path}).Warn("Invalid unblock request")
-		middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusBadRequest, "Invalid request body", err), h.log)
+	blockedId, err := parseAndValidateID(ctx, "blocked_id", true)
+	if err != nil {
+		middleware_profile.HandleError(ctx, err, h.log)
 		return
 	}
 
-	err := h.friendshipService.UnblockUser(ctx, req.BlockedId)
+	err = h.friendshipService.UnblockUser(ctx, blockedId)
 	if err != nil {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):

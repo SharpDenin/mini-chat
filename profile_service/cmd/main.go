@@ -193,7 +193,7 @@ func main() {
 		friendRequests := api.Group("/friends/requests")
 		friendRequests.Use(authMiddleware)
 		{
-			friendRequests.POST("", friendshipHandler.PostFriendRequest)
+			friendRequests.POST(":receiver_id", friendshipHandler.PostFriendRequest)
 			friendRequests.PUT("/:request_id", friendshipHandler.AnswerFriendRequest)
 			friendRequests.DELETE("/:request_id", friendshipHandler.CancelFriendRequest)
 			friendRequests.GET("/state", friendshipHandler.CheckRequestState)
@@ -208,8 +208,8 @@ func main() {
 		block := api.Group("/block")
 		block.Use(authMiddleware)
 		{
-			block.POST("", friendshipHandler.BlockUser)
-			block.DELETE("", friendshipHandler.UnblockUser)
+			block.POST(":blocked_id", friendshipHandler.BlockUser)
+			block.DELETE(":blocked_id", friendshipHandler.UnblockUser)
 			block.GET("/:blocked_id", friendshipHandler.GetBlockInfo)
 		}
 	}

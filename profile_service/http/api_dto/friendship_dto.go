@@ -1,8 +1,13 @@
 package api_dto
 
 type SendFriendRequestRequest struct {
-	ReceiverId int64  `json:"receiver_id" binding:"required,gt=0"`
-	Message    string `json:"message" binding:"max=500"`
+	Message string `json:"message" binding:"max=500"`
+}
+
+type SendFriendRequestResponse struct {
+	Success   bool   `json:"success"`
+	Message   string `json:"message"`
+	RequestId int64  `json:"request_id"`
 }
 
 type AnswerFriendRequestRequest struct {
@@ -26,12 +31,7 @@ type FriendView struct {
 }
 
 type BlockUserRequest struct {
-	BlockedId int64  `json:"blocked_id" binding:"required,gt=0"`
-	Reason    string `json:"reason" binding:"max=500"`
-}
-
-type UnblockUserRequest struct {
-	BlockedId int64 `json:"blocked_id" binding:"required,gt=0"`
+	Reason string `json:"reason" binding:"max=500"`
 }
 
 type BlockInfoResponse struct {
@@ -47,10 +47,4 @@ type SuccessResponse struct {
 
 type AreFriendsResponse struct {
 	AreFriends bool `json:"are_friends"`
-}
-
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }

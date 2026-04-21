@@ -167,20 +167,22 @@ func (f *FriendshipRepo) AreFriends(ctx context.Context, userId1, userId2 int64)
 	return count > 0, nil
 }
 
-func (f *FriendshipRepo) GetFriendList(ctx context.Context, userId int64) ([]models.Friend, error) {
+func (f *FriendshipRepo) GetFriendListWithPagination(ctx context.Context, userId int64, limit, offset int) ([]models.Friend, int64, error) {
 	var friends []models.Friend
-	err := f.db.WithContext(ctx).
-		Where("user_id = ? OR friend_id = ?", userId, userId).
-		Find(&friends).Error
+	var total int64
 
-	if err != nil {
-		f.log.WithFields(logrus.Fields{"error": err, "user_id": userId}).
-			Error("Failed to get friend list")
+	query := f.db.WithContext(ctx).Model(&models.Friend{}).
+		Where("user_id = ? OR friend_id = ?", userId, userId)
 
-		return nil, fmt.Errorf("get friend list error: %w", err)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("count friends error: %w", err)
 	}
 
-	return friends, nil
+	if err := query.Limit(limit).Offset(offset).Find(&friends).Error; err != nil {
+		return nil, 0, fmt.Errorf("get friend list error: %w", err)
+	}
+
+	return friends, total, nil
 }
 
 func (f *FriendshipRepo) CreateBlock(ctx context.Context, block *models.BlockedUser) error {

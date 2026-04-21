@@ -107,7 +107,54 @@ const docTemplate = `{
                 }
             }
         },
-        "/block": {
+        "/block/{blocked_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Проверяет, заблокирован ли пользователь",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Получить информацию о блокировке",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id проверяемого пользователя",
+                        "name": "blocked_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о блокировке",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.BlockInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -127,10 +174,16 @@ const docTemplate = `{
                 "summary": "Заблокировать пользователя",
                 "parameters": [
                     {
-                        "description": "Данные для блокировки",
+                        "type": "integer",
+                        "description": "Id пользователя для блокировки",
+                        "name": "blocked_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Причина блокировки (опционально)",
                         "name": "request",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/profile_service_http_api_dto.BlockUserRequest"
                         }
@@ -194,13 +247,11 @@ const docTemplate = `{
                 "summary": "Разблокировать пользователя",
                 "parameters": [
                     {
-                        "description": "Данные для разблокировки",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/profile_service_http_api_dto.UnblockUserRequest"
-                        }
+                        "type": "integer",
+                        "description": "Id пользователя для разблокировки",
+                        "name": "blocked_id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -237,55 +288,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/block/{blocked_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Проверяет, заблокирован ли пользователь",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Block"
-                ],
-                "summary": "Получить информацию о блокировке",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Id проверяемого пользователя",
-                        "name": "blocked_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Информация о блокировке",
-                        "schema": {
-                            "$ref": "#/definitions/profile_service_http_api_dto.BlockInfoResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Неверные данные",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/friends": {
             "get": {
                 "security": [
@@ -293,7 +295,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Возвращает список друзей пользователя",
+                "description": "Возвращает список друзей пользователя с пагинацией",
                 "consumes": [
                     "application/json"
                 ],
@@ -304,6 +306,22 @@ const docTemplate = `{
                     "Friends"
                 ],
                 "summary": "Получить список друзей",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Список друзей",
@@ -370,75 +388,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/friends/requests": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Отправляет запрос на добавление в друзья другому пользователю",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Friends"
-                ],
-                "summary": "Отправить запрос в друзья",
-                "parameters": [
-                    {
-                        "description": "Данные запроса",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/profile_service_http_api_dto.SendFriendRequestRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Запрос успешно отправлен",
-                        "schema": {
-                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Неверные данные",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Пользователь заблокирован",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Конфликт (уже друзья или есть запрос)",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/friends/requests/state": {
             "get": {
                 "security": [
@@ -487,6 +436,81 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/requests/{receiver_id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отправляет запрос на добавление в друзья другому пользователю",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Отправить запрос в друзья",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id получателя",
+                        "name": "receiver_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Сообщение (опционально)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SendFriendRequestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Запрос успешно отправлен",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SendFriendRequestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Пользователь заблокирован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт (уже друзья или есть запрос)",
                         "schema": {
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
@@ -947,13 +971,7 @@ const docTemplate = `{
         },
         "profile_service_http_api_dto.BlockUserRequest": {
             "type": "object",
-            "required": [
-                "blocked_id"
-            ],
             "properties": {
-                "blocked_id": {
-                    "type": "integer"
-                },
                 "reason": {
                     "type": "string",
                     "maxLength": 500
@@ -1049,16 +1067,24 @@ const docTemplate = `{
         },
         "profile_service_http_api_dto.SendFriendRequestRequest": {
             "type": "object",
-            "required": [
-                "receiver_id"
-            ],
             "properties": {
                 "message": {
                     "type": "string",
                     "maxLength": 500
+                }
+            }
+        },
+        "profile_service_http_api_dto.SendFriendRequestResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
                 },
-                "receiver_id": {
+                "request_id": {
                     "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -1070,17 +1096,6 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
-                }
-            }
-        },
-        "profile_service_http_api_dto.UnblockUserRequest": {
-            "type": "object",
-            "required": [
-                "blocked_id"
-            ],
-            "properties": {
-                "blocked_id": {
-                    "type": "integer"
                 }
             }
         },

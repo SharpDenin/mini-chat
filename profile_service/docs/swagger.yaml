@@ -27,13 +27,9 @@ definitions:
     type: object
   profile_service_http_api_dto.BlockUserRequest:
     properties:
-      blocked_id:
-        type: integer
       reason:
         maxLength: 500
         type: string
-    required:
-    - blocked_id
     type: object
   profile_service_http_api_dto.CreateUserRequest:
     properties:
@@ -98,10 +94,15 @@ definitions:
       message:
         maxLength: 500
         type: string
-      receiver_id:
+    type: object
+  profile_service_http_api_dto.SendFriendRequestResponse:
+    properties:
+      message:
+        type: string
+      request_id:
         type: integer
-    required:
-    - receiver_id
+      success:
+        type: boolean
     type: object
   profile_service_http_api_dto.SuccessResponse:
     properties:
@@ -109,13 +110,6 @@ definitions:
         type: string
       success:
         type: boolean
-    type: object
-  profile_service_http_api_dto.UnblockUserRequest:
-    properties:
-      blocked_id:
-        type: integer
-    required:
-    - blocked_id
     type: object
   profile_service_http_api_dto.UpdateUserRequest:
     properties:
@@ -219,18 +213,17 @@ paths:
       summary: Создать нового пользователя
       tags:
       - Auth
-  /block:
+  /block/{blocked_id}:
     delete:
       consumes:
       - application/json
       description: Разблокирует ранее заблокированного пользователя
       parameters:
-      - description: Данные для разблокировки
-        in: body
-        name: request
+      - description: Id пользователя для разблокировки
+        in: path
+        name: blocked_id
         required: true
-        schema:
-          $ref: '#/definitions/profile_service_http_api_dto.UnblockUserRequest'
+        type: integer
       produces:
       - application/json
       responses:
@@ -259,15 +252,49 @@ paths:
       summary: Разблокировать пользователя
       tags:
       - Block
+    get:
+      consumes:
+      - application/json
+      description: Проверяет, заблокирован ли пользователь
+      parameters:
+      - description: Id проверяемого пользователя
+        in: path
+        name: blocked_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о блокировке
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.BlockInfoResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о блокировке
+      tags:
+      - Block
     post:
       consumes:
       - application/json
       description: Блокирует указанного пользователя
       parameters:
-      - description: Данные для блокировки
+      - description: Id пользователя для блокировки
+        in: path
+        name: blocked_id
+        required: true
+        type: integer
+      - description: Причина блокировки (опционально)
         in: body
         name: request
-        required: true
         schema:
           $ref: '#/definitions/profile_service_http_api_dto.BlockUserRequest'
       produces:
@@ -302,42 +329,22 @@ paths:
       summary: Заблокировать пользователя
       tags:
       - Block
-  /block/{blocked_id}:
-    get:
-      consumes:
-      - application/json
-      description: Проверяет, заблокирован ли пользователь
-      parameters:
-      - description: Id проверяемого пользователя
-        in: path
-        name: blocked_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Информация о блокировке
-          schema:
-            $ref: '#/definitions/profile_service_http_api_dto.BlockInfoResponse'
-        "400":
-          description: Неверные данные
-          schema:
-            $ref: '#/definitions/middleware_profile.ErrorResponse'
-        "401":
-          description: Не авторизован
-          schema:
-            $ref: '#/definitions/middleware_profile.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Получить информацию о блокировке
-      tags:
-      - Block
   /friends:
     get:
       consumes:
       - application/json
-      description: Возвращает список друзей пользователя
+      description: Возвращает список друзей пользователя с пагинацией
+      parameters:
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -421,16 +428,20 @@ paths:
       summary: Проверить статус дружбы
       tags:
       - Friends
-  /friends/requests:
+  /friends/requests/{receiver_id}:
     post:
       consumes:
       - application/json
       description: Отправляет запрос на добавление в друзья другому пользователю
       parameters:
-      - description: Данные запроса
+      - description: Id получателя
+        in: path
+        name: receiver_id
+        required: true
+        type: integer
+      - description: Сообщение (опционально)
         in: body
         name: request
-        required: true
         schema:
           $ref: '#/definitions/profile_service_http_api_dto.SendFriendRequestRequest'
       produces:
@@ -439,7 +450,7 @@ paths:
         "200":
           description: Запрос успешно отправлен
           schema:
-            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.SendFriendRequestResponse'
         "400":
           description: Неверные данные
           schema:

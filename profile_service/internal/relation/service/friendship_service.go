@@ -11,8 +11,9 @@ import (
 	"profile_service/internal/relation/repository"
 	"profile_service/internal/relation/service/helpers"
 	"profile_service/internal/relation/service/interfaces"
+	relDto "profile_service/internal/relation/service/service_dto"
 	"profile_service/internal/user/service"
-	"profile_service/internal/user/service/service_dto"
+	usDto "profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
 
 	"github.com/sirupsen/logrus"
@@ -38,15 +39,15 @@ func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterfac
 	}
 }
 
-func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId int64, message string) error {
+func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId int64, message string) (int64, error) {
 	senderId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
-		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+		return 0, middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 
 	_, err = f.userService.GetUserById(ctx, receiverId)
 	if err != nil {
-		return helpers.ErrUserNotFound
+		return 0, helpers.ErrUserNotFound
 	}
 
 	f.log.WithFields(logrus.Fields{
@@ -54,39 +55,33 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		"receiver_id": receiverId,
 	}).Info("Sending friend request")
 
-	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+	var requestId int64
+	err = f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
 		if receiverId == senderId {
-			f.log.WithError(err).Error("Failed to send friend request to yourself")
 			return helpers.ErrCannotFriendYourself
 		}
 
 		blocked, err := tx.IsBlocked(ctx, senderId, receiverId)
 		if err != nil {
-			f.log.WithError(err).Error("Failed to check block status")
 			return fmt.Errorf("failed to check block status: %w", err)
 		}
 		if blocked {
-			f.log.Warn("User is blocked, cannot send friend request")
 			return helpers.ErrBlockedByUser
 		}
 
 		areFriends, err := tx.AreFriends(ctx, senderId, receiverId)
 		if err != nil {
-			f.log.WithError(err).Error("Failed to check friendship status")
 			return fmt.Errorf("failed to check friendship status: %w", err)
 		}
 		if areFriends {
-			f.log.Warn("Users are already friends")
 			return helpers.ErrAlreadyFriends
 		}
 
 		existingRequest, err := tx.GetActiveRequestBetweenUsers(ctx, senderId, receiverId)
 		if err != nil && !errors.Is(err, repository.ErrFriendshipNotFound) {
-			f.log.WithError(err).Error("Failed to check existing request")
 			return fmt.Errorf("failed to check existing request: %w", err)
 		}
 		if existingRequest != nil {
-			f.log.Warn("Friend request already exists")
 			return helpers.ErrFriendRequestExists
 		}
 
@@ -98,9 +93,9 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		}
 
 		if err := tx.CreateFriendRequest(ctx, request); err != nil {
-			f.log.WithError(err).Error("Failed to create friend request")
 			return fmt.Errorf("failed to create friend request: %w", err)
 		}
+		requestId = request.Id
 
 		history := &models.FriendshipHistory{
 			EventType: "request_sent",
@@ -120,15 +115,20 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 			}
 		}()
 
-		f.log.WithFields(logrus.Fields{
-			"request_id":  request.Id,
-			"sender_id":   senderId,
-			"receiver_id": receiverId,
-		}).Info("Friend request sent successfully")
-
 		return nil
-
 	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	f.log.WithFields(logrus.Fields{
+		"request_id":  requestId,
+		"sender_id":   senderId,
+		"receiver_id": receiverId,
+	}).Info("Friend request sent successfully")
+
+	return requestId, nil
 }
 
 func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId int64, accept bool) error {
@@ -469,7 +469,7 @@ func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, friendId i
 	})
 }
 
-func (f *FriendshipService) GetFriendList(ctx context.Context) (*service_dto.GetUserViewListResponse, error) {
+func (f *FriendshipService) GetFriendList(ctx context.Context, limit, offset int) (*relDto.FriendListResponse, error) {
 	userId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
 		return nil, middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
@@ -477,15 +477,16 @@ func (f *FriendshipService) GetFriendList(ctx context.Context) (*service_dto.Get
 
 	f.log.WithField("user_id", userId).Info("Getting friend list")
 
-	friends, err := f.friendshipRepo.GetFriendList(ctx, userId)
+	friends, total, err := f.friendshipRepo.GetFriendListWithPagination(ctx, userId, limit, offset)
 	if err != nil {
 		f.log.WithError(err).Error("Failed to get friend list")
 		return nil, fmt.Errorf("failed to get friend list: %w", err)
 	}
 
 	if len(friends) == 0 {
-		return &service_dto.GetUserViewListResponse{
-			UserList: []*service_dto.GetUserResponse{},
+		return &relDto.FriendListResponse{
+			Friends: []relDto.FriendView{},
+			Total:   int(total),
 		}, nil
 	}
 
@@ -504,22 +505,31 @@ func (f *FriendshipService) GetFriendList(ctx context.Context) (*service_dto.Get
 		return nil, fmt.Errorf("failed to get user details: %w", err)
 	}
 
-	userViews := make([]*service_dto.GetUserResponse, 0, len(users))
-	for _, user := range users {
-		userViews = append(userViews, &service_dto.GetUserResponse{
-			Id:    user.Id,
-			Name:  user.Name,
-			Email: user.Email,
-		})
+	userMap := make(map[int64]*usDto.GetUserResponse)
+	for _, u := range users {
+		userMap[u.Id] = u
+	}
+
+	friendViews := make([]relDto.FriendView, 0, len(friends))
+	for _, id := range friendIds {
+		if u, ok := userMap[id]; ok {
+			friendViews = append(friendViews, relDto.FriendView{
+				Id:       u.Id,
+				Username: u.Name,
+				Email:    u.Email,
+			})
+		}
 	}
 
 	f.log.WithFields(logrus.Fields{
 		"user_id":       userId,
-		"friends_count": len(userViews),
+		"friends_count": len(friendViews),
+		"total":         total,
 	}).Info("Friend list retrieved successfully")
 
-	return &service_dto.GetUserViewListResponse{
-		UserList: userViews,
+	return &relDto.FriendListResponse{
+		Friends: friendViews,
+		Total:   int(total),
 	}, nil
 }
 
