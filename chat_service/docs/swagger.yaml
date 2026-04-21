@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  api_dto.CreateRoomRequest:
+  chat_service_http_api_dto.CreateRoomRequest:
     properties:
       name:
         maxLength: 255
@@ -9,7 +9,7 @@ definitions:
     required:
     - name
     type: object
-  api_dto.GetRoomListResponse:
+  chat_service_http_api_dto.GetRoomListResponse:
     properties:
       limit:
         type: integer
@@ -17,33 +17,33 @@ definitions:
         type: integer
       roomList:
         items:
-          $ref: '#/definitions/api_dto.GetRoomResponse'
+          $ref: '#/definitions/chat_service_http_api_dto.GetRoomResponse'
         type: array
     type: object
-  api_dto.GetRoomMemberListResponse:
+  chat_service_http_api_dto.GetRoomMemberListResponse:
     properties:
       roomId:
         type: integer
       roomMemberList:
         items:
-          $ref: '#/definitions/api_dto.GetRoomMemberResponse'
+          $ref: '#/definitions/chat_service_http_api_dto.GetRoomMemberResponse'
         type: array
     type: object
-  api_dto.GetRoomMemberResponse:
+  chat_service_http_api_dto.GetRoomMemberResponse:
     properties:
       isAdmin:
         type: boolean
       userId:
         type: integer
     type: object
-  api_dto.GetRoomResponse:
+  chat_service_http_api_dto.GetRoomResponse:
     properties:
       Id:
         type: integer
       Name:
         type: string
     type: object
-  api_dto.UpdateRoomRequest:
+  chat_service_http_api_dto.UpdateRoomRequest:
     properties:
       name:
         maxLength: 255
@@ -55,7 +55,7 @@ definitions:
         example: Invalid request parameters
         type: string
     type: object
-host: localhost:8084
+host: localhost:8081
 info:
   contact: {}
   description: API для управления пользователями
@@ -90,7 +90,7 @@ paths:
         "200":
           description: Список комнат
           schema:
-            $ref: '#/definitions/api_dto.GetRoomListResponse'
+            $ref: '#/definitions/chat_service_http_api_dto.GetRoomListResponse'
         "400":
           description: Неверные параметры фильтрации
           schema:
@@ -114,7 +114,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.CreateRoomRequest'
+          $ref: '#/definitions/chat_service_http_api_dto.CreateRoomRequest'
       produces:
       - application/json
       responses:
@@ -156,7 +156,7 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.GetRoomMemberListResponse'
+            $ref: '#/definitions/chat_service_http_api_dto.GetRoomMemberListResponse'
         "400":
           description: Неверные параметры фильтрации
           schema:
@@ -342,7 +342,7 @@ paths:
         "200":
           description: Информация о комнате
           schema:
-            $ref: '#/definitions/api_dto.GetRoomResponse'
+            $ref: '#/definitions/chat_service_http_api_dto.GetRoomResponse'
         "400":
           description: Неверные данные
           schema:
@@ -379,7 +379,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.UpdateRoomRequest'
+          $ref: '#/definitions/chat_service_http_api_dto.UpdateRoomRequest'
       produces:
       - application/json
       responses:

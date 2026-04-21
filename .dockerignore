@@ -1,0 +1,8 @@
+.git
+.github
+tmp/
+docker-compose*.yml
+**/tmp
+**/.air.toml
+**/Dockerfile.dev
+**/docs   # генерируется при сборке, не копируем

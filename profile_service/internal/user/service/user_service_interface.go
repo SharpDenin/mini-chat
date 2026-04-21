@@ -13,4 +13,6 @@ type UserServiceInterface interface {
 	DeleteUser(ctx context.Context, userId int64) error
 	//GetAuthorizedUsers(ctx context.Context, limit, offset int) (int, []*model.User, error)
 	//GetUserAuthTokens(ctx context.Context, userId int64) ([]string, error)
+
+	GetUserByIds(ctx context.Context, userIds []int64) ([]*service_dto.GetUserResponse, error)
 }

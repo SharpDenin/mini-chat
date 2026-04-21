@@ -1,18 +1,27 @@
-FROM golang:1.25rc2
+FROM golang:1.25rc2 AS builder
 
 WORKDIR /app
 
-# Копируем исходный код
-COPY go.mod go.sum ./
+ENV GOTOOLCHAIN=auto
+
+COPY profile_service/go.mod profile_service/go.sum ./
+COPY shared-proto/go.mod shared-proto/go.sum ./shared-proto/
+
+RUN go mod edit -replace shared-proto=./shared-proto
 RUN go mod download
 
-COPY . .
+COPY profile_service/ ./
+COPY shared-proto/ ./shared-proto/
 
-# Собираем приложение
-RUN go build -o main cmd/main.go
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN swag init --output ./docs --parseDependency --parseInternal
 
-# Экспортируем порты
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o main ./cmd/main.go
+
+FROM alpine:3.19
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+COPY --from=builder /app/docs ./docs
 EXPOSE 8083 50053 50054
-
-# Запускаем приложение
 CMD ["./main"]

@@ -1,6 +1,37 @@
 basePath: /api/v1
 definitions:
-  api_dto.CreateUserRequest:
+  middleware_profile.ErrorResponse:
+    properties:
+      error:
+        example: Invalid request parameters
+        type: string
+    type: object
+  profile_service_http_api_dto.AnswerFriendRequestRequest:
+    properties:
+      accept:
+        type: boolean
+    type: object
+  profile_service_http_api_dto.AreFriendsResponse:
+    properties:
+      are_friends:
+        type: boolean
+    type: object
+  profile_service_http_api_dto.BlockInfoResponse:
+    properties:
+      blocked_id:
+        type: integer
+      blocker_id:
+        type: integer
+      is_blocked:
+        type: boolean
+    type: object
+  profile_service_http_api_dto.BlockUserRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    type: object
+  profile_service_http_api_dto.CreateUserRequest:
     properties:
       email:
         type: string
@@ -15,46 +46,16 @@ definitions:
     - name
     - password
     type: object
-  api_dto.LoginRequest:
+  profile_service_http_api_dto.FriendListResponse:
     properties:
-      password:
-        type: string
-      username:
-        type: string
-    required:
-    - password
-    - username
-    type: object
-  api_dto.LoginResponse:
-    properties:
-      token:
-        type: string
-      user_id:
-        type: string
-    type: object
-  api_dto.UpdateUserRequest:
-    properties:
-      email:
-        type: string
-      name:
-        maxLength: 50
-        minLength: 2
-        type: string
-    type: object
-  api_dto.UserViewListResponse:
-    properties:
-      limit:
-        type: integer
-      offset:
-        type: integer
+      friends:
+        items:
+          $ref: '#/definitions/profile_service_http_api_dto.FriendView'
+        type: array
       total:
         type: integer
-      users:
-        items:
-          $ref: '#/definitions/api_dto.UserViewResponse'
-        type: array
     type: object
-  api_dto.UserViewResponse:
+  profile_service_http_api_dto.FriendView:
     properties:
       created_at:
         type: string
@@ -65,13 +66,89 @@ definitions:
       username:
         type: string
     type: object
-  middleware_profile.ErrorResponse:
+  profile_service_http_api_dto.LoginRequest:
     properties:
-      error:
-        example: Invalid request parameters
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  profile_service_http_api_dto.LoginResponse:
+    properties:
+      token:
+        type: string
+      user_id:
         type: string
     type: object
-host: localhost:8083
+  profile_service_http_api_dto.RequestStateResponse:
+    properties:
+      requestId:
+        type: integer
+      status:
+        description: pending, accepted, rejected, none
+        type: string
+    type: object
+  profile_service_http_api_dto.SendFriendRequestRequest:
+    properties:
+      message:
+        maxLength: 500
+        type: string
+    type: object
+  profile_service_http_api_dto.SendFriendRequestResponse:
+    properties:
+      message:
+        type: string
+      request_id:
+        type: integer
+      success:
+        type: boolean
+    type: object
+  profile_service_http_api_dto.SuccessResponse:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  profile_service_http_api_dto.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  profile_service_http_api_dto.UserViewListResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/profile_service_http_api_dto.UserViewResponse'
+        type: array
+    type: object
+  profile_service_http_api_dto.UserViewResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
 info:
   contact: {}
   description: API для управления пользователями
@@ -89,14 +166,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.LoginRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Успешный вход
           schema:
-            $ref: '#/definitions/api_dto.LoginResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.LoginResponse'
         "400":
           description: Неверные данные
           schema:
@@ -119,7 +196,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.CreateUserRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.CreateUserRequest'
       produces:
       - application/json
       responses:
@@ -138,6 +215,379 @@ paths:
       summary: Создать нового пользователя
       tags:
       - Auth
+  /block/{blocked_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Разблокирует ранее заблокированного пользователя
+      parameters:
+      - description: Id пользователя для разблокировки
+        in: path
+        name: blocked_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь разблокирован
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "403":
+          description: Попытка разблокировать себя
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден или блокировка отсутствует
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Разблокировать пользователя
+      tags:
+      - Block
+    get:
+      consumes:
+      - application/json
+      description: Проверяет, заблокирован ли пользователь
+      parameters:
+      - description: Id проверяемого пользователя
+        in: path
+        name: blocked_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о блокировке
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.BlockInfoResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить информацию о блокировке
+      tags:
+      - Block
+    post:
+      consumes:
+      - application/json
+      description: Блокирует указанного пользователя
+      parameters:
+      - description: Id пользователя для блокировки
+        in: path
+        name: blocked_id
+        required: true
+        type: integer
+      - description: Причина блокировки (опционально)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/profile_service_http_api_dto.BlockUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пользователь заблокирован
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "403":
+          description: Попытка заблокировать себя
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "409":
+          description: Пользователь уже заблокирован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Заблокировать пользователя
+      tags:
+      - Block
+  /friends:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список друзей пользователя с пагинацией
+      parameters:
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список друзей
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.FriendListResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список друзей
+      tags:
+      - Friends
+  /friends/{friend_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет пользователя из списка друзей
+      parameters:
+      - description: Id друга
+        in: path
+        name: friend_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Друг успешно удален
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден или не являются друзьями
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить из друзей
+      tags:
+      - Friends
+  /friends/check:
+    get:
+      consumes:
+      - application/json
+      description: Проверяет, являются ли пользователи друзьями
+      parameters:
+      - description: Первый пользователь
+        in: query
+        name: user_id1
+        required: true
+        type: integer
+      - description: Второй пользователь
+        in: query
+        name: user_id2
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Результат проверки
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.AreFriendsResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Проверить статус дружбы
+      tags:
+      - Friends
+  /friends/requests/{receiver_id}:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет запрос на добавление в друзья другому пользователю
+      parameters:
+      - description: Id получателя
+        in: path
+        name: receiver_id
+        required: true
+        type: integer
+      - description: Сообщение (опционально)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/profile_service_http_api_dto.SendFriendRequestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Запрос успешно отправлен
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.SendFriendRequestResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "403":
+          description: Пользователь заблокирован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "409":
+          description: Конфликт (уже друзья или есть запрос)
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отправить запрос в друзья
+      tags:
+      - Friends
+  /friends/requests/{request_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Отменяет отправленный запрос в друзья
+      parameters:
+      - description: Id запроса
+        in: path
+        name: request_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Запрос успешно отменен
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Запрос не найден
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отменить запрос в друзья
+      tags:
+      - Friends
+    put:
+      consumes:
+      - application/json
+      description: Принимает или отклоняет запрос в друзья
+      parameters:
+      - description: Id запроса
+        in: path
+        name: request_id
+        required: true
+        type: integer
+      - description: Ответ на запрос
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/profile_service_http_api_dto.AnswerFriendRequestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ответ успешно обработан
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.SuccessResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Запрос не найден
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Ответить на запрос в друзья
+      tags:
+      - Friends
+  /friends/requests/state:
+    get:
+      consumes:
+      - application/json
+      description: Проверяет статус запроса между текущим пользователем и указанным
+      parameters:
+      - description: Id целевого пользователя
+        in: query
+        name: target_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус запроса
+          schema:
+            $ref: '#/definitions/profile_service_http_api_dto.RequestStateResponse'
+        "400":
+          description: Неверные данные
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Проверить статус запроса в друзья
+      tags:
+      - Friends
   /users:
     get:
       consumes:
@@ -151,6 +601,10 @@ paths:
       - description: Фильтр по email
         in: query
         name: email
+        type: string
+      - description: Фильтр по статусу
+        in: query
+        name: status
         type: string
       - description: Лимит записей
         in: query
@@ -168,7 +622,7 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.UserViewListResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.UserViewListResponse'
         "400":
           description: Неверные параметры фильтрации
           schema:
@@ -231,7 +685,7 @@ paths:
         "200":
           description: Успешный запрос
           schema:
-            $ref: '#/definitions/api_dto.UserViewResponse'
+            $ref: '#/definitions/profile_service_http_api_dto.UserViewResponse'
         "400":
           description: Неверный ID пользователя
           schema:
@@ -264,7 +718,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_dto.UpdateUserRequest'
+          $ref: '#/definitions/profile_service_http_api_dto.UpdateUserRequest'
       produces:
       - application/json
       responses:

@@ -3,9 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -19,10 +16,6 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	if err := godotenv.Load(".env"); err != nil {
-		logrus.Error("Failed to load .env file: ", err)
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
-	}
 	config := &Config{
 		Jwt:        os.Getenv("JWT_SECRET"),
 		Host:       os.Getenv("HOST"),
@@ -31,6 +24,9 @@ func Load() (*Config, error) {
 		Sslmode:    os.Getenv("SSLMODE"),
 		RoomDbName: os.Getenv("ROOM_DBNAME"),
 		RoomDbPort: os.Getenv("ROOM_DBPORT"),
+	}
+	if config.Host == "" {
+		return nil, fmt.Errorf("HOST environment variable is required")
 	}
 	return config, nil
 }

@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8084",
+    "host": "localhost:8081",
     "basePath": "/api/v1",
     "paths": {
         "/room": {
@@ -55,7 +55,7 @@
                     "200": {
                         "description": "Список комнат",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.GetRoomListResponse"
+                            "$ref": "#/definitions/chat_service_http_api_dto.GetRoomListResponse"
                         }
                     },
                     "400": {
@@ -96,7 +96,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.CreateRoomRequest"
+                            "$ref": "#/definitions/chat_service_http_api_dto.CreateRoomRequest"
                         }
                     }
                 ],
@@ -159,7 +159,7 @@
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.GetRoomMemberListResponse"
+                            "$ref": "#/definitions/chat_service_http_api_dto.GetRoomMemberListResponse"
                         }
                     },
                     "400": {
@@ -397,7 +397,7 @@
                     "200": {
                         "description": "Информация о комнате",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.GetRoomResponse"
+                            "$ref": "#/definitions/chat_service_http_api_dto.GetRoomResponse"
                         }
                     },
                     "400": {
@@ -457,7 +457,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UpdateRoomRequest"
+                            "$ref": "#/definitions/chat_service_http_api_dto.UpdateRoomRequest"
                         }
                     }
                 ],
@@ -538,7 +538,7 @@
         }
     },
     "definitions": {
-        "api_dto.CreateRoomRequest": {
+        "chat_service_http_api_dto.CreateRoomRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -551,7 +551,7 @@
                 }
             }
         },
-        "api_dto.GetRoomListResponse": {
+        "chat_service_http_api_dto.GetRoomListResponse": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -563,12 +563,12 @@
                 "roomList": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.GetRoomResponse"
+                        "$ref": "#/definitions/chat_service_http_api_dto.GetRoomResponse"
                     }
                 }
             }
         },
-        "api_dto.GetRoomMemberListResponse": {
+        "chat_service_http_api_dto.GetRoomMemberListResponse": {
             "type": "object",
             "properties": {
                 "roomId": {
@@ -577,12 +577,12 @@
                 "roomMemberList": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/api_dto.GetRoomMemberResponse"
+                        "$ref": "#/definitions/chat_service_http_api_dto.GetRoomMemberResponse"
                     }
                 }
             }
         },
-        "api_dto.GetRoomMemberResponse": {
+        "chat_service_http_api_dto.GetRoomMemberResponse": {
             "type": "object",
             "properties": {
                 "isAdmin": {
@@ -593,7 +593,7 @@
                 }
             }
         },
-        "api_dto.GetRoomResponse": {
+        "chat_service_http_api_dto.GetRoomResponse": {
             "type": "object",
             "properties": {
                 "Id": {
@@ -604,7 +604,7 @@
                 }
             }
         },
-        "api_dto.UpdateRoomRequest": {
+        "chat_service_http_api_dto.UpdateRoomRequest": {
             "type": "object",
             "properties": {
                 "name": {

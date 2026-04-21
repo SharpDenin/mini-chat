@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8083",
+    "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
         "/auth/login": {
@@ -29,7 +29,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.LoginRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.LoginRequest"
                         }
                     }
                 ],
@@ -37,7 +37,7 @@
                     "200": {
                         "description": "Успешный вход",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.LoginResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.LoginResponse"
                         }
                     },
                     "400": {
@@ -75,7 +75,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.CreateUserRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -94,6 +94,589 @@
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/block/{blocked_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Проверяет, заблокирован ли пользователь",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Получить информацию о блокировке",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id проверяемого пользователя",
+                        "name": "blocked_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Информация о блокировке",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.BlockInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Блокирует указанного пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Заблокировать пользователя",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id пользователя для блокировки",
+                        "name": "blocked_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Причина блокировки (опционально)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.BlockUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователь заблокирован",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Попытка заблокировать себя",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Пользователь уже заблокирован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Разблокирует ранее заблокированного пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Block"
+                ],
+                "summary": "Разблокировать пользователя",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id пользователя для разблокировки",
+                        "name": "blocked_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пользователь разблокирован",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Попытка разблокировать себя",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден или блокировка отсутствует",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает список друзей пользователя с пагинацией",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Получить список друзей",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список друзей",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.FriendListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/check": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Проверяет, являются ли пользователи друзьями",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Проверить статус дружбы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Первый пользователь",
+                        "name": "user_id1",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Второй пользователь",
+                        "name": "user_id2",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Результат проверки",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.AreFriendsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/requests/state": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Проверяет статус запроса между текущим пользователем и указанным",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Проверить статус запроса в друзья",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id целевого пользователя",
+                        "name": "target_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Статус запроса",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.RequestStateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/requests/{receiver_id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отправляет запрос на добавление в друзья другому пользователю",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Отправить запрос в друзья",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id получателя",
+                        "name": "receiver_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Сообщение (опционально)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SendFriendRequestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Запрос успешно отправлен",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SendFriendRequestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Пользователь заблокирован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт (уже друзья или есть запрос)",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/requests/{request_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Принимает или отклоняет запрос в друзья",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Ответить на запрос в друзья",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id запроса",
+                        "name": "request_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ответ на запрос",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.AnswerFriendRequestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ответ успешно обработан",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Запрос не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Отменяет отправленный запрос в друзья",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Отменить запрос в друзья",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id запроса",
+                        "name": "request_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Запрос успешно отменен",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Запрос не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/friends/{friend_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет пользователя из списка друзей",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Friends"
+                ],
+                "summary": "Удалить из друзей",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id друга",
+                        "name": "friend_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Друг успешно удален",
+                        "schema": {
+                            "$ref": "#/definitions/profile_service_http_api_dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные данные",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден или не являются друзьями",
                         "schema": {
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
@@ -133,6 +716,12 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Фильтр по статусу",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Лимит записей",
                         "name": "limit",
@@ -151,7 +740,7 @@
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UserViewListResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UserViewListResponse"
                         }
                     },
                     "400": {
@@ -200,7 +789,7 @@
                     "200": {
                         "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UserViewResponse"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UserViewResponse"
                         }
                     },
                     "400": {
@@ -254,7 +843,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_dto.UpdateUserRequest"
+                            "$ref": "#/definitions/profile_service_http_api_dto.UpdateUserRequest"
                         }
                     }
                 ],
@@ -335,7 +924,55 @@
         }
     },
     "definitions": {
-        "api_dto.CreateUserRequest": {
+        "middleware_profile.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Invalid request parameters"
+                }
+            }
+        },
+        "profile_service_http_api_dto.AnswerFriendRequestRequest": {
+            "type": "object",
+            "properties": {
+                "accept": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "profile_service_http_api_dto.AreFriendsResponse": {
+            "type": "object",
+            "properties": {
+                "are_friends": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "profile_service_http_api_dto.BlockInfoResponse": {
+            "type": "object",
+            "properties": {
+                "blocked_id": {
+                    "type": "integer"
+                },
+                "blocker_id": {
+                    "type": "integer"
+                },
+                "is_blocked": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "profile_service_http_api_dto.BlockUserRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                }
+            }
+        },
+        "profile_service_http_api_dto.CreateUserRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -356,66 +993,21 @@
                 }
             }
         },
-        "api_dto.LoginRequest": {
-            "type": "object",
-            "required": [
-                "password",
-                "username"
-            ],
-            "properties": {
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "api_dto.LoginResponse": {
+        "profile_service_http_api_dto.FriendListResponse": {
             "type": "object",
             "properties": {
-                "token": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "api_dto.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 2
-                }
-            }
-        },
-        "api_dto.UserViewListResponse": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "offset": {
-                    "type": "integer"
+                "friends": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/profile_service_http_api_dto.FriendView"
+                    }
                 },
                 "total": {
                     "type": "integer"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/api_dto.UserViewResponse"
-                    }
                 }
             }
         },
-        "api_dto.UserViewResponse": {
+        "profile_service_http_api_dto.FriendView": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -432,12 +1024,128 @@
                 }
             }
         },
-        "middleware_profile.ErrorResponse": {
+        "profile_service_http_api_dto.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "profile_service_http_api_dto.LoginResponse": {
             "type": "object",
             "properties": {
-                "error": {
+                "token": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "profile_service_http_api_dto.RequestStateResponse": {
+            "type": "object",
+            "properties": {
+                "requestId": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "pending, accepted, rejected, none",
+                    "type": "string"
+                }
+            }
+        },
+        "profile_service_http_api_dto.SendFriendRequestRequest": {
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string",
-                    "example": "Invalid request parameters"
+                    "maxLength": 500
+                }
+            }
+        },
+        "profile_service_http_api_dto.SendFriendRequestResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "profile_service_http_api_dto.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "profile_service_http_api_dto.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                }
+            }
+        },
+        "profile_service_http_api_dto.UserViewListResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/profile_service_http_api_dto.UserViewResponse"
+                    }
+                }
+            }
+        },
+        "profile_service_http_api_dto.UserViewResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }
