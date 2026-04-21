@@ -85,6 +85,8 @@ definitions:
     type: object
   profile_service_http_api_dto.RequestStateResponse:
     properties:
+      requestId:
+        type: integer
       status:
         description: pending, accepted, rejected, none
         type: string

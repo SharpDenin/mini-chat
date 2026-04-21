@@ -23,10 +23,21 @@ func NewFriendRequestSentEvent(senderId, receiverId, requestId int64, message st
 }
 
 func NewFriendRequestActionEvent(userId, requestId, friendId int64, action string) *models.FriendRequestActionEvent {
+	var eventType models.EventType
+	switch action {
+	case "accepted":
+		eventType = models.EventFriendRequestAccepted
+	case "rejected":
+		eventType = models.EventFriendRequestRejected
+	case "cancelled":
+		eventType = models.EventFriendRequestCancelled
+	default:
+		eventType = models.EventFriendRequestAccepted
+	}
 	return &models.FriendRequestActionEvent{
 		BaseEvent: models.BaseEvent{
 			EventId:   generateEventID(),
-			EventType: models.EventFriendRequestAccepted,
+			EventType: eventType,
 			UserId:    userId,
 			Timestamp: time.Now().UTC(),
 			Service:   "profile-service",

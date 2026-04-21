@@ -15,7 +15,8 @@ type AnswerFriendRequestRequest struct {
 }
 
 type RequestStateResponse struct {
-	Status string `json:"status"` // pending, accepted, rejected, none
+	RequestId int64  `json:"requestId"`
+	Status    string `json:"status"` // pending, accepted, rejected, none
 }
 
 type FriendListResponse struct {

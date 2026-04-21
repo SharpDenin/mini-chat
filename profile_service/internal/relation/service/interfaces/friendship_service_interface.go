@@ -13,5 +13,5 @@ type FriendshipServiceInterface interface {
 	UnblockUser(ctx context.Context, blockedId int64) error
 	DeleteFromFriendList(ctx context.Context, friendId int64) error
 	GetFriendList(ctx context.Context, limit, offset int) (*service_dto.FriendListResponse, error)
-	CheckRequestState(ctx context.Context, targetId int64) (string, error)
+	CheckRequestState(ctx context.Context, targetId int64) (*service_dto.RequestResponse, error)
 }

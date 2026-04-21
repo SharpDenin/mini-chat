@@ -84,6 +84,26 @@ func (f *FriendshipRepo) GetActiveRequestBetweenUsers(ctx context.Context, userI
 	return &request, nil
 }
 
+func (f *FriendshipRepo) GetLastRequestsBetweenUsers(ctx context.Context, userId1, userId2 int64) (*models.FriendRequest, error) {
+	var request models.FriendRequest
+	err := f.db.WithContext(ctx).
+		Where("(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
+			userId1, userId2, userId2, userId1).
+		Last(&request).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+
+			return nil, ErrFriendshipNotFound
+		}
+		f.log.WithFields(logrus.Fields{"error": err, "user_id1": userId1, "user_id2": userId2}).
+			Error("Failed to get request")
+
+		return nil, fmt.Errorf("get request error: %w", err)
+	}
+
+	return &request, nil
+}
+
 func (f *FriendshipRepo) UpdateFriendRequestStatus(ctx context.Context, requestId int64, status string) error {
 	result := f.db.WithContext(ctx).
 		Model(&models.FriendRequest{}).

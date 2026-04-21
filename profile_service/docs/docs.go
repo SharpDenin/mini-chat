@@ -1059,6 +1059,9 @@ const docTemplate = `{
         "profile_service_http_api_dto.RequestStateResponse": {
             "type": "object",
             "properties": {
+                "requestId": {
+                    "type": "integer"
+                },
                 "status": {
                     "description": "pending, accepted, rejected, none",
                     "type": "string"

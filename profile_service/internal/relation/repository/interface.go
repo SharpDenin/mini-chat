@@ -10,6 +10,7 @@ type FriendshipRepositoryInterface interface {
 	CreateFriendRequest(ctx context.Context, request *models.FriendRequest) error
 	GetPendingRequest(ctx context.Context, requestId, receiverId int64) (*models.FriendRequest, error)
 	GetActiveRequestBetweenUsers(ctx context.Context, userId1, userId2 int64) (*models.FriendRequest, error)
+	GetLastRequestsBetweenUsers(ctx context.Context, userId1, userId2 int64) (*models.FriendRequest, error)
 	UpdateFriendRequestStatus(ctx context.Context, requestId int64, status string) error
 	CancelPendingRequestBetweenUsers(ctx context.Context, userId1, userId2 int64) error
 

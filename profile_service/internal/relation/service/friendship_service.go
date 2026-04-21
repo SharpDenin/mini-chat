@@ -533,15 +533,15 @@ func (f *FriendshipService) GetFriendList(ctx context.Context, limit, offset int
 	}, nil
 }
 
-func (f *FriendshipService) CheckRequestState(ctx context.Context, targetId int64) (string, error) {
+func (f *FriendshipService) CheckRequestState(ctx context.Context, targetId int64) (*relDto.RequestResponse, error) {
 	userId, err := helpers.GetUserIdFromContext(ctx)
 	if err != nil {
-		return "", middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+		return nil, middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
 	}
 
 	_, err = f.userService.GetUserById(ctx, targetId)
 	if err != nil {
-		return "", helpers.ErrUserNotFound
+		return nil, helpers.ErrUserNotFound
 	}
 
 	f.log.WithFields(logrus.Fields{
@@ -549,23 +549,19 @@ func (f *FriendshipService) CheckRequestState(ctx context.Context, targetId int6
 		"target_id": targetId,
 	}).Info("Checking request state")
 
-	request, err := f.friendshipRepo.GetActiveRequestBetweenUsers(ctx, userId, targetId)
+	request, err := f.friendshipRepo.GetLastRequestsBetweenUsers(ctx, userId, targetId)
 	if err != nil {
 		if errors.Is(err, repository.ErrFriendshipNotFound) {
-			return "none", nil
+			return nil, nil
 		}
 		f.log.WithError(err).Error("Failed to check request state")
-		return "", fmt.Errorf("failed to check request state: %w", err)
+		return nil, fmt.Errorf("failed to check request state: %w", err)
 	}
 
-	status := request.Status
-	f.log.WithFields(logrus.Fields{
-		"user_id":   userId,
-		"target_id": targetId,
-		"status":    status,
-	}).Info("Request state checked")
-
-	return status, nil
+	return &relDto.RequestResponse{
+		Id:     request.Id,
+		Status: request.Status,
+	}, nil
 }
 
 func createMetadata(key, value string) json.RawMessage {

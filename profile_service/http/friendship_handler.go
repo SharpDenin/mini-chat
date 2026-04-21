@@ -213,7 +213,7 @@ func (h *FriendshipHandler) CheckRequestState(ctx *gin.Context) {
 		return
 	}
 
-	status, err := h.friendshipService.CheckRequestState(ctx, targetId)
+	response, err := h.friendshipService.CheckRequestState(ctx, targetId)
 	if err != nil {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
@@ -225,7 +225,8 @@ func (h *FriendshipHandler) CheckRequestState(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, api_dto.RequestStateResponse{
-		Status: status,
+		RequestId: response.Id,
+		Status:    response.Status,
 	})
 }
 
