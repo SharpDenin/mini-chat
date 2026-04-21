@@ -15,9 +15,6 @@ type Friend struct {
 }
 
 func (f *Friend) BeforeCreate(tx *gorm.DB) error {
-	if f.UserId > f.FriendId {
-		f.UserId, f.FriendId = f.FriendId, f.UserId
-	}
 	f.CreatedAt = time.Now().UTC()
 	return nil
 }

@@ -53,7 +53,13 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		"sender_id":   senderId,
 		"receiver_id": receiverId,
 	}).Info("Sending friend request")
+
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		if receiverId == senderId {
+			f.log.WithError(err).Error("Failed to send friend request to yourself")
+			return helpers.ErrCannotFriendYourself
+		}
+
 		blocked, err := tx.IsBlocked(ctx, senderId, receiverId)
 		if err != nil {
 			f.log.WithError(err).Error("Failed to check block status")
@@ -61,7 +67,7 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		}
 		if blocked {
 			f.log.Warn("User is blocked, cannot send friend request")
-			return errors.New("cannot send friend request: user is blocked")
+			return helpers.ErrBlockedByUser
 		}
 
 		areFriends, err := tx.AreFriends(ctx, senderId, receiverId)
@@ -71,7 +77,7 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		}
 		if areFriends {
 			f.log.Warn("Users are already friends")
-			return errors.New("users are already friends")
+			return helpers.ErrAlreadyFriends
 		}
 
 		existingRequest, err := tx.GetActiveRequestBetweenUsers(ctx, senderId, receiverId)
@@ -81,7 +87,7 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		}
 		if existingRequest != nil {
 			f.log.Warn("Friend request already exists")
-			return errors.New("friend request already exists")
+			return helpers.ErrFriendRequestExists
 		}
 
 		request := &models.FriendRequest{
@@ -104,10 +110,7 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 			RequestId: &request.Id,
 			Metadata:  createMetadata("message", message),
 		}
-
-		if err := tx.CreateHistory(ctx, history); err != nil {
-			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
-		}
+		_ = tx.CreateHistory(ctx, history)
 
 		event := kafka.NewFriendRequestSentEvent(senderId, receiverId, request.Id, message)
 		go func() {
@@ -142,20 +145,23 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
 		request, err := tx.GetPendingRequest(ctx, requestId, userId)
 		if err != nil {
-			f.log.WithError(err).Error("Failed to get pending request")
-			if errors.Is(err, errors.New("friendship not found")) {
-				return errors.New("friend request not found or already processed")
+			if errors.Is(err, repository.ErrFriendshipNotFound) {
+				f.log.WithError(err).Warn("Pending request not found")
+				return helpers.ErrFriendRequestNotFound
 			}
+			f.log.WithError(err).Error("Failed to get pending request")
 			return fmt.Errorf("failed to get friend request: %w", err)
 		}
-
 		if request == nil {
-			return errors.New("friend request not found")
+			return helpers.ErrFriendRequestNotFound
 		}
 
 		if accept {
 			if err := tx.UpdateFriendRequestStatus(ctx, requestId, repository.RequestStatusAccepted); err != nil {
-				f.log.WithError(err).Error("Failed to update request status")
+				if errors.Is(err, repository.ErrFriendshipNotFound) {
+					return helpers.ErrFriendRequestNotFound
+				}
+
 				return fmt.Errorf("failed to update request status: %w", err)
 			}
 
@@ -164,7 +170,6 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 				FriendId: request.ReceiverId,
 			}
 			if err := tx.CreateFriend(ctx, friend); err != nil {
-				f.log.WithError(err).Error("Failed to create friend relationship")
 				return fmt.Errorf("failed to create friend relationship: %w", err)
 			}
 
@@ -176,9 +181,7 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 				NewStatus: stringPtr(repository.RequestStatusAccepted),
 				RequestId: &request.Id,
 			}
-			if err := tx.CreateHistory(ctx, history); err != nil {
-				f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
-			}
+			_ = tx.CreateHistory(ctx, history)
 
 			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "accepted")
 			go func() {
@@ -195,7 +198,10 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 			}).Info("Friend request accepted")
 		} else {
 			if err := tx.UpdateFriendRequestStatus(ctx, requestId, repository.RequestStatusRejected); err != nil {
-				f.log.WithError(err).Error("Failed to reject request")
+				if errors.Is(err, repository.ErrFriendshipNotFound) {
+					return helpers.ErrFriendRequestNotFound
+				}
+
 				return fmt.Errorf("failed to reject request: %w", err)
 			}
 
@@ -207,9 +213,7 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 				NewStatus: stringPtr(repository.RequestStatusRejected),
 				RequestId: &request.Id,
 			}
-			if err := tx.CreateHistory(ctx, history); err != nil {
-				f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
-			}
+			_ = tx.CreateHistory(ctx, history)
 
 			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "rejected")
 			go func() {
@@ -224,6 +228,58 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 				"receiver_id": userId,
 			}).Info("Friend request rejected")
 		}
+		return nil
+	})
+}
+
+func (f *FriendshipService) CancelFriendRequest(ctx context.Context, requestId int64) error {
+	userId, err := helpers.GetUserIdFromContext(ctx)
+	if err != nil {
+		return middleware_profile.NewCustomError(http.StatusUnauthorized, err.Error(), nil)
+	}
+
+	f.log.WithFields(logrus.Fields{
+		"request_id": requestId,
+		"user_id":    userId,
+	}).Info("Cancelling friend request")
+
+	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		request, err := tx.GetPendingRequestBySender(ctx, requestId, userId)
+		if err != nil {
+			if errors.Is(err, repository.ErrFriendshipNotFound) {
+				return helpers.ErrFriendRequestNotFound
+			}
+			return fmt.Errorf("failed to get pending request: %w", err)
+		}
+
+		if err := tx.UpdateFriendRequestStatus(ctx, requestId, repository.RequestStatusCancelled); err != nil {
+			return fmt.Errorf("failed to cancel request: %w", err)
+		}
+
+		history := &models.FriendshipHistory{
+			EventType: "request_cancelled",
+			UserId:    userId,
+			TargetId:  request.ReceiverId,
+			OldStatus: stringPtr(repository.RequestStatusPending),
+			NewStatus: stringPtr(repository.RequestStatusCancelled),
+			RequestId: &request.Id,
+		}
+		_ = tx.CreateHistory(ctx, history)
+
+		event := kafka.NewFriendRequestActionEvent(userId, request.ReceiverId, requestId, "cancelled")
+		go func() {
+			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
+				fmt.Sprintf("%d", userId), event); err != nil {
+				f.log.WithError(err).Error("Failed to send Kafka event")
+			}
+		}()
+
+		f.log.WithFields(logrus.Fields{
+			"request_id":  requestId,
+			"sender_id":   userId,
+			"receiver_id": request.ReceiverId,
+		}).Info("Friend request cancelled successfully")
+
 		return nil
 	})
 }
@@ -246,21 +302,25 @@ func (f *FriendshipService) BlockUser(ctx context.Context, blockedId int64, reas
 	}).Info("Blocking user")
 
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		if blockerId == blockedId {
+			f.log.WithError(err).Error("Failed to block yourself")
+			return helpers.ErrCannotBlockYourself
+		}
+
 		existingBlock, err := tx.GetBlock(ctx, blockerId, blockedId)
 		if err != nil && !errors.Is(err, repository.ErrBlockNotFound) {
 			return fmt.Errorf("failed to check existing block: %w", err)
 		}
 		if existingBlock != nil {
-			return errors.New("user already blocked")
+			return helpers.ErrUserAlreadyBlocked
 		}
 
-		if err := tx.DeleteFriend(ctx, blockerId, blockedId); err != nil &&
-			!errors.Is(err, errors.New("friendship not found")) {
-			f.log.WithError(err).Warn("Failed to delete friend relationship")
+		if err := tx.DeleteFriend(ctx, blockerId, blockedId); err != nil && !errors.Is(err, repository.ErrFriendshipNotFound) {
+			f.log.WithError(err).Warn("Failed to delete friend relationship (non-critical)")
 		}
 
 		if err := tx.CancelPendingRequestBetweenUsers(ctx, blockerId, blockedId); err != nil {
-			f.log.WithError(err).Warn("Failed to cancel pending requests")
+			f.log.WithError(err).Warn("Failed to cancel pending requests (non-critical)")
 		}
 
 		block := &models.BlockedUser{
@@ -280,9 +340,7 @@ func (f *FriendshipService) BlockUser(ctx context.Context, blockedId int64, reas
 			NewStatus: stringPtr("blocked"),
 			Metadata:  createMetadata("reason", reason),
 		}
-		if err := tx.CreateHistory(ctx, history); err != nil {
-			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
-		}
+		_ = tx.CreateHistory(ctx, history)
 
 		event := kafka.NewBlockEvent(blockerId, blockedId, "block", reason)
 		go func() {
@@ -318,9 +376,14 @@ func (f *FriendshipService) UnblockUser(ctx context.Context, blockedId int64) er
 	}).Info("Unblocking user")
 
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		if blockerId == blockedId {
+			f.log.WithError(err).Error("Failed to unblock yourself")
+			return helpers.ErrCannotUnblockYourself
+		}
+
 		if err := tx.DeleteBlock(ctx, blockerId, blockedId); err != nil {
-			if errors.Is(err, errors.New("block not found")) {
-				return errors.New("user not blocked")
+			if errors.Is(err, repository.ErrBlockNotFound) {
+				return helpers.ErrUserNotBlocked
 			}
 			return fmt.Errorf("failed to unblock user: %w", err)
 		}
@@ -332,9 +395,7 @@ func (f *FriendshipService) UnblockUser(ctx context.Context, blockedId int64) er
 			OldStatus: stringPtr("blocked"),
 			NewStatus: stringPtr("unblocked"),
 		}
-		if err := tx.CreateHistory(ctx, history); err != nil {
-			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
-		}
+		_ = tx.CreateHistory(ctx, history)
 
 		event := kafka.NewBlockEvent(blockerId, blockedId, "unblock", "")
 		go func() {
@@ -370,9 +431,14 @@ func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, friendId i
 	}).Info("Removing from friend list")
 
 	return f.txManager.RunInTransaction(ctx, func(tx repository.FriendshipRepositoryInterface) error {
+		if userId == friendId {
+			f.log.WithError(err).Error("Failed to manage yourself")
+			return helpers.ErrCannotDeleteYourself
+		}
+
 		if err := tx.DeleteFriend(ctx, userId, friendId); err != nil {
-			if errors.Is(err, errors.New("friendship not found")) {
-				return errors.New("users are not friends")
+			if errors.Is(err, repository.ErrFriendshipNotFound) {
+				return helpers.ErrUsersNotFriends
 			}
 			return fmt.Errorf("failed to delete friend: %w", err)
 		}
@@ -384,9 +450,7 @@ func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, friendId i
 			OldStatus: stringPtr("accepted"),
 			NewStatus: stringPtr("unfriended"),
 		}
-		if err := tx.CreateHistory(ctx, history); err != nil {
-			f.log.WithError(err).Warn("Failed to create history entry (non-critical)")
-		}
+		_ = tx.CreateHistory(ctx, history)
 
 		event := kafka.NewFriendEvent(userId, friendId, "remove")
 		go func() {
@@ -477,7 +541,7 @@ func (f *FriendshipService) CheckRequestState(ctx context.Context, targetId int6
 
 	request, err := f.friendshipRepo.GetActiveRequestBetweenUsers(ctx, userId, targetId)
 	if err != nil {
-		if errors.Is(err, errors.New("friendship not found")) {
+		if errors.Is(err, repository.ErrFriendshipNotFound) {
 			return "none", nil
 		}
 		f.log.WithError(err).Error("Failed to check request state")

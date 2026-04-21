@@ -37,6 +37,7 @@ func (f *FriendshipRepo) CreateFriendRequest(ctx context.Context, request *model
 	if err := f.db.WithContext(ctx).
 		Create(request).Error; err != nil {
 		f.log.WithFields(logrus.Fields{"error": err}).Error("Failed to create friend request")
+
 		return fmt.Errorf("create friend request error: %w", err)
 	}
 
@@ -49,12 +50,12 @@ func (f *FriendshipRepo) GetPendingRequest(ctx context.Context, requestId, recei
 		Where("id = ? AND receiver_id = ? AND status = ?", requestId, receiverId, RequestStatusPending).
 		First(&request).Error
 	if err != nil {
-		f.log.WithFields(logrus.Fields{"error": err, "request_id": requestId, "receiver_id": receiverId}).
-			Error("Failed to get pending request")
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+
 			return nil, ErrFriendshipNotFound
 		}
+		f.log.WithFields(logrus.Fields{"error": err, "request_id": requestId, "receiver_id": receiverId}).
+			Error("Failed to get pending request")
 
 		return nil, fmt.Errorf("get pending request error: %w", err)
 	}
@@ -70,12 +71,12 @@ func (f *FriendshipRepo) GetActiveRequestBetweenUsers(ctx context.Context, userI
 		Where("status =?", RequestStatusPending).
 		First(&request).Error
 	if err != nil {
-		f.log.WithFields(logrus.Fields{"error": err, "user_id1": userId1, "user_id2": userId2}).
-			Error("Failed to get active request")
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+
 			return nil, ErrFriendshipNotFound
 		}
+		f.log.WithFields(logrus.Fields{"error": err, "user_id1": userId1, "user_id2": userId2}).
+			Error("Failed to get active request")
 
 		return nil, fmt.Errorf("get active request error: %w", err)
 	}
@@ -95,7 +96,7 @@ func (f *FriendshipRepo) UpdateFriendRequestStatus(ctx context.Context, requestI
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("friend request not found")
+		return ErrFriendshipNotFound
 	}
 
 	return nil
@@ -121,6 +122,7 @@ func (f *FriendshipRepo) CreateFriend(ctx context.Context, friend *models.Friend
 	if err := f.db.WithContext(ctx).
 		Create(friend).Error; err != nil {
 		f.log.WithFields(logrus.Fields{"error": err}).Error("Failed to create friend")
+
 		return fmt.Errorf("create friend error: %w", err)
 	}
 
@@ -136,17 +138,16 @@ func (f *FriendshipRepo) DeleteFriend(ctx context.Context, userId, friendId int6
 	if result.Error != nil {
 		f.log.WithFields(logrus.Fields{"error": result.Error, "user_id": userId, "friend_id": friendId}).
 			Error("Failed to delete friend")
+
 		return fmt.Errorf("delete friend error: %w", result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("friendship not found")
+		return ErrFriendshipNotFound
 	}
 
 	return nil
 }
-
-//
 
 func (f *FriendshipRepo) AreFriends(ctx context.Context, userId1, userId2 int64) (bool, error) {
 	var count int64
@@ -175,6 +176,7 @@ func (f *FriendshipRepo) GetFriendList(ctx context.Context, userId int64) ([]mod
 	if err != nil {
 		f.log.WithFields(logrus.Fields{"error": err, "user_id": userId}).
 			Error("Failed to get friend list")
+
 		return nil, fmt.Errorf("get friend list error: %w", err)
 	}
 
@@ -185,6 +187,7 @@ func (f *FriendshipRepo) CreateBlock(ctx context.Context, block *models.BlockedU
 	if err := f.db.WithContext(ctx).
 		Create(block).Error; err != nil {
 		f.log.WithFields(logrus.Fields{"error": err}).Error("Failed to create block")
+
 		return fmt.Errorf("create block error: %w", err)
 	}
 
@@ -199,11 +202,13 @@ func (f *FriendshipRepo) DeleteBlock(ctx context.Context, blockerId, blockedId i
 	if result.Error != nil {
 		f.log.WithFields(logrus.Fields{"error": result.Error, "blocker_id": blockerId, "blocked_id": blockedId}).
 			Error("Failed to delete block")
+
 		return fmt.Errorf("delete block error: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return ErrBlockNotFound
 	}
+
 	return nil
 }
 
@@ -229,14 +234,12 @@ func (f *FriendshipRepo) GetBlock(ctx context.Context, blockerId, blockedId int6
 	err := f.db.WithContext(ctx).
 		Where("blocker_id = ? AND blocked_id = ?", blockerId, blockedId).
 		First(&block).Error
-
 	if err != nil {
-		f.log.WithFields(logrus.Fields{"error": err, "blocker_id": blockerId, "blocked_id": blockedId}).
-			Error("Failed to get block")
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrBlockNotFound
 		}
+		f.log.WithFields(logrus.Fields{"error": err, "blocker_id": blockerId, "blocked_id": blockedId}).
+			Error("Failed to get block")
 
 		return nil, fmt.Errorf("get block error: %w", err)
 	}
@@ -244,10 +247,25 @@ func (f *FriendshipRepo) GetBlock(ctx context.Context, blockerId, blockedId int6
 	return &block, nil
 }
 
+func (f *FriendshipRepo) GetPendingRequestBySender(ctx context.Context, requestId, senderId int64) (*models.FriendRequest, error) {
+	var request models.FriendRequest
+	err := f.db.WithContext(ctx).
+		Where("id = ? AND sender_id = ? AND status = ?", requestId, senderId, RequestStatusPending).
+		First(&request).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrFriendshipNotFound
+		}
+		return nil, fmt.Errorf("get pending request by sender error: %w", err)
+	}
+	return &request, nil
+}
+
 func (f *FriendshipRepo) CreateHistory(ctx context.Context, history *models.FriendshipHistory) error {
 	if err := f.db.WithContext(ctx).
 		Create(history).Error; err != nil {
 		f.log.WithFields(logrus.Fields{"error": err}).Error("Failed to create history")
+
 		return fmt.Errorf("create history error: %w", err)
 	}
 

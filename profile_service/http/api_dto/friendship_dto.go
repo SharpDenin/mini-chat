@@ -6,7 +6,7 @@ type SendFriendRequestRequest struct {
 }
 
 type AnswerFriendRequestRequest struct {
-	Accept bool `json:"accept" binding:"required"`
+	Accept bool `json:"accept"`
 }
 
 type RequestStateResponse struct {

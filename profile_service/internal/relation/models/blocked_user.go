@@ -15,9 +15,6 @@ type BlockedUser struct {
 }
 
 func (bu *BlockedUser) BeforeCreate(tx *gorm.DB) error {
-	if bu.BlockerId > bu.BlockedId {
-		bu.BlockerId, bu.BlockedId = bu.BlockedId, bu.BlockerId
-	}
 	bu.CreatedAt = time.Now().UTC()
 	return nil
 }

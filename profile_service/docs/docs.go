@@ -155,6 +155,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Попытка заблокировать себя",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
                     "409": {
                         "description": "Пользователь уже заблокирован",
                         "schema": {
@@ -210,8 +222,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Попытка разблокировать себя",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Блокировка не найдена",
+                        "description": "Пользователь не найден или блокировка отсутствует",
                         "schema": {
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
@@ -291,12 +309,6 @@ const docTemplate = `{
                         "description": "Список друзей",
                         "schema": {
                             "$ref": "#/definitions/profile_service_http_api_dto.FriendListResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Неверные данные",
-                        "schema": {
-                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
                     "401": {
@@ -406,6 +418,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Пользователь заблокирован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
                     "409": {
                         "description": "Конфликт (уже друзья или есть запрос)",
                         "schema": {
@@ -457,6 +481,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/middleware_profile.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
                         "schema": {
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
@@ -628,7 +658,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Друг не найден",
+                        "description": "Пользователь не найден или не являются друзьями",
                         "schema": {
                             "$ref": "#/definitions/middleware_profile.ErrorResponse"
                         }
@@ -887,9 +917,6 @@ const docTemplate = `{
         },
         "profile_service_http_api_dto.AnswerFriendRequestRequest": {
             "type": "object",
-            "required": [
-                "accept"
-            ],
             "properties": {
                 "accept": {
                     "type": "boolean"

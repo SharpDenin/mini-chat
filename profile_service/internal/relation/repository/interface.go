@@ -18,6 +18,7 @@ type FriendshipRepositoryInterface interface {
 	DeleteFriend(ctx context.Context, userId, friendId int64) error
 	AreFriends(ctx context.Context, userId1, userId2 int64) (bool, error)
 	GetFriendList(ctx context.Context, userId int64) ([]models.Friend, error)
+	GetPendingRequestBySender(ctx context.Context, requestId, senderId int64) (*models.FriendRequest, error)
 
 	// Block
 	CreateBlock(ctx context.Context, block *models.BlockedUser) error

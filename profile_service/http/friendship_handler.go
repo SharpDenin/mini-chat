@@ -52,6 +52,8 @@ func NewFriendshipHandler(userService userService.UserServiceInterface, friendsh
 // @Success 200 {object} api_dto.SuccessResponse "Запрос успешно отправлен"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
+// @Failure 403 {object} middleware_profile.ErrorResponse "Пользователь заблокирован"
+// @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден"
 // @Failure 409 {object} middleware_profile.ErrorResponse "Конфликт (уже друзья или есть запрос)"
 // @Router /friends/requests [post]
 func (h *FriendshipHandler) PostFriendRequest(ctx *gin.Context) {
@@ -67,6 +69,12 @@ func (h *FriendshipHandler) PostFriendRequest(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
 			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "User not found", err), h.log)
+		case errors.Is(err, helpers.ErrAlreadyFriends), errors.Is(err, helpers.ErrFriendRequestExists):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusConflict, err.Error(), err), h.log)
+		case errors.Is(err, helpers.ErrBlockedByUser):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusForbidden, err.Error(), err), h.log)
+		case errors.Is(err, helpers.ErrCannotFriendYourself):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusBadRequest, err.Error(), err), h.log)
 		default:
 			middleware_profile.HandleError(ctx, err, h.log)
 		}
@@ -115,7 +123,12 @@ func (h *FriendshipHandler) AnswerFriendRequest(ctx *gin.Context) {
 			"accept":     req.Accept,
 			"path":       ctx.Request.URL.Path,
 		}).Error("Failed to answer friend request")
-		middleware_profile.HandleError(ctx, err, h.log)
+		switch {
+		case errors.Is(err, helpers.ErrFriendRequestNotFound):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "Friend request not found or already processed", err), h.log)
+		default:
+			middleware_profile.HandleError(ctx, err, h.log)
+		}
 		return
 	}
 
@@ -150,15 +163,19 @@ func (h *FriendshipHandler) CancelFriendRequest(ctx *gin.Context) {
 		return
 	}
 
-	// Отмена запроса = отклонение (accept = false)
-	err = h.friendshipService.AnswerFriendRequest(ctx, requestId, false)
+	err = h.friendshipService.CancelFriendRequest(ctx, requestId)
 	if err != nil {
 		h.log.WithFields(logrus.Fields{
 			"error":      err,
 			"request_id": requestId,
 			"path":       ctx.Request.URL.Path,
 		}).Error("Failed to cancel friend request")
-		middleware_profile.HandleError(ctx, err, h.log)
+		switch {
+		case errors.Is(err, helpers.ErrFriendRequestNotFound):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "Friend request not found or already processed", err), h.log)
+		default:
+			middleware_profile.HandleError(ctx, err, h.log)
+		}
 		return
 	}
 
@@ -179,6 +196,7 @@ func (h *FriendshipHandler) CancelFriendRequest(ctx *gin.Context) {
 // @Success 200 {object} api_dto.RequestStateResponse "Статус запроса"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
+// @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден"
 // @Router /friends/requests/state [get]
 func (h *FriendshipHandler) CheckRequestState(ctx *gin.Context) {
 	targetId, err := parseAndValidateID(ctx, "target_id", false)
@@ -211,7 +229,6 @@ func (h *FriendshipHandler) CheckRequestState(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} api_dto.FriendListResponse "Список друзей"
-// @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
 // @Router /friends [get]
 func (h *FriendshipHandler) GetFriendList(ctx *gin.Context) {
@@ -240,7 +257,7 @@ func (h *FriendshipHandler) GetFriendList(ctx *gin.Context) {
 // @Success 200 {object} api_dto.SuccessResponse "Друг успешно удален"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
-// @Failure 404 {object} middleware_profile.ErrorResponse "Друг не найден"
+// @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден или не являются друзьями"
 // @Router /friends/{friend_id} [delete]
 func (h *FriendshipHandler) DeleteFriend(ctx *gin.Context) {
 	friendId, err := parseAndValidateID(ctx, "friend_id", true)
@@ -254,6 +271,10 @@ func (h *FriendshipHandler) DeleteFriend(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
 			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "User not found", err), h.log)
+		case errors.Is(err, helpers.ErrUsersNotFriends):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "Users are not friends", err), h.log)
+		case errors.Is(err, helpers.ErrCannotDeleteYourself):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusBadRequest, err.Error(), err), h.log)
 		default:
 			middleware_profile.HandleError(ctx, err, h.log)
 		}
@@ -277,6 +298,8 @@ func (h *FriendshipHandler) DeleteFriend(ctx *gin.Context) {
 // @Success 200 {object} api_dto.SuccessResponse "Пользователь заблокирован"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
+// @Failure 403 {object} middleware_profile.ErrorResponse "Попытка заблокировать себя"
+// @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден"
 // @Failure 409 {object} middleware_profile.ErrorResponse "Пользователь уже заблокирован"
 // @Router /block [post]
 func (h *FriendshipHandler) BlockUser(ctx *gin.Context) {
@@ -292,6 +315,10 @@ func (h *FriendshipHandler) BlockUser(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
 			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "User not found", err), h.log)
+		case errors.Is(err, helpers.ErrUserAlreadyBlocked):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusConflict, "User already blocked", err), h.log)
+		case errors.Is(err, helpers.ErrCannotBlockYourself):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusForbidden, err.Error(), err), h.log)
 		default:
 			middleware_profile.HandleError(ctx, err, h.log)
 		}
@@ -315,7 +342,8 @@ func (h *FriendshipHandler) BlockUser(ctx *gin.Context) {
 // @Success 200 {object} api_dto.SuccessResponse "Пользователь разблокирован"
 // @Failure 400 {object} middleware_profile.ErrorResponse "Неверные данные"
 // @Failure 401 {object} middleware_profile.ErrorResponse "Не авторизован"
-// @Failure 404 {object} middleware_profile.ErrorResponse "Блокировка не найдена"
+// @Failure 403 {object} middleware_profile.ErrorResponse "Попытка разблокировать себя"
+// @Failure 404 {object} middleware_profile.ErrorResponse "Пользователь не найден или блокировка отсутствует"
 // @Router /block [delete]
 func (h *FriendshipHandler) UnblockUser(ctx *gin.Context) {
 	var req api_dto.UnblockUserRequest
@@ -330,6 +358,10 @@ func (h *FriendshipHandler) UnblockUser(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, helpers.ErrUserNotFound):
 			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "User not found", err), h.log)
+		case errors.Is(err, helpers.ErrUserNotBlocked):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusNotFound, "User is not blocked", err), h.log)
+		case errors.Is(err, helpers.ErrCannotUnblockYourself):
+			middleware_profile.HandleError(ctx, middleware_profile.NewCustomError(http.StatusForbidden, err.Error(), err), h.log)
 		default:
 			middleware_profile.HandleError(ctx, err, h.log)
 		}

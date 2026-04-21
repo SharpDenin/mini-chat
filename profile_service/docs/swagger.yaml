@@ -10,8 +10,6 @@ definitions:
     properties:
       accept:
         type: boolean
-    required:
-    - accept
     type: object
   profile_service_http_api_dto.AreFriendsResponse:
     properties:
@@ -248,8 +246,12 @@ paths:
           description: Не авторизован
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "403":
+          description: Попытка разблокировать себя
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
         "404":
-          description: Блокировка не найдена
+          description: Пользователь не найден или блокировка отсутствует
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
       security:
@@ -281,6 +283,14 @@ paths:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
         "401":
           description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "403":
+          description: Попытка заблокировать себя
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
         "409":
@@ -335,10 +345,6 @@ paths:
           description: Список друзей
           schema:
             $ref: '#/definitions/profile_service_http_api_dto.FriendListResponse'
-        "400":
-          description: Неверные данные
-          schema:
-            $ref: '#/definitions/middleware_profile.ErrorResponse'
         "401":
           description: Не авторизован
           schema:
@@ -375,7 +381,7 @@ paths:
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
         "404":
-          description: Друг не найден
+          description: Пользователь не найден или не являются друзьями
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
       security:
@@ -440,6 +446,14 @@ paths:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
         "401":
           description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "403":
+          description: Пользователь заблокирован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
         "409":
@@ -550,6 +564,10 @@ paths:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
         "401":
           description: Не авторизован
+          schema:
+            $ref: '#/definitions/middleware_profile.ErrorResponse'
+        "404":
+          description: Пользователь не найден
           schema:
             $ref: '#/definitions/middleware_profile.ErrorResponse'
       security:
