@@ -14,6 +14,7 @@ type UserViewResponse struct {
 	Name      string    `json:"username"`
 	Email     string    `json:"email"`
 	Status    string    `json:"status"`
+	LastSeen  time.Time `json:"last_seen"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

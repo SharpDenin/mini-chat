@@ -10,6 +10,7 @@ type GetUserResponse struct {
 	Email     string
 	Password  string
 	Status    string
+	LastSeen  time.Time
 	CreatedAt time.Time
 }
 

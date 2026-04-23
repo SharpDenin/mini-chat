@@ -11,12 +11,14 @@ import (
 	transport "profile_service/http"
 	"profile_service/internal/config"
 	"profile_service/internal/config/db"
-	"profile_service/internal/kafka"
+	"profile_service/internal/kafka/friendship_producer"
 	relRepo "profile_service/internal/relation/repository"
 	relService "profile_service/internal/relation/service"
+	"profile_service/internal/user/cache"
 	userRepo "profile_service/internal/user/repository"
 	userService "profile_service/internal/user/service"
 	"profile_service/middleware_profile"
+	"profile_service/pkg/grpc_client"
 	"profile_service/pkg/grpc_generated/profile"
 	"profile_service/pkg/grpc_server"
 	"syscall"
@@ -78,23 +80,38 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Инициализация gRPC-клиента (PresenceClient)
+	presenceClient, err := grpc_client.NewPresenceClient("localhost:50056")
+	if err != nil {
+		log.Fatalf("failed to create profile client: %v", err)
+	}
+	defer func() {
+		if err = presenceClient.Close(); err != nil {
+			log.Printf("failed to close presence client: %v", err)
+		}
+	}()
+
+	// Инициализация кэширования статусов
+	presenceCache := cache.NewPresenceCache(3 * time.Second)
+	defer presenceCache.Stop()
+
 	// Инициализация user-репозитория и сервисов
 	userRepo := userRepo.NewProfileRepo(database.DB, log)
-	userService := userService.NewUserService(userRepo, log)
+	userService := userService.NewUserService(userRepo, presenceClient, presenceCache, log)
 
 	// Инициализация репозиториев для дружбы
 	friendshipRepo := relRepo.NewFriendshipRepository(database.DB, log.WithField("component", "friendship_repo"))
 	txManager := relRepo.NewTransactionManager(database.DB, log)
 
-	// Инициализация Kafka producer
-	kafkaProducer, err := kafka.NewKafkaProducer(kafkaCfg.Brokers, kafkaCfg.Topic)
+	// Инициализация Kafka friendship_producer
+	kafkaProducer, err := friendship_producer.NewKafkaProducer(kafkaCfg.Brokers, kafkaCfg.Topic)
 	if err != nil {
 		log.Fatalf("Failed to run kafkaProducer: %v", err)
 	}
 	defer kafkaProducer.Close()
 
-	// Инициализация Outbox producer
-	outboxProducer := kafka.NewOutboxProducer(database.DB, kafkaProducer, 100)
+	// Инициализация Outbox friendship_producer
+	outboxProducer := friendship_producer.NewOutboxProducer(database.DB, kafkaProducer, 100)
 	defer outboxProducer.Close()
 
 	// Инициализация сервисов дружбы

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"profile_service/internal/kafka"
+	"profile_service/internal/kafka/friendship_producer"
 	"profile_service/internal/relation/models"
 	"profile_service/internal/relation/repository"
 	"profile_service/internal/relation/service/helpers"
@@ -23,13 +23,13 @@ type FriendshipService struct {
 	friendshipRepo      repository.FriendshipRepositoryInterface
 	txManager           repository.TransactionManagerInterface
 	userService         service.UserServiceInterface
-	outboxKafkaProducer *kafka.OutboxProducer
+	outboxKafkaProducer *friendship_producer.OutboxProducer
 	log                 *logrus.Entry
 }
 
 func NewFriendshipService(friendshipRepo repository.FriendshipRepositoryInterface,
 	userService service.UserServiceInterface, txManager repository.TransactionManagerInterface,
-	outboxKafkaProducer *kafka.OutboxProducer, log *logrus.Entry) interfaces.FriendshipServiceInterface {
+	outboxKafkaProducer *friendship_producer.OutboxProducer, log *logrus.Entry) interfaces.FriendshipServiceInterface {
 	return &FriendshipService{
 		friendshipRepo:      friendshipRepo,
 		userService:         userService,
@@ -107,7 +107,7 @@ func (f *FriendshipService) SendFriendRequest(ctx context.Context, receiverId in
 		}
 		_ = tx.CreateHistory(ctx, history)
 
-		event := kafka.NewFriendRequestSentEvent(senderId, receiverId, request.Id, message)
+		event := friendship_producer.NewFriendRequestSentEvent(senderId, receiverId, request.Id, message)
 		go func() {
 			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", senderId), event); err != nil {
@@ -183,7 +183,7 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 			}
 			_ = tx.CreateHistory(ctx, history)
 
-			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "accepted")
+			event := friendship_producer.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "accepted")
 			go func() {
 				if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 					fmt.Sprintf("%d", userId), event); err != nil {
@@ -215,7 +215,7 @@ func (f *FriendshipService) AnswerFriendRequest(ctx context.Context, requestId i
 			}
 			_ = tx.CreateHistory(ctx, history)
 
-			event := kafka.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "rejected")
+			event := friendship_producer.NewFriendRequestActionEvent(userId, request.SenderId, requestId, "rejected")
 			go func() {
 				if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 					fmt.Sprintf("%d", userId), event); err != nil {
@@ -266,7 +266,7 @@ func (f *FriendshipService) CancelFriendRequest(ctx context.Context, requestId i
 		}
 		_ = tx.CreateHistory(ctx, history)
 
-		event := kafka.NewFriendRequestActionEvent(userId, request.ReceiverId, requestId, "cancelled")
+		event := friendship_producer.NewFriendRequestActionEvent(userId, request.ReceiverId, requestId, "cancelled")
 		go func() {
 			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", userId), event); err != nil {
@@ -342,7 +342,7 @@ func (f *FriendshipService) BlockUser(ctx context.Context, blockedId int64, reas
 		}
 		_ = tx.CreateHistory(ctx, history)
 
-		event := kafka.NewBlockEvent(blockerId, blockedId, "block", reason)
+		event := friendship_producer.NewBlockEvent(blockerId, blockedId, "block", reason)
 		go func() {
 			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", blockerId), event); err != nil {
@@ -397,7 +397,7 @@ func (f *FriendshipService) UnblockUser(ctx context.Context, blockedId int64) er
 		}
 		_ = tx.CreateHistory(ctx, history)
 
-		event := kafka.NewBlockEvent(blockerId, blockedId, "unblock", "")
+		event := friendship_producer.NewBlockEvent(blockerId, blockedId, "unblock", "")
 		go func() {
 			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", blockerId), event); err != nil {
@@ -452,7 +452,7 @@ func (f *FriendshipService) DeleteFromFriendList(ctx context.Context, friendId i
 		}
 		_ = tx.CreateHistory(ctx, history)
 
-		event := kafka.NewFriendEvent(userId, friendId, "remove")
+		event := friendship_producer.NewFriendEvent(userId, friendId, "remove")
 		go func() {
 			if err := f.outboxKafkaProducer.SendEvent(context.Background(), "friendship-events",
 				fmt.Sprintf("%d", userId), event); err != nil {

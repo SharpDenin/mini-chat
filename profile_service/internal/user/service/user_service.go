@@ -4,13 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
 	"os"
+	"profile_service/internal/user/cache"
 	"profile_service/internal/user/models"
 	"profile_service/internal/user/repository"
 	"profile_service/internal/user/service/helpers"
 	"profile_service/internal/user/service/service_dto"
 	"profile_service/middleware_profile"
+	"profile_service/pkg/grpc_client"
+	"profile_service/pkg/grpc_generated/chat"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -19,9 +24,15 @@ import (
 type UserService struct {
 	uRepo repository.ProfileRepoInterface
 	log   *logrus.Logger
+
+	presenceClient *grpc_client.PresenceClient
+	presenceCache  *cache.PresenceCache
 }
 
-func NewUserService(uRepo repository.ProfileRepoInterface, log *logrus.Logger) UserServiceInterface {
+func NewUserService(uRepo repository.ProfileRepoInterface,
+	presenceClient *grpc_client.PresenceClient,
+	presenceCache *cache.PresenceCache,
+	log *logrus.Logger) UserServiceInterface {
 	if log == nil {
 		log = logrus.New()
 		log.SetFormatter(&logrus.JSONFormatter{})
@@ -29,8 +40,10 @@ func NewUserService(uRepo repository.ProfileRepoInterface, log *logrus.Logger) U
 		log.SetLevel(logrus.DebugLevel)
 	}
 	return &UserService{
-		uRepo: uRepo,
-		log:   log,
+		uRepo:          uRepo,
+		log:            log,
+		presenceClient: presenceClient,
+		presenceCache:  presenceCache,
 	}
 }
 
@@ -48,10 +61,14 @@ func (u *UserService) GetUserById(ctx context.Context, userId int64) (*service_d
 		return nil, fmt.Errorf("user with id %d not found", userId)
 	}
 
+	status, lastSeen := u.getPresenceWithCache(ctx, userId)
+
 	response := &service_dto.GetUserResponse{
 		Id:        user.Id,
 		Name:      user.Username,
 		Email:     user.Email,
+		Status:    status,
+		LastSeen:  lastSeen,
 		CreatedAt: user.CreatedAt,
 	}
 	return response, nil
@@ -199,4 +216,45 @@ func (u *UserService) handleError(err error, id int64, operation string) error {
 		return middleware_profile.NewCustomError(http.StatusConflict, fmt.Sprintf("User already exists in %s", operation), err)
 	}
 	return middleware_profile.NewCustomError(http.StatusInternalServerError, fmt.Sprintf("%s error", operation), err)
+}
+
+func (u *UserService) getPresenceWithCache(ctx context.Context, userId int64) (string, time.Time) {
+	if cached, found := u.presenceCache.Get(userId); found {
+		lastSeen := time.Time{}
+		if cached.LastSeen != nil {
+			lastSeen = cached.LastSeen.AsTime()
+		}
+		return cached.Status, lastSeen
+	}
+
+	status, lastSeen := u.fetchPresence(ctx, userId)
+
+	resp := &chat.GetPresenceResponse{
+		UserId:   userId,
+		Status:   status,
+		LastSeen: nil,
+	}
+	if !lastSeen.IsZero() {
+		resp.LastSeen = timestamppb.New(lastSeen)
+	}
+	u.presenceCache.Set(userId, resp)
+
+	return status, lastSeen
+}
+
+func (u *UserService) fetchPresence(ctx context.Context, userId int64) (string, time.Time) {
+	callCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
+	resp, err := u.presenceClient.GetPresence(callCtx, &chat.GetPresenceRequest{UserId: userId})
+	if err != nil {
+		u.log.Warnf("failed to get presence for user %d: %v", userId, err)
+		return "offline", time.Time{}
+	}
+
+	lastSeen := time.Time{}
+	if resp.LastSeen != nil {
+		lastSeen = resp.LastSeen.AsTime()
+	}
+	return resp.Status, lastSeen
 }
