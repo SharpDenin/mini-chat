@@ -134,6 +134,21 @@ func (r *redisPresenceRepo) CleanupDanglingConnections(ctx context.Context, user
 	return err
 }
 
+func (r *redisPresenceRepo) SetLastSeen(ctx context.Context, userID int64, t time.Time) error {
+	return r.rdb.Set(ctx, fmt.Sprintf("last_seen:%d", userID), t.Unix(), 0).Err()
+}
+
+func (r *redisPresenceRepo) GetLastSeen(ctx context.Context, userID int64) (time.Time, error) {
+	val, err := r.rdb.Get(ctx, fmt.Sprintf("last_seen:%d", userID)).Int64()
+	if err == redis.Nil {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Unix(val, 0), nil
+}
+
 func connKey(connId int64) string {
 	return fmt.Sprintf("conn:%d", connId)
 }

@@ -1147,6 +1147,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "last_seen": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },

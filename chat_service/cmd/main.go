@@ -76,7 +76,15 @@ func main() {
 	}
 
 	// Инициализация gRPC-клиента (ProfileClient)
-	profileClient, err := grpc_client.NewProfileClient("localhost:50053", "localhost:50054")
+	authAddr := os.Getenv("PROFILE_SERVICE_AUTH_ADDR")
+	if authAddr == "" {
+		authAddr = "profile-service:50053"
+	}
+	dirAddr := os.Getenv("PROFILE_SERVICE_DIRECTORY_ADDR")
+	if dirAddr == "" {
+		dirAddr = "profile-service:50054"
+	}
+	profileClient, err := grpc_client.NewProfileClient(authAddr, dirAddr)
 	if err != nil {
 		log.Fatalf("failed to create profile client: %v", err)
 	}
@@ -118,19 +126,22 @@ func main() {
 	// Инициализация gRPC-сервера
 	presenceServer := grpc_server.NewGRPCServer(presenceService)
 
-	// Запуск gRPC-сервера
-	log.Info("Starting gRPC server...")
-
-	presenceListener, err := net.Listen("tcp", "0.0.0.0:50056")
+	// Запуск gRPC-сервера presence
+	presencePort := os.Getenv("CHAT_GRPC_PRESENCE_PORT")
+	if presencePort == "" {
+		presencePort = "50056"
+	}
+	presenceAddr := "0.0.0.0:" + presencePort
+	presenceListener, err := net.Listen("tcp", presenceAddr)
 	if err != nil {
-		log.Fatalf("failed to listen on presence port 50056: %v", err)
+		log.Fatalf("failed to listen on presence port %s: %v", presencePort, err)
 	}
 	presenceGrpcServer := grpc.NewServer()
 	chat.RegisterPresenceServer(presenceGrpcServer, presenceServer)
 	go func() {
-		log.Info("gRPC presence service starting on :50056")
+		log.Infof("gRPC presence service starting on :%s", presencePort)
 		if err := presenceGrpcServer.Serve(presenceListener); err != nil {
-			log.Fatalf("Failed to serve gRPC auth: %v", err)
+			log.Fatalf("Failed to serve gRPC presence: %v", err)
 		}
 	}()
 

@@ -3,6 +3,7 @@ package repository
 import (
 	"chat_service/internal/presence/repository/repo_dto"
 	"context"
+	"time"
 )
 
 type PresenceRepo interface {
@@ -12,4 +13,7 @@ type PresenceRepo interface {
 
 	GetUserConnections(ctx context.Context, userId int64) ([]repo_dto.Connection, error)
 	CleanupDanglingConnections(ctx context.Context, userId int64) error
+
+	SetLastSeen(ctx context.Context, userID int64, t time.Time) error
+	GetLastSeen(ctx context.Context, userID int64) (time.Time, error)
 }

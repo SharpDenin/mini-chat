@@ -55,6 +55,7 @@ func (s *presenceService) OnDisconnect(ctx context.Context, userId, connId int64
 
 	conns, _ := s.repo.GetUserConnections(ctx, userId)
 	if len(conns) == 0 {
+		s.repo.SetLastSeen(ctx, userId, time.Now())
 		s.bus.Publish(PresenceEvent{
 			Type:   EventUserOffline,
 			UserId: userId,
@@ -89,9 +90,11 @@ func (s *presenceService) GetPresence(ctx context.Context, userId int64) *sDto.P
 	}
 
 	if len(conns) == 0 {
+		lastSeen, _ := s.repo.GetLastSeen(ctx, userId)
 		return &sDto.Presence{
-			UserId: userId,
-			Status: sDto.Offline,
+			UserId:   userId,
+			Status:   sDto.Offline,
+			LastSeen: lastSeen,
 		}
 	}
 

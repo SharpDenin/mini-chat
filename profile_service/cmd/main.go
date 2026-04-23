@@ -81,7 +81,11 @@ func main() {
 	}
 
 	// Инициализация gRPC-клиента (PresenceClient)
-	presenceClient, err := grpc_client.NewPresenceClient("localhost:50056")
+	presenceAddr := os.Getenv("CHAT_PRESENCE_GRPC_ADDR")
+	if presenceAddr == "" {
+		presenceAddr = "chat-service:50056"
+	}
+	presenceClient, err := grpc_client.NewPresenceClient(presenceAddr)
 	if err != nil {
 		log.Fatalf("failed to create profile client: %v", err)
 	}
@@ -133,29 +137,39 @@ func main() {
 	log.Info("Starting gRPC servers...")
 
 	// Auth gRPC-server
-	authListener, err := net.Listen("tcp", "0.0.0.0:50053")
+	authPort := os.Getenv("PROFILE_GRPC_AUTH_PORT")
+	if authPort == "" {
+		authPort = "50053"
+	}
+	authAddr := "0.0.0.0:" + authPort
+	authListener, err := net.Listen("tcp", authAddr)
 	if err != nil {
-		log.Fatalf("Failed to listen on auth port 50053: %v", err)
+		log.Fatalf("Failed to listen on auth port %s: %v", authPort, err)
 	}
 	authGrpcServer := grpc.NewServer()
 	profile.RegisterAuthServiceServer(authGrpcServer, authServer)
 	profile.RegisterAuthorizationServiceServer(authGrpcServer, authzServer)
 	go func() {
-		log.Info("gRPC auth server starting on :50053")
+		log.Infof("gRPC auth server starting on :%s", authPort)
 		if err := authGrpcServer.Serve(authListener); err != nil {
 			log.Fatalf("Failed to serve gRPC auth: %v", err)
 		}
 	}()
 
 	// Directory gRPC-server
-	dirListener, err := net.Listen("tcp", "0.0.0.0:50054")
+	dirPort := os.Getenv("PROFILE_GRPC_DIRECTORY_PORT")
+	if dirPort == "" {
+		dirPort = "50054"
+	}
+	dirAddr := "0.0.0.0:" + dirPort
+	dirListener, err := net.Listen("tcp", dirAddr)
 	if err != nil {
-		log.Fatalf("Failed to listen on directory port 50054: %v", err)
+		log.Fatalf("Failed to listen on directory port %s: %v", dirPort, err)
 	}
 	dirGrpcServer := grpc.NewServer()
 	profile.RegisterUserDirectoryServer(dirGrpcServer, directoryServer)
 	go func() {
-		log.Info("gRPC directory server starting on :50054")
+		log.Infof("gRPC directory server starting on :%s", dirPort)
 		if err := dirGrpcServer.Serve(dirListener); err != nil {
 			log.Fatalf("Failed to serve gRPC directory: %v", err)
 		}
