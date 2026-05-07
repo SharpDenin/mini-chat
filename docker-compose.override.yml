@@ -20,3 +20,14 @@ services:
     environment:
       - GO_ENV=development
     command: air -c .air.toml
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification_service/Dockerfile.dev
+    volumes:
+      - ./notification_service:/app
+      - ./shared-proto:/app/shared-proto
+    environment:
+      - GO_ENV=development
+    command: air -c .air.toml
